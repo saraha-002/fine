@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Elite Journal – FineEscorts Blog</title>
+  <meta name="description" content="Premium insights, city guides, and lifestyle tips for the discerning client. Explore {{totalPosts}} articles.">
+  <meta name="keywords" content="luxury escort blog, city guides, etiquette, lifestyle">
+  <link rel="canonical" href="https://www.finecompanion.com/blog.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="css/index.css">
+  <style>
+   /* ========== BLOG PAGE PREMIUM STYLES ========== */
+:root {
+  --gold: #c9a45c;
+  --gold-dark: #b48c3a;
+  --bg-dark: #0a0a0a;
+  --card-bg: rgba(20, 20, 20, 0.8);
+  --border-light: rgba(255, 255, 255, 0.08);
+}
+
+/* Prevent horizontal overflow – global reset */
+* {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Layout */
+.blog-page-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 3rem;
+  margin: 2rem 0;
+}
+
+@media (max-width: 900px) {
+  .blog-page-wrapper {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+  font-size: 0.85rem;
+  margin-bottom: 2rem;
+  color: #888;
+  font-family: 'Montserrat', sans-serif;
+  word-break: break-word;
+}
+.breadcrumbs a {
+  color: var(--gold);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.breadcrumbs a:hover {
+  color: #fff;
+}
+
+/* Header */
+.blog-header {
+  text-align: center;
+  padding: 2rem 0;
+}
+.blog-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 3.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #fff, var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@media (max-width: 600px) {
+  .blog-header h1 {
+    font-size: 2.2rem;
+    letter-spacing: 2px;
+  }
+  .blog-header p {
+    font-size: 1rem;
+  }
+}
+
+/* Filters – swipeable on mobile */
+.blog-filters {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+  overflow-x: auto;
+  padding: 0.5rem 0.5rem 1rem;
+  margin-bottom: 2rem;
+  white-space: nowrap;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  /* Ensure filters don't overflow container */
+  max-width: 100%;
+  width: 100%;
+}
+.filter-btn {
+  scroll-snap-align: start;
+  background: none;
+  border: 1px solid var(--border-light);
+  color: #ccc;
+  padding: 0.5rem 1.5rem;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+.filter-btn.active,
+.filter-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(201, 164, 92, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Featured Post */
+.featured-post {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 0;
+  background: linear-gradient(135deg, rgba(20,20,20,0.8), rgba(10,10,10,0.9));
+  border-radius: 24px;
+  overflow: hidden;
+  margin-bottom: 3rem;
+  border: 1px solid var(--border-light);
+  transition: all 0.4s;
+}
+.featured-post:hover {
+  border-color: var(--gold);
+  box-shadow: 0 20px 30px -12px rgba(0,0,0,0.5);
+}
+.featured-image {
+  overflow: hidden;
+  position: relative;
+}
+.featured-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s;
+}
+.featured-post:hover .featured-image img {
+  transform: scale(1.03);
+}
+.featured-content {
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.category-tag {
+  color: var(--gold);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 1rem;
+  display: inline-block;
+}
+.featured-content h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  font-family: 'Playfair Display', serif;
+}
+.read-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  color: var(--gold);
+  font-weight: 600;
+  text-decoration: none;
+  transition: gap 0.3s;
+}
+.read-more i {
+  transition: transform 0.3s;
+}
+.read-more:hover {
+  gap: 0.8rem;
+}
+.read-more:hover i {
+  transform: translateX(5px);
+}
+
+@media (max-width: 900px) {
+  .featured-post {
+    grid-template-columns: 1fr;
+  }
+  .featured-content {
+    padding: 1.5rem;
+  }
+  .featured-content h2 {
+    font-size: 1.6rem;
+  }
+}
+
+/* Blog Cards – Premium Grid */
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+@media (max-width: 700px) {
+  .blog-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+.blog-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+.blog-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(201,164,92,0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+.blog-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--gold);
+  box-shadow: 0 25px 35px -12px rgba(0,0,0,0.5);
+}
+.blog-card:hover::after {
+  opacity: 1;
+}
+.card-img-wrapper {
+  height: 200px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+.card-img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s;
+}
+.blog-card:hover .card-img-wrapper img {
+  transform: scale(1.08);
+}
+.card-body {
+  padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.city-tag {
+  display: inline-block;
+  background: rgba(201, 164, 92, 0.2);
+  color: var(--gold);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 0.2rem 0.8rem;
+  border-radius: 30px;
+  margin-bottom: 0.8rem;
+  align-self: flex-start;
+}
+.card-body h3 {
+  font-size: 1.3rem;
+  margin-bottom: 0.8rem;
+  line-height: 1.3;
+  font-family: 'Playfair Display', serif;
+  word-break: break-word;
+}
+.card-body p {
+  color: #bbb;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1.2rem;
+  flex: 1;
+  word-break: break-word;
+}
+.city-escort-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 500;
+  transition: gap 0.3s;
+  margin-top: 0.5rem;
+}
+.city-escort-link i {
+  font-size: 0.7rem;
+  transition: transform 0.3s;
+}
+.city-escort-link:hover {
+  gap: 0.8rem;
+}
+.city-escort-link:hover i {
+  transform: translateX(3px);
+}
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.75rem;
+  color: #888;
+}
+.card-footer a {
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.card-footer a i {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+.card-footer a:hover i {
+  transform: translateX(3px);
+}
+
+/* Pagination */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 3rem 0;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pagination-controls button {
+  background: #222;
+  border: 1px solid #444;
+  padding: 0.6rem 1.2rem;
+  border-radius: 40px;
+  color: #ccc;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+}
+.pagination-controls button:hover:not(:disabled) {
+  background: var(--gold);
+  color: #0a0a0a;
+  border-color: var(--gold);
+  transform: translateY(-2px);
+}
+.pagination-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.page-numbers {
+  display: flex;
+  gap: 0.5rem;
+}
+.page-num {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #222;
+  border: 1px solid #444;
+  color: #ccc;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+.page-num.active {
+  background: var(--gold);
+  color: #0a0a0a;
+  border-color: var(--gold);
+}
+.page-num:hover:not(.active) {
+  background: #333;
+  border-color: #666;
+}
+
+/* Sidebar – Premium */
+.sidebar {
+  background: linear-gradient(145deg, #111, #0c0c0c);
+  border-radius: 24px;
+  padding: 2rem 1.5rem;
+  border: 1px solid var(--border-light);
+  position: sticky;
+  top: 100px;
+}
+.sidebar h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  margin-bottom: 1.2rem;
+  border-left: 3px solid var(--gold);
+  padding-left: 1rem;
+  color: #fff;
+}
+.recent-posts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+}
+.recent-posts-list li {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-light);
+}
+.recent-posts-list a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  display: block;
+  transition: color 0.2s;
+  word-break: break-word;
+}
+.recent-posts-list a:hover {
+  color: var(--gold);
+}
+.recent-date {
+  font-size: 0.7rem;
+  color: #888;
+  margin-top: 0.3rem;
+}
+.city-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin: 1rem 0 2rem;
+}
+.city-list a {
+  background: rgba(255,255,255,0.05);
+  padding: 0.4rem 1rem;
+  border-radius: 40px;
+  font-size: 0.8rem;
+  color: #ccc;
+  text-decoration: none;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.city-list a:hover {
+  background: rgba(201,164,92,0.2);
+  color: var(--gold);
+  border-color: var(--gold);
+  transform: translateY(-2px);
+}
+.newsletter-form input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 40px;
+  color: white;
+  font-family: 'Montserrat', sans-serif;
+  margin-bottom: 1rem;
+  transition: border 0.2s;
+}
+.newsletter-form input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.newsletter-form button {
+  width: 100%;
+  background: var(--gold);
+  border: none;
+  padding: 0.9rem;
+  border-radius: 40px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Montserrat', sans-serif;
+  color: #0a0a0a;
+}
+.newsletter-form button:hover {
+  background: var(--gold-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(201,164,92,0.3);
+}
+
+/* ===== EXTRA MOBILE FIXES ===== */
+@media (max-width: 600px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+  .blog-filters {
+    padding: 0.5rem 0 1rem;
+  }
+  .filter-btn {
+    padding: 0.3rem 1rem;
+    font-size: 0.8rem;
+  }
+  .card-img-wrapper {
+    height: 160px;
+  }
+  .card-body {
+    padding: 1rem;
+  }
+  .card-body h3 {
+    font-size: 1.1rem;
+  }
+  .page-num {
+    width: 32px;
+    height: 32px;
+  }
+  .sidebar {
+    padding: 1rem;
+  }
+  .sidebar h3 {
+    font-size: 1.1rem;
+  }
+  .city-list a {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Very small devices */
+@media (max-width: 380px) {
+  .card-img-wrapper {
+    height: 140px;
+  }
+  .card-body p {
+    font-size: 0.8rem;
+  }
+  .featured-content h2 {
+    font-size: 1.3rem;
+  }
+  .blog-header h1 {
+    font-size: 1.8rem;
+  }
+}
+  </style>
+<script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
+</head>
+<body>
+  <!-- Header (same as your main site) -->
+ <header class="site-header">
+  <div class="container header-inner">
+    <div class="logo">Fine<span>Escorts</span></div>
+    <nav class="nav-links">
+      <a href="index.html">Escorts</a>
+      <a href="#">Massage</a>
+      <a href="#">Dildos</a>
+      <a href="reviews.html">Reviews</a>
+      <a href="blog.html" class="active">Blog</a>
+      <a href="#" class="admin-icon"><i class="fas fa-user-cog"></i></a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  <!-- Breadcrumbs -->
+  <div class="breadcrumbs">
+    <a href="index.html">Home</a> › <span>Blog</span>
+  </div>
+
+  <div class="blog-header">
+    <h1>The FineEscorts Journal</h1>
+    <p>Insights on luxury companionship, Kenyan nightlife, and discreet encounters</p>
+  </div>
+
+  <!-- City Filters (Kenyan cities only) -->
+  <nav class="blog-filters" id="cityFilters">
+    <button class="filter-btn active" data-city="all">All Cities</button>
+    {{cityFilters}}
+  </nav>
+
+  <!-- Two-Column Layout: Main + Sidebar -->
+  <div class="blog-page-wrapper">
+    <div class="blog-main">
+      {{featuredPost}}
+
+      <div id="blogPagesContainer">
+        {{blogPagesHtml}}
+      </div>
+
+      {{pagination}}
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h3>Recent Posts</h3>
+      <ul class="recent-posts-list">
+        {{recentPosts}}
+      </ul>
+
+      <h3>Explore Kenyan Cities</h3>
+      <div class="city-list">
+        {{cityLinks}}
+      </div>
+
+      <h3>Subscribe</h3>
+      <div class="newsletter-form">
+        <input type="email" placeholder="Your email address">
+        <button>Subscribe for Updates</button>
+      </div>
+      
+      <div class="mpesa-note">
+        <i class="fas fa-mobile-alt"></i> Unlock escort numbers via M-Pesa for just 25 KES
+      </div>
+    </aside>
+  </div>
+</main>
+
+<!-- Footer (Kenya-specific) -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms & Conditions</a>
+        <a href="dmca.html">DMCA</a>
+        <a href="reportabuse.html">Report Abuse</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="about.html">About Us</a>
+        <a href="advertise.html">Advertise With Us</a>
+        <a href="contact.html">Contact</a>
+        <a href="reporttrafficking.html">Report Trafficking</a>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="reviews.html">Reviews</a>
+        <a href="blog.html">Blog</a>
+      </div>
+      <div class="footer-col">
+        <h4>Social</h4>
+        <div style="display: flex; gap: 1rem;">
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fas fa-shield-alt"></i></a>
+        </div>
+      </div>
+    </div>
+    <div class="copyright">
+      fineescorts.co.ke ® The Ultimate Guide to Escorts & Adult Entertainment in Kenya ®<br>
+      © 1997 - <span id="year"></span> FineEscorts
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Update copyright year
+  document.getElementById('year').textContent = new Date().getFullYear();
+  
+  // Age verification check (if not already verified)
+  if (localStorage.getItem('ageVerified') !== 'true') {
+    // Redirect to home if age not verified (optional)
+    // window.location.href = 'index.html';
+  }
+</script>
+
+  <script src="js/blog.js"></script>
+  <script>
+    // Pagination logic
+    document.addEventListener('DOMContentLoaded', function() {
+      const pages = document.querySelectorAll('.blog-page');
+      const prevBtn = document.querySelector('.page-prev');
+      const nextBtn = document.querySelector('.page-next');
+      const pageNums = document.querySelectorAll('.page-num');
+
+      if (!pages.length) return;
+
+      let currentPage = 1;
+      const totalPages = pages.length;
+
+      function showPage(page) {
+        pages.forEach((p, i) => p.style.display = (i+1 === page) ? 'block' : 'none');
+        pageNums.forEach(btn => {
+          btn.classList.remove('active');
+          if (parseInt(btn.dataset.page) === page) btn.classList.add('active');
+        });
+        if (prevBtn) prevBtn.disabled = (page === 1);
+        if (nextBtn) nextBtn.disabled = (page === totalPages);
+      }
+
+      if (prevBtn) prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) showPage(--currentPage);
+      });
+      if (nextBtn) nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) showPage(++currentPage);
+      });
+      pageNums.forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentPage = parseInt(btn.dataset.page);
+          showPage(currentPage);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

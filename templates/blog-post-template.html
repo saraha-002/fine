@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>{{title}} | FineEscorts  Blog</title>
+  <meta name="description" content="{{excerpt}}">
+  <meta name="keywords" content="{{city}} escorts, Kenya escorts, blog, {{tags}}, luxury escorts, Nairobi, Mombasa, M-Pesa">
+  <meta name="author" content="{{author}}">
+  <meta name="robots" content="index, follow">
+  <meta name="geo.region" content="KE">
+  <meta name="geo.placename" content="{{city}}, Kenya">
+  <link rel="canonical" href="https://fineescorts.co.ke/blog/{{slug}}.html">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://fineescorts.co.ke/blog/{{slug}}.html">
+  <meta property="og:title" content="{{title}}">
+  <meta property="og:description" content="{{excerpt}}">
+  <meta property="og:image" content="{{image}}">
+  <meta property="og:image:alt" content="{{title}} – {{city}}, Kenya">
+  <meta property="og:site_name" content="FineEscorts Kenya">
+  <meta property="og:locale" content="en_KE">
+  <meta property="article:published_time" content="{{date}}">
+  <meta property="article:author" content="{{author}}">
+  <meta property="article:section" content="Lifestyle">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://fineescorts.co.ke/blog/{{slug}}.html">
+  <meta name="twitter:title" content="{{title}}">
+  <meta name="twitter:description" content="{{excerpt}}">
+  <meta name="twitter:image" content="{{image}}">
+  <meta name="twitter:site" content="@FineEscortsKE">
+
+  <!-- JSON‑LD Structured Data (BlogPosting) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://fineescorts.co.ke/blog/{{slug}}.html"
+    },
+    "headline": "{{title}}",
+    "description": "{{excerpt}}",
+    "image": "{{image}}",
+    "datePublished": "{{date}}",
+    "dateModified": "{{date}}",
+    "author": {
+      "@type": "Organization",
+      "name": "FineEscorts Kenya"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "FineEscorts Kenya",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://fineescorts.co.ke/images/logo.png"
+      }
+    }
+  }
+  </script>
+
+  <!-- Preconnect & Fonts -->
+  <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="../css/index.css">
+
+  <style>
+    /* ========== BLOG POST PREMIUM STYLES - KENYA EDITION ========== */
+    :root {
+      --gold: #c9a45c;
+      --gold-dark: #b48c3a;
+      --mpesa-green: #00b843;
+      --mpesa-green-dark: #009f3a;
+      --bg-dark: #0a0a0a;
+      --card-bg: rgba(20, 20, 20, 0.8);
+      --border-light: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: #e0e0e0;
+      font-family: 'Jost', sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Breadcrumbs */
+    .breadcrumbs {
+      font-size: 0.85rem;
+      margin: 2rem 0 1rem;
+      color: #888;
+    }
+    .breadcrumbs a {
+      color: var(--gold);
+      text-decoration: none;
+    }
+    .breadcrumbs a:hover {
+      text-decoration: underline;
+    }
+
+    /* Blog Post Layout */
+    .blog-post-container {
+      max-width: 850px;
+      margin: 0 auto;
+      background: linear-gradient(145deg, #111, #0c0c0c);
+      border-radius: 32px;
+      padding: 2rem 2rem 3rem;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    }
+
+    .blog-post-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .blog-post-header h1 {
+      font-family: 'Jost', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      line-height: 1.2;
+    }
+    .blog-meta {
+      font-size: 0.9rem;
+      color: var(--gold);
+      margin: 0.5rem 0;
+    }
+    .blog-meta i {
+      margin-right: 0.3rem;
+    }
+    .blog-meta span {
+      margin: 0 0.5rem;
+      color: #888;
+    }
+
+    .blog-featured-image {
+      width: 100%;
+      border-radius: 24px;
+      margin: 1.5rem 0;
+      overflow: hidden;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    }
+    .blog-featured-image img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.5s;
+    }
+    .blog-featured-image:hover img {
+      transform: scale(1.02);
+    }
+
+    .blog-content {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: #ddd;
+    }
+    .blog-content p {
+      margin-bottom: 1.2rem;
+    }
+    .blog-content h2 {
+      font-family: 'Jost', sans-serif;
+      font-size: 1.8rem;
+      color: #fff;
+      margin: 2rem 0 1rem;
+    }
+    .blog-content h3 {
+      font-family: 'Jost', sans-serif;
+      font-size: 1.4rem;
+      color: var(--gold);
+      margin: 1.5rem 0 0.8rem;
+    }
+    .blog-content a {
+      color: var(--gold);
+      text-decoration: none;
+      border-bottom: 1px dotted var(--gold);
+    }
+    .blog-content a:hover {
+      color: #fff;
+      border-bottom-color: #fff;
+    }
+    .blog-content ul, .blog-content ol {
+      margin: 1rem 0 1rem 2rem;
+    }
+
+    /* CTA to City Escort Page */
+    .city-cta {
+      background: rgba(201, 164, 92, 0.1);
+      border-left: 4px solid var(--gold);
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border-radius: 16px;
+      text-align: center;
+    }
+    .city-cta p {
+      margin-bottom: 0.5rem;
+    }
+    .city-cta a {
+      display: inline-block;
+      background: var(--gold);
+      color: #0a0a0a;
+      padding: 0.6rem 1.5rem;
+      border-radius: 40px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .city-cta a:hover {
+      background: var(--gold-dark);
+      transform: translateY(-2px);
+    }
+
+    /* M-Pesa Info Box - Kenya Specific */
+    .mpesa-info {
+      background: linear-gradient(135deg, #1a2a1a, #0f1a0f);
+      border-left: 4px solid var(--mpesa-green);
+      padding: 1.2rem 1.5rem;
+      margin: 2rem 0;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .mpesa-info i {
+      font-size: 2rem;
+      color: var(--mpesa-green);
+    }
+    .mpesa-info strong {
+      color: var(--mpesa-green);
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+    .mpesa-info p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+    @media (max-width: 600px) {
+      .mpesa-info {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    /* External Backlinks Section */
+    .external-resources {
+      background: #1a1a1a;
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border: 1px solid #333;
+    }
+    .external-resources h3 {
+      font-size: 1.2rem;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+    .external-resources ul {
+      list-style: none;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .external-resources li a {
+      color: #ccc;
+      text-decoration: none;
+      border-bottom: 1px solid #555;
+      padding-bottom: 2px;
+    }
+    .external-resources li a:hover {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+    }
+
+    /* Related Posts */
+    .related-posts {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-light);
+    }
+    .related-posts h3 {
+      font-family: 'Jost', sans-serif;
+      font-size: 1.6rem;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+    .related-posts ul {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+      list-style: none;
+      padding: 0;
+    }
+    .related-posts li {
+      background: #1a1a1a;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+    .related-posts li:hover {
+      transform: translateY(-4px);
+    }
+    .related-posts a {
+      display: block;
+      padding: 1rem;
+      color: #ddd;
+      text-decoration: none;
+    }
+    .related-posts a:hover {
+      color: var(--gold);
+    }
+    .related-posts .post-title {
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+    .related-posts .post-date {
+      font-size: 0.7rem;
+      color: #888;
+    }
+
+    /* Share Buttons */
+    .share-buttons {
+      margin: 2rem 0 1rem;
+      text-align: center;
+    }
+    .share-buttons span {
+      margin-right: 1rem;
+      color: #aaa;
+    }
+    .share-buttons a {
+      display: inline-block;
+      margin: 0 0.5rem;
+      color: #aaa;
+      font-size: 1.2rem;
+      transition: color 0.2s;
+    }
+    .share-buttons a:hover {
+      color: var(--gold);
+    }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      .container {
+        padding: 0 1rem;
+      }
+      .blog-post-container {
+        padding: 1.5rem;
+      }
+      .blog-post-header h1 {
+        font-size: 2rem;
+      }
+      .blog-content {
+        font-size: 1rem;
+      }
+      .related-posts ul {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Related Escorts Section */
+    .related-escorts {
+      margin: 2rem 0;
+    }
+    .related-escorts h3 {
+      font-size: 1.4rem;
+      color: #c9a45c;
+      border-left: 3px solid #c9a45c;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+    .related-escorts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1.2rem;
+    }
+    .escort-card-small {
+      background: #1a1a1a;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.2s;
+      border: 1px solid #333;
+      text-align: center;
+    }
+    .escort-card-small:hover {
+      transform: translateY(-4px);
+      border-color: #c9a45c;
+    }
+    .escort-card-small img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      display: block;
+    }
+    .escort-card-small h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0.5rem 0 0.2rem;
+      color: #fff;
+    }
+    .escort-card-small p {
+      font-size: 0.8rem;
+      color: #c9a45c;
+      margin-bottom: 0.5rem;
+    }
+    .escort-card-small a {
+      display: inline-block;
+      background: transparent;
+      border: 1px solid #c9a45c;
+      color: #c9a45c;
+      padding: 0.3rem 0.8rem;
+      border-radius: 40px;
+      font-size: 0.7rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      margin-bottom: 0.8rem;
+    }
+    .escort-card-small a:hover {
+      background: #c9a45c;
+      color: #0a0a0a;
+    }
+    @media (max-width: 600px) {
+      .related-escorts-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
+      .escort-card-small img {
+        height: 120px;
+      }
+    }
+  </style>
+<script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
+</head>
+<body>
+  <!-- Header - Kenya Edition -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="logo">Fine<span>Escorts</span></div>
+      <nav class="nav-links">
+        <a href="../index.html">Escorts</a>
+        <a href="#">Massage</a>
+        <a href="#">Dildos</a>
+        <a href="../reviews.html">Reviews</a>
+        <a href="../blog.html" class="active">Blog</a>
+        <a href="#" class="admin-icon"><i class="fas fa-user-cog"></i></a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs">
+      <a href="../index.html">Home</a> › <a href="../blog.html">Blog</a> › <span>{{title}}</span>
+    </div>
+
+    <div class="blog-post-container">
+      <div class="blog-post-header">
+        <h1>{{title}}</h1>
+        <div class="blog-meta">
+          <i class="far fa-calendar-alt"></i> {{date}} <span>|</span>
+          <i class="far fa-user"></i> {{author}} <span>|</span>
+          <i class="fas fa-map-marker-alt"></i> <a href="../{{citySlug}}-escorts.html">{{city}}</a>
+        </div>
+      </div>
+
+      <div class="blog-featured-image">
+        <img src="{{image}}" alt="{{title}} – {{city}}" loading="eager">
+      </div>
+
+      <!-- ==================== -->
+      <!-- POPULAR ESCORTS SECTION (MOVED UP – HIGH CONVERSION) -->
+      <!-- ==================== -->
+      <section class="related-escorts">
+        <h3>Popular escorts in {{city}}</h3>
+        <div class="related-escorts-grid">
+          {{relatedEscorts}}
+        </div>
+      </section>
+
+      <div class="blog-content">
+        {{content}}
+
+        <!-- M-Pesa Info Box - Kenya Specific -->
+        <div class="mpesa-info">
+          <i class="fas fa-mobile-alt"></i>
+          <div>
+            <strong>Safe &amp; Discreet Payments with M-Pesa</strong>
+            <p>All bookings are secured via M-Pesa. Your transaction is private and instant.</p>
+          </div>
+        </div>
+
+        <!-- External High‑Authority Backlinks -->
+        <div class="external-resources">
+          <h3><i class="fas fa-link"></i> Further reading</h3>
+          <ul>
+            {{externalLinks}}
+          </ul>
+        </div>
+
+        <!-- Social Sharing -->
+        <div class="share-buttons">
+          <span>Share this article:</span>
+          <a href="https://www.facebook.com/sharer/sharer.php?u=https://fineescorts.co.ke/blog/{{slug}}.html" target="_blank" rel="noopener noreferrer"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://twitter.com/intent/tweet?text={{title}}&url=https://fineescorts.co.ke/blog/{{slug}}.html" target="_blank" rel="noopener noreferrer"><i class="fab fa-twitter"></i></a>
+          <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://fineescorts.co.ke/blog/{{slug}}.html&title={{title}}" target="_blank" rel="noopener noreferrer"><i class="fab fa-linkedin-in"></i></a>
+          <a href="mailto:?subject={{title}}&body=https://fineescorts.co.ke/blog/{{slug}}.html"><i class="fas fa-envelope"></i></a>
+        </div>
+      </div>
+
+      <!-- Related Posts -->
+      <div class="related-posts">
+        <h3>You may also like</h3>
+        <ul>
+          {{relatedPosts}}
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer - Kenya Edition -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>Escorts by City</h4>
+          {{topCityLinks}}
+        </div>
+        <div class="footer-col">
+          <h4>Related Profiles</h4>
+          {{relatedProfiles}}
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="../privacy.html">Privacy Policy</a>
+          <a href="../terms.html">Terms & Conditions</a>
+          <a href="../dmca.html">DMCA</a>
+          <a href="../reportabuse.html">Report Abuse</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="../about.html">About Us</a>
+          <a href="../advertise.html">Advertise With Us</a>
+          <a href="../contact.html">Contact</a>
+          <a href="../reporttrafficking.html">Report Trafficking</a>
+        </div>
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <a href="../reviews.html">Reviews</a>
+          <a href="../blog.html">Blog</a>
+        </div>
+        <div class="footer-col">
+          <h4>Social</h4>
+          <div style="display: flex; gap: 1rem;">
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fas fa-shield-alt"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="copyright">
+        fineescorts.co.ke ® The Ultimate Guide to Escorts & Adult Entertainment in Kenya ®<br>
+        © 1997 - <span id="year"></span> FineEscorts Kenya
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Dynamic year in footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

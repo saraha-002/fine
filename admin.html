@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel – FineEscorts Kenya</title>
+  <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
+  <link rel="stylesheet" href="css/profile.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body { background: #0d0d0d; font-family: 'Jost', sans-serif; }
+    .admin-container { max-width: 1100px; margin: 40px auto; padding: 20px; }
+    .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2c2c2c; padding-bottom: 20px; margin-bottom: 30px; }
+    .admin-header h1 { margin: 0; color: #eaeaea; }
+    .admin-header .badge { background: #c7a76c; color: #0d0d0d; padding: 4px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
+    .stat-card { background: #1a1a1a; padding: 20px; border-radius: 10px; text-align: center; border-left: 4px solid #c7a76c; }
+    .stat-card .number { font-size: 32px; font-weight: 700; color: #c7a76c; }
+    .stat-card .label { color: #888; font-size: 14px; }
+    .stat-card.pending { border-left-color: #ff9800; }
+    .stat-card.approved { border-left-color: #4CAF50; }
+    .stat-card.rejected { border-left-color: #ff6b6b; }
+    .profile-card { border: 1px solid #2c2c2c; padding: 18px; margin-bottom: 15px; border-radius: 10px; background: #1a1a1a; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+    .profile-card:hover { box-shadow: 0 4px 12px rgba(199,167,108,0.1); }
+    .profile-card .info { flex: 1; color: #a0a0a0; }
+    .profile-card .info h3 { margin: 0 0 5px 0; color: #eaeaea; }
+    .profile-card .info .meta { font-size: 14px; color: #888; }
+    .profile-card .info .meta span { margin-right: 15px; }
+    .profile-card .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-approve { padding: 8px 20px; background: #4CAF50; color: #0d0d0d; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .btn-approve:hover { background: #388E3C; }
+    .btn-reject { padding: 8px 20px; background: #ff6b6b; color: #0d0d0d; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .btn-reject:hover { background: #e05555; }
+    .btn-view { padding: 8px 16px; background: #c7a76c; color: #0d0d0d; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .btn-view:hover { background: #dbb87a; }
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+    .status-pending { background: #3a2a1a; color: #ff9800; }
+    .status-approved { background: #1a3a2a; color: #4CAF50; }
+    .status-rejected { background: #3a1a1a; color: #ff6b6b; }
+    .section-title { font-size: 20px; font-weight: 600; margin: 30px 0 15px; color: #eaeaea; }
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { padding: 10px 25px; border: 2px solid #2c2c2c; border-radius: 8px; background: #1a1a1a; cursor: pointer; font-weight: 600; color: #a0a0a0; transition: all 0.3s; }
+    .tab-btn.active { border-color: #c7a76c; background: #2a2a2a; color: #c7a76c; }
+    .tab-btn:hover { border-color: #c7a76c; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .profile-photo-preview { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #2c2c2c; }
+    .profile-card .info .profile-row { display: flex; align-items: center; }
+    @media (max-width: 700px) { .stats-grid { grid-template-columns: 1fr; } .profile-card { flex-direction: column; align-items: flex-start; gap: 15px; } }
+  </style>
+</head>
+<body>
+  <header style="background: #1a1a1a; padding: 15px 0; border-bottom: 1px solid #2c2c2c;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center;">
+      <a href="/" style="text-decoration: none;">
+        <div style="font-size: 24px; font-weight: 700; color: #c7a76c;">Fine<span style="color: #eaeaea;">Escorts</span></div>
+      </a>
+      <nav style="display: flex; gap: 15px; align-items: center;">
+        <a href="/" style="color: #a0a0a0; text-decoration: none;">Home</a>
+        <a href="dashboard.html" style="color: #c7a76c; text-decoration: none; font-weight: 600;">Dashboard</a>
+        <button onclick="logout()" style="background: #ff6b6b; color: #0d0d0d; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="admin-container">
+    <div class="admin-header">
+      <div><h1>👑 Admin Dashboard</h1><span style="color: #888; font-size: 14px;">Manage escort profiles and subscriptions</span></div>
+      <span class="badge"><i class="fas fa-shield-alt"></i> Admin</span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card pending"><div class="number" id="statPending">0</div><div class="label">⏳ Pending Approval</div></div>
+      <div class="stat-card approved"><div class="number" id="statApproved">0</div><div class="label">✅ Approved</div></div>
+      <div class="stat-card rejected"><div class="number" id="statRejected">0</div><div class="label">❌ Rejected</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('pending')">⏳ Pending <span id="pendingCount">(0)</span></button>
+      <button class="tab-btn" onclick="switchTab('approved')">✅ Approved <span id="approvedCount">(0)</span></button>
+      <button class="tab-btn" onclick="switchTab('rejected')">❌ Rejected <span id="rejectedCount">(0)</span></button>
+    </div>
+
+    <div class="tab-content active" id="tab-pending"><div id="pendingList"><p style="color: #888;">Loading pending profiles...</p></div></div>
+    <div class="tab-content" id="tab-approved"><div id="approvedList"><p style="color: #888;">Loading approved profiles...</p></div></div>
+    <div class="tab-content" id="tab-rejected"><div id="rejectedList"><p style="color: #888;">Loading rejected profiles...</p></div></div>
+  </main>
+
+  <footer style="background: #1a1a1a; border-top: 1px solid #2c2c2c; padding: 20px 0; text-align: center; color: #555; font-size: 13px;">
+    <p>&copy; 2026 FineEscorts Kenya. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const API_BASE = '/api';
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login.html';
+
+    function logout() { localStorage.removeItem('token'); localStorage.removeItem('userEmail'); window.location.href = '/'; }
+
+    async function loadStats() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/stats`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error('Failed to load stats');
+        const data = await res.json();
+        document.getElementById('statPending').textContent = data.pending || 0;
+        document.getElementById('statApproved').textContent = data.approved || 0;
+        document.getElementById('statRejected').textContent = data.rejected || 0;
+        document.getElementById('pendingCount').textContent = `(${data.pending || 0})`;
+        document.getElementById('approvedCount').textContent = `(${data.approved || 0})`;
+        document.getElementById('rejectedCount').textContent = `(${data.rejected || 0})`;
+      } catch (err) { console.error('Stats error:', err); }
+    }
+
+    async function loadProfiles(status) {
+      const container = document.getElementById(`${status}List`);
+      if (!container) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/profiles?status=${status}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error('Failed to load profiles');
+        const profiles = await res.json();
+        if (profiles.length === 0) { container.innerHTML = `<p style="color: #888;">No ${status} profiles found.</p>`; return; }
+        container.innerHTML = profiles.map(p => `
+          <div class="profile-card">
+            <div class="info">
+              <div class="profile-row">
+                <img src="${p.photos?.[0] || 'https://via.placeholder.com/50'}" alt="Profile" class="profile-photo-preview" onerror="this.src='https://via.placeholder.com/50'">
+                <div>
+                  <h3>${escapeHtml(p.displayName)}</h3>
+                  <div class="meta">
+                    <span>📍 ${escapeHtml(p.location)}</span>
+                    <span>🎂 ${p.age} years</span>
+                    <span>📞 ${escapeHtml(p.phone)}</span>
+                    <span class="status-badge status-${p.status || 'pending'}">${p.status || 'Pending'}</span>
+                  </div>
+                  <div style="margin-top:5px; font-size:13px; color:#888;">
+                    <i class="fas fa-tag"></i> ${p.services?.join(', ') || 'No services listed'}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn-view" onclick="viewProfile('${p._id}')"><i class="fas fa-eye"></i> View</button>
+              ${p.status === 'pending' ? `
+                <button class="btn-approve" onclick="approveProfile('${p._id}')"><i class="fas fa-check"></i> Approve</button>
+                <button class="btn-reject" onclick="rejectProfile('${p._id}')"><i class="fas fa-times"></i> Reject</button>
+              ` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch (err) { container.innerHTML = `<p style="color: #ff6b6b;">Error loading profiles: ${err.message}</p>`; }
+    }
+
+    async function approveProfile(id) {
+      if (!confirm('Approve this profile?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/profiles/${id}/approve`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (res.ok) { alert('✅ Profile approved! It will now appear on the site.'); loadAll(); } else { alert('❌ Error: ' + data.message); }
+      } catch (err) { alert('❌ Network error: ' + err.message); }
+    }
+
+    async function rejectProfile(id) {
+      if (!confirm('Reject and delete this profile?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/profiles/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (res.ok) { alert('❌ Profile rejected and deleted.'); loadAll(); } else { alert('❌ Error: ' + data.message); }
+      } catch (err) { alert('❌ Network error: ' + err.message); }
+    }
+
+    function viewProfile(id) {
+      window.location.href = `/profile-view.html?id=${id}`;
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector(`.tab-btn[onclick*="${tab}"]`)?.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(`tab-${tab}`)?.classList.add('active');
+    }
+
+    function loadAll() { loadStats(); loadProfiles('pending'); loadProfiles('approved'); loadProfiles('rejected'); }
+
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[m] || m)); }
+
+    document.addEventListener('DOMContentLoaded', loadAll);
+    window.switchTab = switchTab;
+    window.approveProfile = approveProfile;
+    window.rejectProfile = rejectProfile;
+    window.viewProfile = viewProfile;
+    window.logout = logout;
+  </script>
+</body>
+</html>

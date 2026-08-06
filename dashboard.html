@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – FineEscorts Kenya</title>
+  <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
+  <link rel="stylesheet" href="css/profile.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body { background: #0d0d0d; font-family: 'Jost', sans-serif; min-height: 100vh; }
+    .dashboard-container { max-width: 900px; margin: 40px auto; padding: 20px; }
+    .dashboard-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2c2c2c; padding-bottom: 20px; margin-bottom: 30px; }
+    .dashboard-header h1 { margin: 0; color: #eaeaea; }
+    .status-badge { padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+    .status-pending { background: #ff9800; color: #0d0d0d; }
+    .status-approved { background: #4CAF50; color: #0d0d0d; }
+    .status-rejected { background: #ff6b6b; color: #0d0d0d; }
+    .profile-preview { background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #c7a76c; }
+    .profile-preview h3 { margin-top: 0; color: #eaeaea; }
+    .profile-field { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2c2c2c; color: #a0a0a0; }
+    .profile-field .label { font-weight: 600; color: #888; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .tab-buttons { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-button { padding: 10px 20px; background: #1a1a1a; border: 1px solid #2c2c2c; border-radius: 8px; cursor: pointer; font-weight: 500; color: #a0a0a0; transition: all 0.3s; }
+    .tab-button:hover { border-color: #c7a76c; }
+    .tab-button.active { background: #c7a76c; color: #0d0d0d; border-color: #c7a76c; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #eaeaea; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 2px solid #2c2c2c; border-radius: 8px; font-size: 16px; background: #0d0d0d; color: #eaeaea; transition: border 0.3s; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #c7a76c; outline: none; }
+    .form-group textarea { min-height: 100px; }
+    .btn-save { padding: 12px 30px; background: #c7a76c; color: #0d0d0d; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.3s; }
+    .btn-save:hover { background: #dbb87a; }
+    .btn-logout { padding: 10px 20px; background: #ff6b6b; color: #0d0d0d; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.3s; }
+    .btn-logout:hover { background: #e05555; }
+    .photo-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+    .photo-grid img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #2c2c2c; }
+    .photo-item { position: relative; }
+    .photo-item .delete-photo { position: absolute; top: -5px; right: -5px; background: #ff6b6b; color: #0d0d0d; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+    .photo-item .delete-photo:hover { background: #e05555; }
+    .upload-area input[type="file"] { border: 2px dashed #2c2c2c; padding: 20px; border-radius: 8px; width: 100%; cursor: pointer; background: #0d0d0d; color: #a0a0a0; }
+    .upload-area input[type="file"]:hover { border-color: #c7a76c; }
+    .sub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
+    .sub-card { border: 2px solid #2c2c2c; border-radius: 10px; padding: 15px; text-align: center; background: #1a1a1a; transition: all 0.3s; cursor: pointer; }
+    .sub-card:hover { border-color: #c7a76c; transform: translateY(-3px); box-shadow: 0 4px 12px rgba(199,167,108,0.15); }
+    .sub-card .tier { font-weight: 700; font-size: 16px; color: #eaeaea; }
+    .sub-card .price { font-size: 22px; font-weight: 700; color: #c7a76c; margin: 5px 0; }
+    .sub-card .duration { font-size: 13px; color: #888; }
+    .sub-card .badge { display: inline-block; font-size: 10px; padding: 2px 12px; border-radius: 12px; background: #c7a76c; color: #0d0d0d; font-weight: 600; margin-top: 5px; text-transform: uppercase; }
+    .sub-card.selected { border-color: #c7a76c; background: #2a2a2a; }
+    .current-sub { background: #1a3a2a; border-left: 4px solid #4CAF50; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #a0a0a0; }
+    .current-sub p { margin: 5px 0; }
+    .duration-btn { padding: 8px 20px; border: 2px solid #2c2c2c; border-radius: 8px; background: #1a1a1a; cursor: pointer; font-weight: 600; transition: all 0.3s; color: #a0a0a0; }
+    .duration-btn.active { border-color: #c7a76c; background: #2a2a2a; color: #c7a76c; }
+    .duration-btn:hover { border-color: #c7a76c; }
+    @media (max-width: 700px) { .sub-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 450px) { .sub-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header style="background: #1a1a1a; padding: 15px 0; border-bottom: 1px solid #2c2c2c;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center;">
+      <a href="/" style="text-decoration: none;">
+        <div style="font-size: 24px; font-weight: 700; color: #c7a76c;">Fine<span style="color: #eaeaea;">Escorts</span></div>
+      </a>
+      <nav style="display: flex; gap: 15px; align-items: center;">
+        <a href="/" style="color: #a0a0a0; text-decoration: none;">Home</a>
+        <button onclick="logout()" style="background: #ff6b6b; color: #0d0d0d; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="dashboard-container">
+    <div class="dashboard-header">
+      <h1>👤 My Dashboard</h1>
+    </div>
+
+    <div id="profileStatus" style="margin-bottom: 20px;"></div>
+
+    <div class="tab-buttons">
+      <button class="tab-button active" data-tab="profile" onclick="switchTab('profile')">My Profile</button>
+      <button class="tab-button" data-tab="edit" onclick="switchTab('edit')">Edit Profile</button>
+      <button class="tab-button" data-tab="photos" onclick="switchTab('photos')">Photos</button>
+      <button class="tab-button" data-tab="subscription" onclick="switchTab('subscription')">Subscription</button>
+    </div>
+
+    <div class="tab active" id="tab-profile"><div id="profileDisplay"><p style="color: #a0a0a0;">Loading profile...</p></div></div>
+
+    <div class="tab" id="tab-edit">
+      <form id="editForm">
+        <div class="form-group"><label>Display Name</label><input type="text" id="editDisplayName" required></div>
+        <div class="form-group"><label>Age</label><input type="number" id="editAge" min="18" max="99" required></div>
+        <div class="form-group"><label>Location</label><select id="editLocation"><option value="Kitengela">Kitengela</option><option value="Syokimau">Syokimau</option><option value="Mlolongo">Mlolongo</option><option value="Athiriver">Athiriver</option><option value="Imara Daima">Imara Daima</option></select></div>
+        <div class="form-group"><label>Ethnicity</label><input type="text" id="editEthnicity"></div>
+        <div class="form-group"><label>Description</label><textarea id="editDescription" required></textarea></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="editPhone" required></div>
+        <button type="submit" class="btn-save">Save Changes</button>
+      </form>
+    </div>
+
+    <div class="tab" id="tab-photos">
+      <h3 style="color: #eaeaea;">Your Photos</h3>
+      <div class="photo-grid" id="photoGrid"></div>
+      <div class="upload-area"><h4 style="color: #eaeaea;">Upload New Photos</h4><input type="file" id="newPhotos" accept="image/*" multiple><button onclick="uploadPhotos()" class="btn-save" style="margin-top: 10px;">Upload</button></div>
+    </div>
+
+    <div class="tab" id="tab-subscription">
+      <h3 style="color: #eaeaea;">Your Subscription</h3>
+      <div id="subscriptionInfo"></div>
+      <div style="margin-top: 25px;">
+        <h4 style="color: #eaeaea;">Choose Your Package</h4>
+        <p style="color: #888; font-size: 14px;">Select a duration and tier below to upgrade.</p>
+        <div style="display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap;">
+          <button class="duration-btn" data-dur="daily" onclick="setDuration('daily')">Daily</button>
+          <button class="duration-btn" data-dur="weekly" onclick="setDuration('weekly')">Weekly</button>
+          <button class="duration-btn active" data-dur="monthly" onclick="setDuration('monthly')">Monthly</button>
+        </div>
+        <div class="sub-grid" id="packageGrid"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer style="background: #1a1a1a; border-top: 1px solid #2c2c2c; padding: 20px 0; text-align: center; color: #555; font-size: 13px;">
+    <p>&copy; 2026 FineEscorts Kenya. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const API_BASE = '/api';
+    const PRICING = { daily: { standard: 100, premium: 150, vip: 200 }, weekly: { standard: 600, premium: 900, vip: 1000 }, monthly: { standard: 1500, premium: 2500, vip: 4000 } };
+    const TIER_LABELS = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
+    const DURATION_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
+    const TIER_FEATURES = { standard: ['Profile Listing', '3 Photos', 'Verified Badge'], premium: ['Profile Listing', '5 Photos', 'Verified Badge', 'Featured Placement', 'Analytics Dashboard'], vip: ['Profile Listing', '10 Photos', 'Verified Badge', 'Featured Placement', 'VIP Badge', 'Homepage Spotlight', 'Priority Support'] };
+    const MAX_PHOTOS = { standard: 3, premium: 5, vip: 10 };
+
+    let currentProfile = null;
+    let selectedDuration = 'monthly';
+    let selectedTier = 'premium';
+
+    function getToken() { return localStorage.getItem('token'); }
+    function logout() { localStorage.removeItem('token'); localStorage.removeItem('userEmail'); window.location.href = '/'; }
+    function requireAuth() { if (!getToken()) { window.location.href = '/login.html'; return false; } return true; }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+      document.getElementById(`tab-${tabId}`)?.classList.add('active');
+      document.querySelector(`.tab-button[data-tab="${tabId}"]`)?.classList.add('active');
+    }
+
+    async function apiFetch(endpoint, options = {}) {
+      const token = getToken();
+      const headers = { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }), ...options.headers };
+      const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
+    }
+
+    async function loadProfile() {
+      if (!requireAuth()) return;
+      try {
+        const { res, data } = await apiFetch('/profiles/me');
+        if (!res.ok) { if (res.status === 404) { alert('You don\'t have a profile yet. Please create one first.'); window.location.href = '/signup.html'; return; } throw new Error(data.message || 'Failed to load profile'); }
+        currentProfile = data;
+        renderProfile(currentProfile);
+        renderPhotos(currentProfile);
+        renderSubscription(currentProfile);
+        populateEditForm(currentProfile);
+      } catch (err) { document.getElementById('profileDisplay').innerHTML = `<div style="color:#ff6b6b; padding:20px; background:#2a1a1a; border-radius:8px;"><i class="fas fa-exclamation-circle"></i> ${err.message}</div>`; }
+    }
+
+    function renderProfile(profile) {
+      const html = `
+        <div class="profile-preview">
+          <h3>${escapeHtml(profile.displayName)}</h3>
+          <div class="profile-field"><span class="label">Status:</span><span class="status-badge ${profile.isApproved ? 'status-approved' : 'status-pending'}">${profile.isApproved ? '✅ Approved & Live' : '⏳ Pending Approval'}</span></div>
+          <div class="profile-field"><span class="label">Location:</span> ${escapeHtml(profile.location)}</div>
+          <div class="profile-field"><span class="label">Age:</span> ${profile.age}</div>
+          <div class="profile-field"><span class="label">Ethnicity:</span> ${escapeHtml(profile.ethnicity || 'Not specified')}</div>
+          <div class="profile-field"><span class="label">Phone:</span> ${escapeHtml(profile.phone)}</div>
+          <div class="profile-field"><span class="label">Description:</span></div>
+          <div style="margin-top:5px; background:#0d0d0d; padding:10px; border-radius:4px; white-space:pre-line; color:#a0a0a0;">${escapeHtml(profile.description || 'No description yet.')}</div>
+          ${profile.subscription?.active ? `<div class="profile-field" style="border-top:2px solid #4CAF50; margin-top:10px; padding-top:10px;"><span class="label">Subscription:</span><span style="color:#4CAF50; font-weight:600;">${TIER_LABELS[profile.subscription.tier] || profile.subscription.tier} (${DURATION_LABELS[profile.subscription.duration] || profile.subscription.duration})</span></div><div class="profile-field"><span class="label">Expires:</span><span>${new Date(profile.subscription.expiryDate).toLocaleDateString('en-KE', { day:'numeric', month:'long', year:'numeric' })}</span></div>` : ''}
+        </div>`;
+      document.getElementById('profileDisplay').innerHTML = html;
+    }
+
+    function renderPhotos(profile) {
+      const grid = document.getElementById('photoGrid');
+      const photos = profile.photos || [];
+      if (photos.length === 0) { grid.innerHTML = `<div style="padding:20px; text-align:center; color:#888; background:#1a1a1a; border-radius:8px; width:100%;"><i class="fas fa-camera" style="font-size:30px; display:block; margin-bottom:10px;"></i>No photos uploaded yet.</div>`; return; }
+      grid.innerHTML = photos.map(url => `<div class="photo-item"><img src="${url}" alt="Profile photo" loading="lazy"><button class="delete-photo" onclick="deletePhoto('${encodeURIComponent(url)}')">×</button></div>`).join('');
+    }
+
+    function renderSubscription(profile) {
+      const info = document.getElementById('subscriptionInfo');
+      const sub = profile.subscription;
+      const isActive = sub?.active;
+      const tier = sub?.tier || 'free';
+      const duration = sub?.duration || 'none';
+      const tierDisplay = tier === 'free' ? 'Free' : (TIER_LABELS[tier] || tier);
+      const durationDisplay = duration === 'none' ? 'No active subscription' : (DURATION_LABELS[duration] || duration);
+      const expiry = sub?.expiryDate ? new Date(sub.expiryDate).toLocaleDateString('en-KE', { day:'numeric', month:'long', year:'numeric' }) : null;
+      const photoCount = (profile.photos || []).length;
+      const maxPhotos = MAX_PHOTOS[tier] || 5;
+      info.innerHTML = `<div class="current-sub"><p><strong>📦 Current Package:</strong> ${tierDisplay} ${isActive ? `✅ (${durationDisplay})` : '❌ (Inactive)'}</p>${isActive && expiry ? `<p><strong>⏳ Expires:</strong> ${expiry}</p>` : ''}${isActive ? `<p><strong>💰 Paid:</strong> KES ${sub?.amount || 0}</p>` : '<p><em>No active subscription. Please upgrade to go live.</em></p>'}<p><strong>📷 Photos Used:</strong> ${photoCount} / ${maxPhotos}</p><p><strong>👤 Profile Status:</strong> ${profile.isApproved ? '✅ Live & Visible' : '⏳ Pending Approval'}</p></div>`;
+    }
+
+    function populateEditForm(profile) {
+      document.getElementById('editDisplayName').value = profile.displayName || '';
+      document.getElementById('editAge').value = profile.age || '';
+      document.getElementById('editLocation').value = profile.location || '';
+      document.getElementById('editEthnicity').value = profile.ethnicity || '';
+      document.getElementById('editDescription').value = profile.description || '';
+      document.getElementById('editPhone').value = profile.phone || '';
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = { displayName: document.getElementById('editDisplayName').value.trim(), age: parseInt(document.getElementById('editAge').value), location: document.getElementById('editLocation').value, ethnicity: document.getElementById('editEthnicity').value.trim(), description: document.getElementById('editDescription').value.trim(), phone: document.getElementById('editPhone').value.trim() };
+      if (!data.displayName) return alert('Display name is required.');
+      if (!data.age || data.age < 18) return alert('Age must be at least 18.');
+      if (!data.location) return alert('Please select a location.');
+      if (!data.description) return alert('Description is required.');
+      if (!data.phone) return alert('Phone number is required.');
+      try {
+        const { res, data: result } = await apiFetch('/profiles/me', { method: 'PUT', body: JSON.stringify(data) });
+        if (!res.ok) throw new Error(result.message || 'Update failed');
+        currentProfile = result.profile || result;
+        renderProfile(currentProfile);
+        renderPhotos(currentProfile);
+        renderSubscription(currentProfile);
+        alert('✅ Profile updated successfully!');
+      } catch (err) { alert('❌ Error updating profile: ' + err.message); }
+    });
+
+    async function uploadPhotos() {
+      const token = getToken();
+      if (!token) return;
+      const input = document.getElementById('newPhotos');
+      const files = input.files;
+      if (files.length === 0) { alert('Please select photos to upload.'); return; }
+      const max = MAX_PHOTOS[currentProfile?.subscription?.tier] || 5;
+      const currentCount = (currentProfile?.photos || []).length;
+      if (currentCount + files.length > max) { alert(`You can only have ${max} photos. You already have ${currentCount}.`); return; }
+      const formData = new FormData();
+      for (let file of files) formData.append('photos', file);
+      try {
+        const res = await fetch(`${API_BASE}/profiles/me/photos`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+        currentProfile.photos = data.photos;
+        renderPhotos(currentProfile);
+        renderSubscription(currentProfile);
+        input.value = '';
+        alert('✅ Photos uploaded successfully!');
+      } catch (err) { alert('❌ Error uploading photos: ' + err.message); }
+    }
+
+    async function deletePhoto(encodedUrl) {
+      const url = decodeURIComponent(encodedUrl);
+      if (!confirm('Delete this photo?')) return;
+      const token = getToken();
+      if (!token) return;
+      currentProfile.photos = (currentProfile.photos || []).filter(p => p !== url);
+      try {
+        const { res, data } = await apiFetch('/profiles/me', { method: 'PUT', body: JSON.stringify({ photos: currentProfile.photos }) });
+        if (!res.ok) throw new Error(data.message || 'Delete failed');
+        renderPhotos(currentProfile);
+        renderSubscription(currentProfile);
+        alert('✅ Photo deleted.');
+      } catch (err) { alert('❌ Error deleting photo: ' + err.message); }
+    }
+
+    function setDuration(dur) {
+      selectedDuration = dur;
+      document.querySelectorAll('.duration-btn').forEach(btn => {
+        const isActive = btn.dataset.dur === dur;
+        btn.classList.toggle('active', isActive);
+        btn.style.borderColor = isActive ? '#c7a76c' : '#2c2c2c';
+        btn.style.background = isActive ? '#2a2a2a' : '#1a1a1a';
+      });
+      renderPackageGrid();
+    }
+
+    function renderPackageGrid() {
+      const grid = document.getElementById('packageGrid');
+      const prices = PRICING[selectedDuration];
+      const tiers = ['standard', 'premium', 'vip'];
+      grid.innerHTML = tiers.map(tier => {
+        const price = prices[tier];
+        const label = TIER_LABELS[tier];
+        const feats = TIER_FEATURES[tier] || [];
+        const isPopular = tier === 'premium';
+        const badge = isPopular ? '<span class="badge">⭐ Popular</span>' : '';
+        return `<div class="sub-card" data-tier="${tier}" onclick="selectSubscription('${tier}')">${badge}<div class="tier">${label}</div><div class="price">KES ${price}</div><div class="duration">${DURATION_LABELS[selectedDuration]}</div><div style="font-size:12px; color:#888; margin-top:8px; text-align:left;">${feats.map(f => `<div style="padding:2px 0;"><i class="fas fa-check" style="color:#4CAF50; margin-right:5px;"></i> ${f}</div>`).join('')}</div></div>`;
+      }).join('');
+    }
+
+    function selectSubscription(tier) {
+      selectedTier = tier;
+      document.querySelectorAll('.sub-card').forEach(card => card.classList.toggle('selected', card.dataset.tier === tier));
+      const email = localStorage.getItem('userEmail') || '';
+      window.location.href = `/payment.html?package=${tier}&duration=${selectedDuration}&email=${encodeURIComponent(email)}`;
+    }
+
+    function escapeHtml(str) { if (!str) return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+
+    document.addEventListener('DOMContentLoaded', () => { loadProfile(); setDuration('monthly'); });
+    window.switchTab = switchTab; window.logout = logout; window.uploadPhotos = uploadPhotos; window.deletePhoto = deletePhoto; window.setDuration = setDuration; window.selectSubscription = selectSubscription;
+  </script>
+</body>
+</html>

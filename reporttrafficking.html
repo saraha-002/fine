@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anti-Trafficking – FineEscorts</title>
+  <meta name="description" content="FineEscorts is committed to raising awareness of human trafficking. Report suspected trafficking and access resources.">
+  <meta name="robots" content="index, follow">
+  <!-- Jost font -->
+   <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
+<link rel="alternate icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header */
+    .site-header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #222;
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #c9a45c;
+      letter-spacing: -0.5px;
+    }
+    .logo span {
+      color: white;
+      font-weight: 400;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: #e0e0e0;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover {
+      color: #c9a45c;
+    }
+
+    /* Main content */
+    .policy-content {
+      background: #111;
+      border-radius: 24px;
+      padding: 2.5rem;
+      margin: 2rem 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 500;
+      color: #c9a45c;
+      border-left: 4px solid #c9a45c;
+      padding-left: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #fff;
+      margin: 1.5rem 0 0.8rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.3rem;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: #ddd;
+      margin: 1.2rem 0 0.5rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: #ccc;
+    }
+
+    a {
+      color: #c9a45c;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin: 0.5rem 0 1rem 1.5rem;
+      color: #ccc;
+    }
+    li {
+      margin: 0.3rem 0;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #333;
+      margin: 2rem 0;
+    }
+
+    .warning-box {
+      background: #1a1a1a;
+      border-left: 4px solid #c9a45c;
+      padding: 1rem 1.5rem;
+      margin: 1rem 0;
+      border-radius: 12px;
+    }
+
+    .resource-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .resource-links a {
+      display: block;
+      background: #1a1a1a;
+      padding: 0.6rem 1rem;
+      border-radius: 12px;
+      text-align: center;
+      transition: background 0.2s;
+    }
+    .resource-links a:hover {
+      background: #2a2a2a;
+      text-decoration: none;
+    }
+
+    /* Footer */
+    .site-footer {
+      background: #0d0d0d;
+      border-top: 1px solid #222;
+      padding: 3rem 2rem 2rem;
+      margin-top: 3rem;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .footer-col h4 {
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      font-weight: 500;
+      border-left: 3px solid #c9a45c;
+      padding-left: 0.8rem;
+    }
+    .footer-col a {
+      display: block;
+      color: #aaa;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .footer-col a:hover {
+      color: #c9a45c;
+    }
+    .copyright {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid #333;
+      font-size: 0.8rem;
+      color: #777;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      .header-inner {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .nav-links {
+        gap: 1rem;
+      }
+      .policy-content {
+        padding: 1.5rem;
+      }
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+    .emergency-box {
+    background: rgba(231, 76, 60, 0.15);
+    border-left: 4px solid #e74c3c;
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: 12px;
+  }
+  .emergency-box h3 {
+    color: #e74c3c;
+    margin-bottom: 0.8rem;
+  }
+  .emergency-box p {
+    margin-bottom: 0.5rem;
+  }
+  .warning-box {
+    background: rgba(241, 196, 15, 0.1);
+    border-left: 4px solid #f1c40f;
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: 12px;
+  }
+  .resource-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  .resource-links a {
+    background: #1a1a1a;
+    padding: 0.5rem 1rem;
+    border-radius: 40px;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .resource-links a:hover {
+    background: #c9a45c;
+    color: #0a0a0a;
+    transform: translateY(-2px);
+  }
+  @media (max-width: 600px) {
+    .resource-links {
+      flex-direction: column;
+    }
+    .resource-links a {
+      text-align: center;
+    }
+  }
+  </style>
+<script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">Fine<span>Escorts</span></div>
+      <nav class="nav-links">
+        <a href="/">Escorts</a>
+        <a href="#">Massage</a>
+        <a href="#">Dildos</a>
+        <a href="#">Reviews</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+  <div class="policy-content">
+    <h1>Anti-Trafficking Policy Statement and Resources</h1>
+    <p class="last-updated">Last Updated: 10 April 2026</p>
+
+    <p>FineEscorts Kenya is wholly committed to raising awareness of human trafficking. We are a private, online business that chooses to be conscientious of this problem. We pledge to implement internal anti-trafficking initiatives and engage in advocacy efforts to battle human trafficking concerns in Kenya and globally. In the event we become aware of any incident of trafficking, we take swift internal action and cooperate enthusiastically with Kenyan law enforcement officials assigned to combating this vile abuse of human rights, including the Directorate of Criminal Investigations (DCI) Anti-Human Trafficking and Child Protection Unit. To report suspected trafficking, email us at <a href="mailto:abuse@fineescorts.co.ke">abuse@fineescorts.co.ke</a>. Alternatively, you are encouraged to report any suspected trafficking incidents to the appropriate authorities using the resources below.</p>
+
+    <div class="emergency-box">
+      <h3>🚨 EMERGENCY CONTACTS - KENYA</h3>
+      <p><strong>Police Emergency:</strong> 999 or 112</p>
+      <p><strong>DCI Anti-Human Trafficking and Child Protection Unit:</strong> 0800 722 203 (Toll-Free)</p>
+      <p><strong>Childline Kenya:</strong> 116 (Toll-Free)</p>
+      <p><strong>National Council on the Administration of Justice (NCAJ) – Trafficking Hotline:</strong> 0800 724 723</p>
+    </div>
+
+    <h2>Trafficking Signs and Statistics</h2>
+    <div class="warning-box">
+      <h3>WARNING SIGNS OF POSSIBLE HUMAN TRAFFICKING:</h3>
+      <ul>
+        <li>Does an entertainer arrive accompanied by another individual?</li>
+        <li>Does that individual speak for or appear to maintain control over the entertainer?</li>
+        <li>Does the entertainer seem fearful of that individual?</li>
+        <li>Does the entertainer have difficulty communicating, whether resulting from a language barrier or fear of interaction?</li>
+        <li>Does the entertainer appear to be underage or close to underage?</li>
+      </ul>
+    </div>
+
+    <p>To learn about the potential warning signs of human trafficking, visit <a href="https://polarisproject.org/" target="_blank" rel="noopener noreferrer">Polaris Project</a>.</p>
+
+    <h3>Human Trafficking Statistics</h3>
+    <div class="resource-links">
+      <a href="https://www.state.gov/trafficking-in-persons-report/" target="_blank" rel="noopener noreferrer">Trafficking In Persons Report</a>
+      <a href="https://www.unodc.org/unodc/en/human-trafficking/global-report-on-trafficking-in-persons.html" target="_blank" rel="noopener noreferrer">UNODC Global Report on Trafficking in Persons</a>
+      <a href="https://www.ungift.org/" target="_blank" rel="noopener noreferrer">UN.GIFT (Global Initiative to Fight Human Trafficking)</a>
+    </div>
+
+    <h2>Report Trafficking and Child Exploitation</h2>
+    <p>In case of emergency in Kenya, immediately call <strong>999</strong> or <strong>112</strong>. Otherwise, reports may be made with the following Kenyan agencies:</p>
+    <div class="resource-links">
+      <a href="https://www.dci.go.ke/" target="_blank" rel="noopener noreferrer">Directorate of Criminal Investigations (DCI)</a>
+      <a href="https://www.nps.go.ke/" target="_blank" rel="noopener noreferrer">Kenya Police Service</a>
+      <a href="https://www.nca.go.ke/" target="_blank" rel="noopener noreferrer">National Counter Terrorism Centre (NCTC)</a>
+      <a href="https://www.odpp.go.ke/" target="_blank" rel="noopener noreferrer">Office of the Director of Public Prosecutions – Human Trafficking Unit</a>
+    </div>
+
+    <p>Please report cases of suspected child sexual abuse material (CSAM) to:</p>
+    <div class="resource-links">
+      <a href="https://www.missingkids.org/" target="_blank" rel="noopener noreferrer">National Center for Missing and Exploited Children (NCMEC)</a>
+      <a href="https://www.asacp.org/" target="_blank" rel="noopener noreferrer">Association of Sites Advocating Child Protection (ASACP)</a>
+      <a href="https://www.unicef.org/kenya/" target="_blank" rel="noopener noreferrer">UNICEF Kenya – Child Protection</a>
+    </div>
+
+    <h2>Anti-Trafficking Resources – Kenya & Africa</h2>
+    <p>Please consult the following resources for more information about human trafficking in Kenya and East Africa:</p>
+    <div class="resource-links">
+      <a href="https://www.kenyalaw.org/kl/fileadmin/pdfdownloads/Acts/2018/CounterTraffickinginPersonsAct_No8of2018.pdf" target="_blank" rel="noopener noreferrer">Kenya Counter-Trafficking in Persons Act, 2018</a>
+      <a href="https://www.ohchr.org/en/countries/kenya" target="_blank" rel="noopener noreferrer">OHCHR Kenya – Human Rights</a>
+      <a href="https://www.iom.int/countries/kenya" target="_blank" rel="noopener noreferrer">IOM Kenya – International Organization for Migration</a>
+      <a href="https://www.ilo.org/nairobi/lang--en/index.htm" target="_blank" rel="noopener noreferrer">ILO Kenya – International Labour Organization</a>
+      <a href="https://www.unodc.org/easternafrica/" target="_blank" rel="noopener noreferrer">UNODC Eastern Africa</a>
+    </div>
+
+    <p>Please visit the following non-governmental organizations for more information:</p>
+    <div class="resource-links">
+      <a href="https://www.unicef.org/kenya/" target="_blank" rel="noopener noreferrer">UNICEF Kenya</a>
+      <a href="https://www.hakijamii.com/" target="_blank" rel="noopener noreferrer">Hakijamii – Economic & Social Rights Centre (Kenya)</a>
+      <a href="https://www.notforsalecampaign.org/" target="_blank" rel="noopener noreferrer">Not for Sale</a>
+      <a href="https://ourrescue.org/" target="_blank" rel="noopener noreferrer">Operation Underground Railroad (OUR)</a>
+      <a href="https://www.freedomfund.org/" target="_blank" rel="noopener noreferrer">Freedom Fund</a>
+    </div>
+
+    <p>Please visit the following international organizations for more information:</p>
+    <div class="resource-links">
+      <a href="https://lastradainternational.org/" target="_blank" rel="noopener noreferrer">La Strada International</a>
+      <a href="https://www.osce.org/" target="_blank" rel="noopener noreferrer">Organization for Security and Co‑operation in Europe (OSCE)</a>
+      <a href="https://www.coe.int/en/web/anti-trafficking" target="_blank" rel="noopener noreferrer">Council of Europe – Anti-Trafficking</a>
+    </div>
+
+    <hr>
+    <p><strong>DISCLAIMER:</strong> We provide the above information and links to third party websites as an educational resource for our users, members, and potential victims of human trafficking. We do not confirm the accuracy of the disclosed data or endorse the legitimacy of any program or third-party entity listed. We furthermore disclaim any and all liability arising from reliance of any such resources or information. Nothing on this page is intended to be medical, legal, or professional advice. In the event of a true emergency in Kenya, please call <strong>999</strong> or <strong>112</strong> immediately.</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms & Conditions</a>
+        <a href="dmca.html">DMCA</a>
+        <a href="lawenforcement.html">Law Enforcement</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="about.html">About Us</a>
+        <a href="advertise.html">Advertise</a>
+        <a href="contact.html">Contact</a>
+        <a href="reportabuse.html">Report Abuse</a>
+        <a href="reporttrafficking.html">Report Trafficking</a>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="blog.html">Blog</a>
+        <a href="reviews.html">Reviews</a>
+      </div>
+      <div class="footer-col">
+        <h4>Social</h4>
+        <div style="display: flex; gap: 1rem;">
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fas fa-shield-alt"></i></a>
+        </div>
+      </div>
+    </div>
+    <div class="copyright">
+      fineescorts.co.ke ® The Ultimate Guide to Escorts & Adult Entertainment in Kenya ®<br>
+      © 1997 - <span id="year"></span> FineEscorts Kenya
+    </div>
+  </div>
+</footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

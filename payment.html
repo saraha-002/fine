@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Payment – FineEscorts Kenya</title>
+  <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
+  <link rel="stylesheet" href="css/profile.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
+  <style>
+    body { background: #0d0d0d; font-family: 'Jost', sans-serif; min-height: 100vh; }
+    .payment-container { max-width: 600px; margin: 40px auto; padding: 30px; background: #1a1a1a; border-radius: 12px; border: 1px solid #2c2c2c; }
+    .payment-container h1 { text-align: center; color: #eaeaea; margin-bottom: 5px; }
+    .payment-container .subtitle { text-align: center; color: #888; margin-bottom: 25px; font-size: 14px; }
+    .duration-selector { display: flex; gap: 10px; margin-bottom: 25px; justify-content: center; }
+    .duration-btn { padding: 10px 16px; border: 2px solid #2c2c2c; border-radius: 8px; background: #1a1a1a; cursor: pointer; font-weight: 600; transition: all 0.3s; flex: 1; text-align: center; font-size: 14px; color: #a0a0a0; }
+    .duration-btn:hover { border-color: #c7a76c; }
+    .duration-btn.active { border-color: #c7a76c; background: #2a2a2a; color: #c7a76c; }
+    .duration-btn .duration-price { display: block; font-size: 11px; font-weight: 400; color: #888; margin-top: 2px; }
+    .duration-btn.active .duration-price { color: #c7a76c; }
+    .package-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 25px; }
+    .package-card { border: 2px solid #2c2c2c; border-radius: 10px; padding: 15px 12px; text-align: center; cursor: pointer; transition: all 0.3s; background: #1a1a1a; }
+    .package-card:hover { border-color: #c7a76c; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(199,167,108,0.15); }
+    .package-card.selected { border-color: #c7a76c; background: #2a2a2a; }
+    .package-card .tier-name { font-weight: 700; font-size: 16px; color: #eaeaea; }
+    .package-card .tier-price { font-size: 22px; font-weight: 700; color: #c7a76c; margin: 5px 0; }
+    .package-card .tier-price small { font-size: 12px; font-weight: 400; color: #888; }
+    .package-card .tier-features { font-size: 12px; color: #a0a0a0; margin: 8px 0 0 0; padding: 0; list-style: none; text-align: left; }
+    .package-card .tier-features li { padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+    .package-card .tier-features li i { width: 14px; text-align: center; font-size: 10px; }
+    .package-card .tier-features li .fa-check { color: #4CAF50; }
+    .package-card .tier-features li .fa-times { color: #555; }
+    .package-card .popular-badge { background: #c7a76c; color: #0d0d0d; font-size: 10px; padding: 2px 12px; border-radius: 12px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; font-weight: 700; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #eaeaea; }
+    .form-group input { width: 100%; padding: 12px; border: 2px solid #2c2c2c; border-radius: 8px; font-size: 16px; background: #0d0d0d; color: #eaeaea; transition: border 0.3s; }
+    .form-group input:focus { border-color: #c7a76c; outline: none; }
+    .form-group small { color: #888; display: block; margin-top: 5px; }
+    .btn-pay { width: 100%; padding: 14px; background: #25D366; color: #0d0d0d; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+    .btn-pay:hover { background: #128C7E; }
+    .btn-pay i { margin-right: 10px; }
+    .btn-pay:disabled { opacity: 0.7; cursor: not-allowed; }
+    .payment-status { padding: 12px; border-radius: 8px; margin: 15px 0; display: none; font-weight: 500; }
+    .payment-status.success { display: block; background: #1a3a2a; color: #4CAF50; border-left: 4px solid #4CAF50; }
+    .payment-status.error { display: block; background: #3a1a1a; color: #ff6b6b; border-left: 4px solid #ff6b6b; }
+    .payment-status.info { display: block; background: #1a2a3a; color: #4a9aff; border-left: 4px solid #4a9aff; }
+    .payment-status.waiting { display: block; background: #3a2a1a; color: #ff9800; border-left: 4px solid #ff9800; }
+    .back-links { text-align: center; margin-top: 20px; }
+    .back-links a { color: #c7a76c; text-decoration: none; font-weight: 500; }
+    .back-links a:hover { text-decoration: underline; }
+    .success-icon { text-align: center; font-size: 60px; color: #4CAF50; margin-bottom: 10px; }
+    #successMessage { display: none; text-align: center; padding: 20px; }
+    #successMessage h2 { color: #4CAF50; }
+    #successMessage p { color: #a0a0a0; }
+    @media (max-width: 600px) { .package-grid { grid-template-columns: 1fr; } .duration-selector { flex-direction: column; gap: 6px; } }
+  </style>
+</head>
+<body>
+  <header style="background: #1a1a1a; padding: 15px 0; border-bottom: 1px solid #2c2c2c;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center;">
+      <a href="/" style="text-decoration: none;">
+        <div style="font-size: 24px; font-weight: 700; color: #c7a76c;">Fine<span style="color: #eaeaea;">Escorts</span></div>
+      </a>
+      <nav style="display: flex; gap: 15px; align-items: center;">
+        <a href="/" style="color: #a0a0a0; text-decoration: none;">Home</a>
+        <a href="dashboard.html" style="color: #c7a76c; text-decoration: none; font-weight: 600;">Dashboard</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="padding: 20px;">
+    <div class="payment-container">
+      <h1>💰 Subscription Payment</h1>
+      <p class="subtitle">Choose your package and duration. Pay with M-Pesa.</p>
+
+      <div class="duration-selector">
+        <button class="duration-btn active" data-duration="daily" onclick="selectDuration('daily')">Daily<span class="duration-price">24 hours</span></button>
+        <button class="duration-btn" data-duration="weekly" onclick="selectDuration('weekly')">Weekly<span class="duration-price">7 days • Save 15%</span></button>
+        <button class="duration-btn" data-duration="monthly" onclick="selectDuration('monthly')">Monthly<span class="duration-price">30 days • Save 50%</span></button>
+      </div>
+
+      <div class="package-grid" id="packageGrid">
+        <div class="package-card" data-tier="standard" onclick="selectPackage('standard')">
+          <div class="tier-name">Standard</div>
+          <div class="tier-price" id="price-standard">KES 100</div>
+          <ul class="tier-features">
+            <li><i class="fas fa-check"></i> Profile Listing</li>
+            <li><i class="fas fa-check"></i> 3 Photos</li>
+            <li><i class="fas fa-check"></i> Verified Badge</li>
+            <li><i class="fas fa-times"></i> Featured</li>
+            <li><i class="fas fa-times"></i> VIP Badge</li>
+          </ul>
+        </div>
+        <div class="package-card selected" data-tier="premium" onclick="selectPackage('premium')">
+          <div class="popular-badge">⭐ Popular</div>
+          <div class="tier-name">Premium</div>
+          <div class="tier-price" id="price-premium">KES 150</div>
+          <ul class="tier-features">
+            <li><i class="fas fa-check"></i> Profile Listing</li>
+            <li><i class="fas fa-check"></i> 5 Photos</li>
+            <li><i class="fas fa-check"></i> Verified Badge</li>
+            <li><i class="fas fa-check"></i> Featured Placement</li>
+            <li><i class="fas fa-check"></i> Analytics Dashboard</li>
+            <li><i class="fas fa-times"></i> VIP Badge</li>
+          </ul>
+        </div>
+        <div class="package-card" data-tier="vip" onclick="selectPackage('vip')">
+          <div class="tier-name">VIP</div>
+          <div class="tier-price" id="price-vip">KES 200</div>
+          <ul class="tier-features">
+            <li><i class="fas fa-check"></i> Profile Listing</li>
+            <li><i class="fas fa-check"></i> 10 Photos</li>
+            <li><i class="fas fa-check"></i> Verified Badge</li>
+            <li><i class="fas fa-check"></i> Featured Placement</li>
+            <li><i class="fas fa-check"></i> VIP Badge</li>
+            <li><i class="fas fa-check"></i> Homepage Spotlight</li>
+            <li><i class="fas fa-check"></i> Priority Support</li>
+          </ul>
+        </div>
+      </div>
+
+      <form id="paymentForm" onsubmit="return false;">
+        <div class="form-group">
+          <label for="phoneNumber">M-Pesa Phone Number</label>
+          <input type="tel" id="phoneNumber" required placeholder="07XX XXX XXX">
+          <small>You'll receive a prompt to confirm payment on your phone.</small>
+        </div>
+        <button type="button" id="payNowBtn" class="btn-pay"><i class="fas fa-mobile-alt"></i> Pay KES 150 with M-Pesa</button>
+      </form>
+
+      <div id="paymentStatus" class="payment-status"></div>
+
+      <div id="successMessage">
+        <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+        <h2>✅ Subscription Active!</h2>
+        <p id="successText">Your Premium (Daily) subscription is now active.</p>
+        <a href="/dashboard.html" style="display: inline-block; margin-top: 15px; padding: 12px 30px; background: #c7a76c; color: #0d0d0d; border-radius: 8px; text-decoration: none; font-weight: 600;">Go to Dashboard</a>
+        <a href="/" style="display: inline-block; margin-top: 15px; margin-left: 10px; padding: 12px 30px; border: 2px solid #c7a76c; border-radius: 8px; color: #c7a76c; text-decoration: none; font-weight: 600;">View Homepage</a>
+      </div>
+
+      <div class="back-links"><a href="/dashboard.html">← Back to Dashboard</a></div>
+    </div>
+  </main>
+
+  <footer style="background: #1a1a1a; border-top: 1px solid #2c2c2c; padding: 20px 0; text-align: center; color: #555; font-size: 13px;">
+    <p>&copy; 2026 FineEscorts Kenya. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const API_SECRET = "103e07b75c0b3d874cd4376dd0e095729f66d4f26803361aa087df169acc4ac4";
+    const RECAPTCHA_SITE_KEY = "6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5";
+    const SARAHAPAY_API = "https://sarahapay.onrender.com";
+
+    const PRICING = { daily: { standard: 100, premium: 150, vip: 200 }, weekly: { standard: 600, premium: 900, vip: 1000 }, monthly: { standard: 1500, premium: 2500, vip: 4000 } };
+    const TIER_NAMES = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
+    const DURATION_NAMES = { daily: 'Daily (24hrs)', weekly: 'Weekly (7 days)', monthly: 'Monthly (30 days)' };
+
+    let selectedDuration = 'daily';
+    let selectedTier = 'premium';
+    let currentAmount = 150;
+    let pollingInterval = null;
+    let pollingAttempts = 0;
+    let waitingTimer = null;
+    const MAX_ATTEMPTS = 20;
+    const POLL_INTERVAL = 1000;
+
+    function getParams() {
+      const params = new URLSearchParams(window.location.search);
+      return { package: params.get('package') || 'premium', duration: params.get('duration') || 'daily', email: params.get('email') || '' };
+    }
+
+    function selectDuration(duration) {
+      selectedDuration = duration;
+      document.querySelectorAll('.duration-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.duration === duration));
+      updatePrices();
+      updatePayButton();
+    }
+
+    function selectPackage(tier) {
+      selectedTier = tier;
+      document.querySelectorAll('.package-card').forEach(card => card.classList.toggle('selected', card.dataset.tier === tier));
+      updatePayButton();
+    }
+
+    function updatePrices() {
+      const prices = PRICING[selectedDuration];
+      document.getElementById('price-standard').textContent = `KES ${prices.standard}`;
+      document.getElementById('price-premium').textContent = `KES ${prices.premium}`;
+      document.getElementById('price-vip').textContent = `KES ${prices.vip}`;
+    }
+
+    function updatePayButton() {
+      const prices = PRICING[selectedDuration];
+      currentAmount = prices[selectedTier];
+      const payBtn = document.getElementById('payNowBtn');
+      payBtn.innerHTML = `<i class="fas fa-mobile-alt"></i> Pay KES ${currentAmount} for ${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]})`;
+      payBtn.className = 'btn-pay';
+      payBtn.disabled = false;
+      payBtn.onclick = initiatePayment;
+      document.getElementById('phoneNumber').disabled = false;
+    }
+
+    async function initiatePayment() {
+      const userPhone = document.getElementById('phoneNumber').value.trim();
+      if (!userPhone) { showStatus('Please enter your M-Pesa phone number', 'error'); return; }
+      let formattedPhone = userPhone.replace(/[^0-9]/g, '');
+      if (formattedPhone.startsWith('0')) formattedPhone = '254' + formattedPhone.substring(1);
+      if (!formattedPhone.startsWith('254')) formattedPhone = '254' + formattedPhone;
+      if (formattedPhone.length !== 12) { showStatus('Enter valid phone number (e.g., 0712345678)', 'error'); return; }
+
+      const payBtn = document.getElementById('payNowBtn');
+      const originalText = payBtn.innerHTML;
+      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending prompt...';
+      payBtn.disabled = true;
+      showStatus('Initiating M-Pesa payment...', 'info');
+
+      let recaptchaToken = '';
+      try {
+        if (typeof grecaptcha !== 'undefined') recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' });
+        else { await new Promise(resolve => setTimeout(resolve, 2000)); if (typeof grecaptcha !== 'undefined') recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' }); else throw new Error('reCAPTCHA not loaded'); }
+      } catch (err) { showStatus('Security verification failed. Please refresh and try again.', 'error'); payBtn.innerHTML = originalText; payBtn.disabled = false; return; }
+
+      try {
+        const response = await fetch(`${SARAHAPAY_API}/api/pay`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-API-Secret': API_SECRET, 'X-Recaptcha-Token': recaptchaToken },
+          body: JSON.stringify({ name: `${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]})`, phone: formattedPhone, amount: currentAmount })
+        });
+        const data = await response.json();
+        if (response.ok && data.transactionId) {
+          showStatus('✅ M-Pesa prompt sent! Check your phone and enter PIN.', 'success');
+          payBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Waiting for PIN...';
+          startPaymentPolling(data.transactionId);
+        } else { throw new Error(data.error || data.details || data.message || 'Payment initiation failed'); }
+      } catch (error) {
+        showStatus(error.message || 'Payment failed. Please try again.', 'error');
+        payBtn.innerHTML = originalText;
+        payBtn.disabled = false;
+      }
+    }
+
+    function startPaymentPolling(transactionId) {
+      if (pollingInterval) clearInterval(pollingInterval);
+      if (waitingTimer) clearTimeout(waitingTimer);
+      pollingAttempts = 0;
+      waitingTimer = setTimeout(() => showStatus('⏳ Still waiting for payment confirmation. If you cancelled the prompt, please try again.', 'info'), 10000);
+
+      pollingInterval = setInterval(async () => {
+        pollingAttempts++;
+        const result = await checkPaymentStatus(transactionId);
+        if (result.status === 'SUCCESS' || result.status === 'COMPLETED' || result.status === 'Success') {
+          clearInterval(pollingInterval); clearTimeout(waitingTimer);
+          showStatus('✅ Payment successful! Activating your profile...', 'info');
+          const token = localStorage.getItem('token');
+          if (token) {
+            try {
+              const activationRes = await fetch('/api/profiles/me/activate', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tier: selectedTier, duration: selectedDuration })
+              });
+              const activationData = await activationRes.json();
+              console.log('Activation response:', activationData);
+            } catch (e) { console.error('Activation error:', e); }
+          }
+          document.getElementById('paymentForm').style.display = 'none';
+          document.getElementById('successMessage').style.display = 'block';
+          document.getElementById('successText').textContent = `Your ${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]}) subscription is now active. ✅ Your profile is now visible to clients!`;
+          localStorage.setItem('subscription_package', JSON.stringify({ tier: selectedTier, duration: selectedDuration, amount: currentAmount }));
+          return;
+        }
+        if (result.status === 'FAILED' || result.status === 'CANCELLED' || result.status === 'REVERSED' || result.status === 'TIMEOUT') {
+          clearInterval(pollingInterval); clearTimeout(waitingTimer);
+          showStatus('❌ Payment failed or was cancelled. Please try again.', 'error');
+          resetPayButton();
+          return;
+        }
+        if (pollingAttempts >= MAX_ATTEMPTS) {
+          clearInterval(pollingInterval); clearTimeout(waitingTimer);
+          showStatus('❌ Payment not completed. You did not enter your M‑Pesa PIN or cancelled the prompt. Please try again.', 'error');
+          resetPayButton();
+        }
+      }, POLL_INTERVAL);
+    }
+
+    async function checkPaymentStatus(transactionId) {
+      try {
+        const response = await fetch(`${SARAHAPAY_API}/api/transaction/${transactionId}`);
+        if (!response.ok) return { status: 'PENDING' };
+        const data = await response.json();
+        return { status: data.status, data };
+      } catch (e) { return { status: 'ERROR' }; }
+    }
+
+    function resetPayButton() {
+      const payBtn = document.getElementById('payNowBtn');
+      payBtn.innerHTML = `<i class="fas fa-mobile-alt"></i> Pay KES ${currentAmount} for ${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]})`;
+      payBtn.disabled = false;
+    }
+
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('paymentStatus');
+      statusDiv.textContent = message;
+      statusDiv.className = `payment-status ${type}`;
+      statusDiv.style.display = 'block';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = getParams();
+      if (params.email) localStorage.setItem('userEmail', params.email);
+      if (params.duration) selectDuration(params.duration);
+      if (params.package) selectPackage(params.package);
+      updatePrices();
+      updatePayButton();
+    });
+
+    window.selectDuration = selectDuration;
+    window.selectPackage = selectPackage;
+  </script>
+</body>
+</html>

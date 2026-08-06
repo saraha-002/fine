@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- Primary Meta Tags -->
+  <title>Verified Client Reviews – FineEscorts</title>
+  <meta name="title" content="Verified Client Reviews – FineEscorts">
+  <meta name="description" content="Read {{totalReviews}} genuine, verified reviews from clients who have booked premium escorts through FineEscorts. Real experiences, real trust.">
+  <meta name="keywords" content="escort reviews, verified client testimonials, premium escort feedback, client experiences, escort ratings">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <meta name="language" content="English">
+  <meta name="revisit-after" content="7 days">
+  <meta name="author" content="FineEscorts">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="canonical" href="https://fineescorts.co.ke/reviews.html">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://fineescorts.co.ke/reviews.html">
+  <meta property="og:title" content="Verified Client Reviews – FineEscorts">
+  <meta property="og:description" content="Read {{totalReviews}} genuine, verified reviews from clients who have booked premium escorts through FineEscorts.">
+  <meta property="og:image" content="https://fineescorts.co.ke/images/og-reviews.jpg">
+  <meta property="og:image:alt" content="FineEscorts client reviews">
+  <meta property="og:site_name" content="FineEscorts">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://fineescorts.co.ke/reviews.html">
+  <meta name="twitter:title" content="Verified Client Reviews – FineEscorts">
+  <meta name="twitter:description" content="Read {{totalReviews}} genuine, verified reviews from clients who have booked premium escorts through FineEscorts.">
+  <meta name="twitter:image" content="https://fineescorts.co.ke/images/og-reviews.jpg">
+  <meta name="twitter:image:alt" content="FineEscorts client reviews">
+  <meta name="twitter:site" content="@FineEscorts">
+
+  <!-- Structured Data (AggregateRating + ItemList) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Client Reviews",
+    "description": "Verified client testimonials for FineEscorts.",
+    "numberOfItems": "{{totalReviews}}",
+    "itemListElement": {{#if reviewsList}}
+      {{reviewsList}}
+    {{else}}
+      []
+    {{/if}},
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "{{averageRating}}",
+      "reviewCount": "{{totalReviews}}",
+      "bestRating": "5",
+      "worstRating": "1"
+    }
+  }
+  </script>
+
+  <!-- Preconnect & Styles -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap">
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="css/index.css">
+  
+  <style>
+    /* Review-specific styles */
+    .reviews-hero {
+      text-align: center;
+      background: #111;
+      border-radius: 32px;
+      padding: 3rem 2rem;
+      margin: 2rem 0;
+      border: 1px solid #333;
+    }
+    .overall-rating {
+      font-size: 4rem;
+      font-weight: 600;
+      color: #c9a45c;
+      margin-bottom: 0.5rem;
+    }
+    .total-reviews {
+      font-size: 1.2rem;
+      color: #aaa;
+    }
+    .rating-bars {
+      max-width: 300px;
+      margin: 1.5rem auto;
+    }
+    .rating-bar-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .rating-bar-label {
+      width: 2rem;
+    }
+    .rating-bar-fill {
+      flex: 1;
+      height: 8px;
+      background: #333;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .rating-bar-fill span {
+      display: block;
+      height: 100%;
+      background: #c9a45c;
+      width: 0%;
+    }
+    .rating-bar-count {
+      width: 2.5rem;
+      text-align: right;
+      color: #888;
+    }
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    .review-card {
+      background: #1a1a1a;
+      border-radius: 20px;
+      padding: 1.5rem;
+      border: 1px solid #333;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .review-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+      border-color: #c9a45c;
+    }
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .reviewer-info strong {
+      color: #fff;
+      font-size: 1.1rem;
+    }
+    .reviewer-info .profile-city {
+      font-size: 0.8rem;
+      color: #c9a45c;
+      margin-left: 0.5rem;
+    }
+    .review-rating {
+      color: #f5b342;
+      letter-spacing: 1px;
+    }
+    .review-comment {
+      color: #ddd;
+      font-style: italic;
+      margin: 1rem 0;
+      line-height: 1.5;
+    }
+    .review-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 0.5rem;
+    }
+    .pagination-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .pagination-controls button {
+      background: #222;
+      border: 1px solid #444;
+      padding: 0.5rem 1rem;
+      border-radius: 40px;
+      color: #ccc;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .pagination-controls button:hover:not(:disabled) {
+      background: #c9a45c;
+      color: #0a0a0a;
+      border-color: #c9a45c;
+    }
+    .pagination-controls button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .page-numbers {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .page-num {
+      background: #222;
+      border: 1px solid #444;
+      padding: 0.5rem 0.9rem;
+      border-radius: 40px;
+      color: #ccc;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .page-num.active {
+      background: #c9a45c;
+      color: #0a0a0a;
+      border-color: #c9a45c;
+    }
+    .page-num:hover:not(.active) {
+      background: #333;
+      border-color: #c9a45c;
+    }
+    @media (max-width: 700px) {
+      .reviews-grid {
+        grid-template-columns: 1fr;
+      }
+      .overall-rating {
+        font-size: 3rem;
+      }
+    }
+  </style>
+<script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="logo">Fine<span>Escorts</span></div>
+      <nav class="nav-links">
+        <a href="/">Escorts</a>
+        <a href="index.html">Massage</a>
+        <a href="index.html">Dildos</a>
+        <a href="reviews.html" class="active">Reviews</a>
+        <a href="blog.html">Blog</a>
+        <a href="#" class="admin-icon"><i class="fas fa-user-cog"></i></a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="reviews-hero">
+      <h1>Verified Client Reviews</h1>
+      <div class="overall-rating">{{averageRating}} ★</div>
+      <div class="total-reviews">{{totalReviews}} authentic testimonials from verified clients</div>
+
+      <div class="rating-bars">
+        <div class="rating-bar-item">
+          <span class="rating-bar-label">5 ★</span>
+          <div class="rating-bar-fill"><span style="width: {{ratingPercent5}}%"></span></div>
+          <span class="rating-bar-count">{{ratingCount5}}</span>
+        </div>
+        <div class="rating-bar-item">
+          <span class="rating-bar-label">4 ★</span>
+          <div class="rating-bar-fill"><span style="width: {{ratingPercent4}}%"></span></div>
+          <span class="rating-bar-count">{{ratingCount4}}</span>
+        </div>
+        <div class="rating-bar-item">
+          <span class="rating-bar-label">3 ★</span>
+          <div class="rating-bar-fill"><span style="width: {{ratingPercent3}}%"></span></div>
+          <span class="rating-bar-count">{{ratingCount3}}</span>
+        </div>
+        <div class="rating-bar-item">
+          <span class="rating-bar-label">2 ★</span>
+          <div class="rating-bar-fill"><span style="width: {{ratingPercent2}}%"></span></div>
+          <span class="rating-bar-count">{{ratingCount2}}</span>
+        </div>
+        <div class="rating-bar-item">
+          <span class="rating-bar-label">1 ★</span>
+          <div class="rating-bar-fill"><span style="width: {{ratingPercent1}}%"></span></div>
+          <span class="rating-bar-count">{{ratingCount1}}</span>
+        </div>
+      </div>
+      <p>Every review is from a client who completed a booking through our platform. All names are verified to protect privacy while ensuring authenticity.</p>
+    </div>
+
+    <div id="reviews-container">
+      {{reviewsHtml}}
+    </div>
+
+    {{paginationHtml}}
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms & Conditions</a>
+          <a href="dmca.html">DMCA</a>
+          <a href="reportabuse.html">Report Abuse</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="about.html">About Us</a>
+          <a href="advertise.html">Advertise</a>
+          <a href="contact.html">Contact</a>
+          <a href="reporttrafficking.html">Report Trafficking</a>
+        </div>
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <a href="reviews.html">Reviews</a>
+          <a href="blog.html">Blog</a>
+        </div>
+        <div class="footer-col">
+          <h4>Social</h4>
+          <div style="display: flex; gap: 1rem;">
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fas fa-shield-alt"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="copyright">
+        fineescorts.co.ke ® The Ultimate Guide to Escorts and Adult Entertainment ®<br>
+        © 1997 - <span id="year"></span> FineEscorts
+      </div>
+    </div>
+  </footer>
+
+  <!-- Back to top button -->
+  <button class="back-to-top" id="backToTop"><i class="fas fa-chevron-up"></i></button>
+
+  <script>
+    // Pagination logic
+    const pages = document.querySelectorAll('.reviews-page');
+    const prevBtn = document.querySelector('.page-prev');
+    const nextBtn = document.querySelector('.page-next');
+    const pageNums = document.querySelectorAll('.page-num');
+
+    let currentPage = 1;
+    const totalPages = pages.length;
+
+    function showPage(page) {
+      pages.forEach((p, i) => {
+        p.style.display = (i + 1 === page) ? 'block' : 'none';
+      });
+      pageNums.forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.page) === page) btn.classList.add('active');
+      });
+      if (prevBtn) prevBtn.disabled = (page === 1);
+      if (nextBtn) nextBtn.disabled = (page === totalPages);
+    }
+
+    if (pages.length > 0 && totalPages > 1) {
+      showPage(1);
+    }
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) showPage(--currentPage);
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) showPage(++currentPage);
+      });
+    }
+    
+    pageNums.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentPage = parseInt(btn.dataset.page);
+        showPage(currentPage);
+      });
+    });
+
+    // Update copyright year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Back to top button
+    const backBtn = document.getElementById('backToTop');
+    if (backBtn) {
+      window.addEventListener('scroll', () => {
+        backBtn.style.display = window.scrollY > 300 ? 'flex' : 'none';
+      });
+      backBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  </script>
+</body>
+</html>

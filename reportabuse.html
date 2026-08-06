@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Abuse – FineEscorts</title>
+  <meta name="description" content="Report violations of our Terms and Conditions, illegal content, or nonconsensual material. We take all reports seriously and act promptly.">
+  <meta name="robots" content="index, follow">
+  <!-- Jost font -->
+   <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
+<link rel="alternate icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome (optional) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header */
+    .site-header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #222;
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #c9a45c;
+      letter-spacing: -0.5px;
+    }
+    .logo span {
+      color: white;
+      font-weight: 400;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: #e0e0e0;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover {
+      color: #c9a45c;
+    }
+
+    /* Main content */
+    .report-content {
+      background: #111;
+      border-radius: 24px;
+      padding: 2.5rem;
+      margin: 2rem 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 500;
+      color: #c9a45c;
+      border-left: 4px solid #c9a45c;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .last-updated {
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #fff;
+      margin: 1.5rem 0 0.8rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.3rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: #ccc;
+    }
+
+    a {
+      color: #c9a45c;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Form styles */
+    .report-form {
+      margin-top: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #ddd;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 1px solid #444;
+      border-radius: 12px;
+      background: #222;
+      color: #fff;
+      font-family: 'Jost', sans-serif;
+      font-size: 1rem;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #c9a45c;
+      box-shadow: 0 0 0 3px rgba(201, 164, 92, 0.2);
+      background: #2a2a2a;
+    }
+
+    .radio-group, .checkbox-group {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.3rem;
+    }
+    .radio-group label, .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 400;
+      margin-bottom: 0;
+      cursor: pointer;
+    }
+    input[type="radio"], input[type="checkbox"] {
+      width: auto;
+      margin-right: 0.3rem;
+      accent-color: #c9a45c;
+    }
+
+    .char-counter {
+      text-align: right;
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 0.3rem;
+    }
+
+    .error {
+      color: #e74c3c;
+      font-size: 0.85rem;
+      margin-top: 0.3rem;
+    }
+
+    button {
+      background: #c9a45c;
+      color: #0a0a0a;
+      border: none;
+      padding: 0.9rem 2rem;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      max-width: 300px;
+      margin-top: 0.5rem;
+    }
+    button:hover {
+      background: #dbb16c;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(201, 164, 92, 0.3);
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #333;
+      margin: 2rem 0;
+    }
+
+    /* Footer */
+    .site-footer {
+      background: #0d0d0d;
+      border-top: 1px solid #222;
+      padding: 3rem 2rem 2rem;
+      margin-top: 3rem;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .footer-col h4 {
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      font-weight: 500;
+      border-left: 3px solid #c9a45c;
+      padding-left: 0.8rem;
+    }
+    .footer-col a {
+      display: block;
+      color: #aaa;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .footer-col a:hover {
+      color: #c9a45c;
+    }
+    .copyright {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid #333;
+      font-size: 0.8rem;
+      color: #777;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      .header-inner {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .nav-links {
+        gap: 1rem;
+      }
+      .report-content {
+        padding: 1.5rem;
+      }
+      .radio-group, .checkbox-group {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+  </style>
+<script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
+</head>
+<body>
+  <header class="site-header">
+  <div class="header-inner">
+    <div class="logo">Fine<span>Escorts</span></div>
+    <nav class="nav-links">
+      <a href="/">Escorts</a>
+      <a href="index.html">Massage</a>
+      <a href="index.html">Dildos</a>
+      <a href="reviews.html">Reviews</a>
+      <a href="blog.html">Blog</a>
+      <a href="#" class="admin-icon"><i class="fas fa-user-cog"></i></a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  <div class="report-content">
+    <h1>Report Abuse</h1>
+    <p class="last-updated">Last Updated: 10 April 2026</p>
+
+    <h2>ABUSE REPORTING POLICY</h2>
+    <p>FineEscorts Kenya is the operator of fineescorts.co.ke and any affiliated websites and related mobile versions. We provide a robust system for you to report violations of our Terms and Conditions, as well as illegal or nonconsensual content, and for appealing the improper removal of content. We intend to operate this system as efficiently and quickly as possible in a fair and reasonable manner. We strive to resolve all reports and appeals within seven (7) business days and provide clear guidelines to prevent issues from recurring. If a violation has occurred, we will determine the appropriate remedy and take the necessary action. Any content deemed to be illegal is removed immediately. If you would like to appeal the removal of any content in which you are depicted, please notify us by sending an email to <strong>abuse@fineescorts.co.ke</strong>. We will not take action against other users for activity that happens on another platform or offline. In instances where disputes over consent cannot be resolved internally, such disputes are submitted to a neutral arbitration association at our expense. Once an action is taken or if more information is needed from you, we will contact you by email or other electronic message.</p>
+
+    <h2>REPEAT AND EGREGIOUS OFFENDERS</h2>
+    <p>We reserve the right to take advanced actions against those users that (1) repeatedly violate our rules, or (2) engage in a single egregious violation of our rules. These advanced actions may include but are not limited to deleting your account and banning you from using FineEscorts Kenya in the future.</p>
+
+    <h2>THIS FORM IS NOT FOR REPORTING COPYRIGHT ISSUES</h2>
+    <p>If you identify material on FineEscorts Kenya that violates your copyrights, you must submit a DMCA takedown request in accordance with our <a href="dmca.html">DMCA Policy</a>.</p>
+
+    <h2>EMERGENCY REPORTING</h2>
+    <p>If this is an emergency involving human trafficking, child exploitation, or imminent risk of harm, please contact the DCI Anti-Human Trafficking and Child Protection Unit immediately at <strong>0800 722 203</strong> or report to your nearest police station.</p>
+
+    <hr>
+
+    <h2>Report Form</h2>
+    <form class="report-form" id="abuseForm" action="https://formsubmit.co/abuse@fineescorts.co.ke" method="POST">
+      <!-- FormSubmit customizations -->
+      <input type="hidden" name="_subject" value="Abuse Report – FineEscorts">
+      <input type="hidden" name="_template" value="table">
+      <input type="hidden" name="_captcha" value="false">
+      <input type="hidden" name="_next" value="https://fineescorts.co.ke/reportabuse.html?success=true">
+
+      <div class="form-group">
+        <label for="name">Full Name *</label>
+        <input type="text" id="name" name="Name" required>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address *</label>
+        <input type="email" id="email" name="Email" required>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number (optional)</label>
+        <input type="tel" id="phone" name="Phone" placeholder="e.g., 0712345678">
+      </div>
+
+      <div class="form-group">
+        <label for="urls">URL(s) of the content you wish to report *</label>
+        <textarea id="urls" name="URLs" rows="3" placeholder="One URL per line" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Are you depicted in this content? *</label>
+        <div class="radio-group">
+          <label><input type="radio" name="Depicted" value="Yes" required> Yes</label>
+          <label><input type="radio" name="Depicted" value="No"> No</label>
+        </div>
+      </div>
+
+      <div class="form-group" id="depictedQuestions" style="display: none;">
+        <label>If you are depicted in this content, did you agree to the recording of this content?</label>
+        <div class="radio-group">
+          <label><input type="radio" name="AgreeRecording" value="Yes"> Yes</label>
+          <label><input type="radio" name="AgreeRecording" value="No"> No</label>
+          <label><input type="radio" name="AgreeRecording" value="Not depicted"> I am not depicted in this content</label>
+        </div>
+        <div class="form-group">
+          <label>If you are depicted in this content, have you ever agreed to the publication of this content on FineEscorts Kenya?</label>
+          <div class="radio-group">
+            <label><input type="radio" name="AgreePublication" value="Yes"> Yes</label>
+            <label><input type="radio" name="AgreePublication" value="No"> No</label>
+            <label><input type="radio" name="AgreePublication" value="Not depicted"> I am not depicted in this content</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Briefly describe the issue with this content *</label>
+        <textarea id="description" name="Description" rows="5" maxlength="400" required></textarea>
+        <div class="char-counter"><span id="charCount">0</span>/400 characters remaining</div>
+      </div>
+
+      <div class="form-group">
+        <label>Does this report involve depictions of minors or trafficked individuals? *</label>
+        <div class="radio-group">
+          <label><input type="radio" name="MinorsTrafficking" value="Yes" required> Yes</label>
+          <label><input type="radio" name="MinorsTrafficking" value="No"> No</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" name="Certify" value="I certify, under penalty of perjury, that I am the person named in this report and all information provided by me is accurate and complete." required>
+          I certify, under penalty of perjury, that I am the person named in this report and all information provided by me is accurate and complete.
+        </label>
+      </div>
+
+      <button type="submit">Submit Report</button>
+    </form>
+    <div id="successMessage" style="display: none; background: #2a2a2a; padding: 1rem; border-radius: 12px; margin-top: 1.5rem; text-align: center; color: #c9a45c;">
+      Your report has been submitted. We will review it and contact you if needed.
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms & Conditions</a>
+        <a href="dmca.html">DMCA</a>
+        <a href="reportabuse.html">Report Abuse</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="about.html">About Us</a>
+        <a href="advertise.html">Advertise</a>
+        <a href="contact.html">Contact</a>
+        <a href="reporttrafficking.html">Report Trafficking</a>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="reviews.html">Reviews</a>
+        <a href="blog.html">Blog</a>
+      </div>
+      <div class="footer-col">
+        <h4>Social</h4>
+        <div style="display: flex; gap: 1rem;">
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fas fa-shield-alt"></i></a>
+        </div>
+      </div>
+    </div>
+    <div class="copyright">
+      fineescorts.co.ke ® The Ultimate Guide to Escorts & Adult Entertainment in Kenya ®<br>
+      © 1997 - <span id="year"></span> FineEscorts Kenya
+    </div>
+  </div>
+</footer>
+
+
+
+  <script>
+    // Character counter for description
+    const description = document.getElementById('description');
+    const charCountSpan = document.getElementById('charCount');
+    function updateCharCount() {
+      const len = description.value.length;
+      charCountSpan.textContent = len;
+    }
+    description.addEventListener('input', updateCharCount);
+    updateCharCount();
+
+    // Show/hide additional depicted questions
+    const depictedRadios = document.querySelectorAll('input[name="Depicted"]');
+    const depictedQuestions = document.getElementById('depictedQuestions');
+    function toggleDepictedQuestions() {
+      const selected = document.querySelector('input[name="Depicted"]:checked');
+      if (selected && selected.value === 'Yes') {
+        depictedQuestions.style.display = 'block';
+        // Make those fields required? We'll add required attributes when shown.
+        document.querySelectorAll('input[name="AgreeRecording"], input[name="AgreePublication"]').forEach(el => el.required = true);
+      } else {
+        depictedQuestions.style.display = 'none';
+        document.querySelectorAll('input[name="AgreeRecording"], input[name="AgreePublication"]').forEach(el => el.required = false);
+      }
+    }
+    depictedRadios.forEach(radio => radio.addEventListener('change', toggleDepictedQuestions));
+    toggleDepictedQuestions();
+
+    // Handle form submission to show success message and avoid page reload (since FormSubmit redirects)
+    const form = document.getElementById('abuseForm');
+    const successDiv = document.getElementById('successMessage');
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      successDiv.style.display = 'block';
+      // Clear the form? Not necessary; user may want to submit another.
+      // You can optionally reset the form here.
+    }
+
+    // Optional: client-side validation before submit (though HTML5 already does)
+    form.addEventListener('submit', function(e) {
+      // Additional custom validation can be added here
+    });
+  </script>
+</body>
+</html>

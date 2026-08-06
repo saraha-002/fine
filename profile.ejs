@@ -1,0 +1,25 @@
+<!-- ─── Description ─── -->
+<div class="description">
+  <h3>About Me</h3>
+  <div class="description-content">
+    <% 
+      const shortDesc = profile.description.replace(/\n/g, ' ');
+      const isLong = shortDesc.length > 150;
+      const truncated = shortDesc.substring(0, 150).trim() + (isLong ? '...' : '');
+    %>
+    
+    <p class="description-short" id="descShort" style="<%= isLong ? '' : 'display:none;' %>">
+      <%= truncated %>
+    </p>
+    
+    <p class="description-full" id="descFull" style="<%= isLong ? 'display:none;' : 'display:block;' %>">
+      <%= profile.description.replace(/\n/g, '<br>') %>
+    </p>
+    
+    <% if (isLong) { %>
+      <button class="read-more-btn" id="readMoreBtn" onclick="toggleDescription()">
+        <i class="fas fa-chevron-down"></i> Read More
+      </button>
+    <% } %>
+  </div>
+</div>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Privacy Policy – FineEscorts Kenya</title>
+  <meta name="description" content="Privacy policy for FineEscorts Kenya. Learn how we collect, use, and protect your personal information in compliance with Kenyan law.">
+  <meta name="keywords" content="privacy policy, data protection, fineescorts kenya, personal information">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="FineEscorts Kenya">
+  <link rel="canonical" href="https://fineescorts.co.ke/privacy.html">
+  
+  <!-- Jost font -->
+   <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
+<link rel="alternate icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header */
+    .site-header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #222;
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #c9a45c;
+      letter-spacing: -0.5px;
+    }
+    .logo span {
+      color: white;
+      font-weight: 400;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+    .nav-links a {
+      color: #e0e0e0;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover {
+      color: #c9a45c;
+    }
+    .admin-icon {
+      margin-left: 0.5rem;
+    }
+
+    /* Main content */
+    .privacy-content {
+      background: #111;
+      border-radius: 24px;
+      padding: 2.5rem;
+      margin: 2rem 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 500;
+      color: #c9a45c;
+      border-left: 4px solid #c9a45c;
+      padding-left: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .last-updated {
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #fff;
+      margin: 1.5rem 0 0.8rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.3rem;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: #c9a45c;
+      margin: 1rem 0 0.5rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: #ccc;
+    }
+
+    a {
+      color: #c9a45c;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin: 0.5rem 0 1rem 1.5rem;
+      color: #ccc;
+    }
+    li {
+      margin: 0.3rem 0;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #333;
+      margin: 2rem 0;
+    }
+
+    address {
+      background: #1a1a1a;
+      padding: 1rem;
+      border-radius: 12px;
+      margin: 1rem 0;
+      font-style: normal;
+      border-left: 3px solid #c9a45c;
+    }
+
+    /* Back to top button */
+    .back-to-top {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #c9a45c;
+      color: #0a0a0a;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 999;
+    }
+    .back-to-top.show {
+      opacity: 1;
+    }
+    .back-to-top:hover {
+      background: #dbb16c;
+      transform: translateY(-3px);
+    }
+
+    /* Footer */
+    .site-footer {
+      background: #0d0d0d;
+      border-top: 1px solid #222;
+      padding: 3rem 2rem 2rem;
+      margin-top: 3rem;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .footer-col h4 {
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      font-weight: 500;
+      border-left: 3px solid #c9a45c;
+      padding-left: 0.8rem;
+    }
+    .footer-col a {
+      display: block;
+      color: #aaa;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      text-decoration: none;
+    }
+    .footer-col a:hover {
+      color: #c9a45c;
+      text-decoration: none;
+    }
+    .copyright {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid #333;
+      font-size: 0.8rem;
+      color: #777;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      .header-inner {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .nav-links {
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .privacy-content {
+        padding: 1.5rem;
+      }
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+  </style>
+<script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">Fine<span>Escorts</span> Kenya</div>
+      <nav class="nav-links">
+        <a href="/">Escorts</a>
+        <a href="index.html">Massage</a>
+        <a href="index.html">Dildos</a>
+        <a href="reviews.html">Reviews</a>
+        <a href="blog.html">Blog</a>
+        <a href="#" class="admin-icon"><i class="fas fa-user-cog"></i></a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="privacy-content">
+      <h1>Privacy Policy</h1>
+      <p class="last-updated"><strong>FineEscorts Kenya</strong><br>Last Updated: 10 April 2026</p>
+
+      <h2>I. General.</h2>
+      <p>We are committed to safeguarding the privacy of our website visitors. In this Privacy Policy, we explain how we treat your personal information in compliance with the Kenyan Data Protection Act, 2019.</p>
+      <p>The following declaration informs you as a User and data subject about the collection and storage of personal data, and ways in which such data may be used. This Privacy Policy applies to all services and activities offered and carried out by us.</p>
+      <p>We collect and process personal data carefully and only to the extent permitted by Kenyan law.</p>
+      <p>In the following we explain which policies we comply with and for what purposes we collect and process personal data via this website and other ways and applications operated by us or affiliated companies.</p>
+      <p>Personal data are all items of information that relate to an identified or identifiable natural person. Personal data form the basis for identifying or contacting a data subject. Processing includes any handling of personal data, in particular the storage, disclosure, procurement, collection, deletion, storage, modification, destruction and use of personal data.</p>
+      <p>As a company operating in Kenya, we comply with the Kenyan data protection legislation, in particular with the Data Protection Act, 2019 (DPA).</p>
+      <p>We process information that a data subject voluntarily and personally provides to us when contacting us – for example, by letter, e-mail, contact form, registering to a user account, social media or phone. All information may be stored in physical and digital address books, in a customer relationship management program or other tools. We may also store and process data we receive legally from third parties, or which are publicly available, as far as the processing of such data is in compliance with the applicable data regulations according to Kenyan legislation.</p>
+      <p>By using our websites, applications, or by otherwise giving us your personal information, you are consenting to our collection, use, disclosure, retention, and protection of your information according to the practices described in this Policy. In some cases, providing information and data is essential for us to provide services. If you do not agree to this Policy, you are prohibited from accessing or using our websites or applications or giving us any of your personal information.</p>
+      <p>The operative parties referred to in this policy are Company and you, the user of this site.</p>
+
+      <h3>A. Company, Us, We, Our, Ours, etc.</h3>
+      <p>The owners, operators, and publishers of the Sites and certain wholly owned subsidiaries of the same including predecessors, successors, and assigns.</p>
+
+      <h3>B. User, You, Your, Yours, etc.</h3>
+      <p>You, the user of this Site, regardless of whether you access the Site with the intention of merely viewing the Site as a User or whether you access the Site with the intention of posting advertisements as an Advertiser. You must be at least eighteen (18) years of age to access the Site or use the Services. We do not knowingly market to or collect or solicit any information from or about anyone under the age of eighteen (18). If you are under the age of eighteen (18), you must not submit information to us and must immediately leave the Site. If we learn that we have collected information from or about a person under the age of eighteen (18), we will delete that information as quickly as possible. If you believe that we might have such information, please contact us using the details at the end of this Privacy Policy.</p>
+
+      <h3>C. Advertisers</h3>
+      <p>A User who has agreed to our Advertiser Agreement and establishes an advertising account with us, regardless of whether such individual has prepared or published an advertisement on the Site. All Advertisers are Users, but not all Users are Advertisers.</p>
+
+      <h3>D. Site(s)</h3>
+      <p>fineescorts.co.ke, and any affiliated websites and mobile versions.</p>
+
+      <p>This Privacy Policy applies to Users and describes how we use information received about you. You expressly consent to us having and using your information as described hereunder regardless of when it was obtained or captured.</p>
+
+      <h2>II. Revisions To This Policy.</h2>
+      <p>We reserve the right to revise, amend, or modify this policy and our other policies and agreements at any time and in any manner. You should periodically check for any modifications of this Policy by re-visiting this web page and using the "refresh" button on your browser. You should note the date of last revision to this Policy, which appears at the top of this Policy. If the "Last Updated" date remains unchanged after you have clicked the "refresh" button on your browser, you may presume that no changes have been made since the last reading of the policy. A changed "Last Updated" date indicates that this Policy has been updated or edited, and the updated or edited version supersedes any prior versions immediately upon posting.</p>
+
+      <h2>III. Personal Information That We Collect.</h2>
+      <p>In relation to all Users, we may collect your (i) IP Addresses or other Internet network activity information, such as browsing history, online interactions, and (ii) other passive information gathered from your devices, such as your device ID, and browser information.</p>
+      <p>In relation to Advertisers, we or our contractors may also collect your (i) name, alias, username, or other unique personal identifier; (ii) password and security questions and answers; (iii) postal and billing address; (iv) email address; (v) telephone number; (vi) driver's license, passport, or other identification card number; (vii) age and birthdate; (viii) M-Pesa or banking information; (ix) order history; and (x) biometric information.</p>
+      <p>We, or our contractors, may collect, store, and/or maintain biometric information including, but not limited to, a scan of face geometry, from any content or verification documents you provide to us or upload to the Site, for the purposes of age/identity verification and/or content monitoring.</p>
+
+      <h2>IV. How We Collect Information From You.</h2>
+      <p>In relation to all Users, we may collect your personal information through the use of (i) cookies, pixel tags, browser capabilities, web beacons, tracking and analytics services, and other technology that automatically collects information about you; (ii) your search queries and other actions on the Site, including any responses to any surveys we ask you to complete; and (iii) your other communications and interactions with us, whether by contact form, phone, mail, email, text, or other means, including on third-party social media platforms.</p>
+      <p>In relation to Advertisers, we also collect your personal information directly from you when you provide it to us, such as through the account registration process, your advertisements, and your purchases and other financial transactions.</p>
+      <p>We strive to provide you with choices about the personal information that we collect from you automatically. You may refuse to accept cookies by activating the appropriate setting on your browser. To learn how you can manage your other cookies, visit www.allaboutcookies.org/manage-cookies/. However, if you select this setting you may be unable to access certain parts of the Site. Unless you have adjusted your browser setting so that it will refuse cookies, we will issue cookies when you access the Site.</p>
+
+      <h2>V. How We Use Your Information.</h2>
+      <p>We may use your personal information or share your personal information with third parties to:</p>
+      <ul>
+        <li>Provide you or our other Users with access to the Site and use of the Services;</li>
+        <li>Speed up the Services, such as by automatically updating your account information;</li>
+        <li>Recognize you when you return to the Services;</li>
+        <li>Personalize the Services according to your preferences and individual interests;</li>
+        <li>Notify you about changes to the Services and our policies;</li>
+        <li>Carry out our obligations and enforce our rights arising from any contracts between you and us, including this Policy and our Terms &amp; Conditions or, if you are an Advertiser, our Advertiser Agreement;</li>
+        <li>Monitor and analyze traffic and usage trends related to the Services;</li>
+        <li>Verify the integrity and security of the Services;</li>
+        <li>Improve the Services and provide customer service;</li>
+        <li>Investigate and prevent unauthorized or prohibited uses of the Services;</li>
+        <li>Serve marketing or advertising materials to you; and</li>
+        <li>Provide any other good or service to you with your consent.</li>
+      </ul>
+
+      <h2>VI. Do Not Track ("DNT") Disclosure</h2>
+      <p>Do Not Track ("DNT") is a privacy preference that you can set in your browser. DNT is a way for you to inform websites and services that you do not want certain information about your browser history collected over time and across websites or online services. Although the Site may not have the capability of recognizing all web browser Do Not Track signals, you may delete or decline the use of certain cookies by editing your browser settings. Choosing to disable cookies at this time may disable or alter the functionality of some Site features. Because we are committed to providing you choices regarding data collection, for more information about browser tracking signals and Do Not Track policies, please visit: www.allaboutdnt.org.</p>
+
+      <h2>VII. Third Party Data Tracking</h2>
+      <p>We currently utilize third party services to track certain usage data collected over time and across certain websites, as well as the effectiveness of certain advertising campaigns. We do not provide any personally identifying information to such third parties, but they may choose to collect generalized User activity data from you. The collection and use of this aggregate User data may be subject to the policies of the relevant third party advertising agent. For more information about advertising tracking and your rights as an online consumer, please visit www.networkadvertising.org.</p>
+      <p>A complete list of such third-party plug-ins and software that may be used by us can be requested.</p>
+      <p>Third parties including application providers and third-party plug-ins may provide materials to the site which use cookies, web beacons, or other tracking technologies to collect your personal information, including information about your online activities over time and across different websites and other online services. Those third parties may use this information to provide you with interest-based (behavioral) advertising or other targeted content. We do not control third-party tracking technologies or how third parties use them. Your use of third-party plug-ins are governed by the user terms and privacy policy of the third party that provided that plug-in. If you have any questions about an advertisement or plug-in, you should contact the responsible provider directly.</p>
+      <p>Please be aware that we do not operate, control, or endorse third-party websites that may be linked on the Site, nor are we responsible for the content or privacy practices of third-party websites. We disclaim any responsibility for your personal information on third-party websites, and we do not make any warranties or representations that any third-party website (or even this Site) will function without error or interruption, that defects will be corrected, or that any third-party websites or their servers are free of viruses or other problems that may harm your computer. We encourage you to be aware when you leave the Site and to read the privacy policies of any third-party website that collects your personal information.</p>
+
+      <h2>VIII. Sharing Your Personal Information with Third Parties and Data Handling in General</h2>
+      <p>We protect personal data through appropriate technical and organizational security measures and store them on secure servers. The website is protected against manipulation by the usual state-of-the-art measures and against access, modification or distribution by unauthorized persons. This includes taking data protection aspects into account as early as the planning phase of our services ("privacy by design"), and our new products or services are offered with data protection-friendly default settings ("privacy by default").</p>
+      <p>It is our policy not to share your personal information with third parties in ways unrelated to those described in Section V without also providing you with an opportunity to opt out or otherwise object to such unrelated uses. However, we may disclose your personal information to third parties, without notice if, in our sole discretion, we believe that it is reasonable to do so to:</p>
+      <ul>
+        <li>Comply with any laws, regulations, or obligations under Kenyan law;</li>
+        <li>Identify, contact, or bring legal action against someone who may be violating our Terms &amp; Conditions or our other policies and procedures;</li>
+        <li>Protect ourselves, our Users, and the general public;</li>
+        <li>Enable us to engage in a corporate transaction or reorganization, such as a divestiture, merger, consolidation, asset sale, joint venture, assignment, restricting, dissolution, bankruptcy, receivership, liquidation, or some other similar proceeding;</li>
+        <li>Report suspicious behavior to law enforcement authorities, including the DCI, and other governmental, administrative, or regulatory agencies; and</li>
+        <li>Cooperate, to the extent required by applicable law, with lawful criminal, civil, or administrative process, discovery requests, subpoenas, court orders, warrants, writs, or other reasonable requests of authorities or persons with reasonable power to obtain such process.</li>
+      </ul>
+      <p>We may share your personal information with any third party for any other reason with your consent.</p>
+      <p>You authorize us to fully or partially contract third parties whose intervention seems to be opportune for the proper development of the services provided through the Site. In this case, we are obliged to the subcontracted party to undersign a contract which stipulates the obligations the latter must fulfil regarding the personal data protection, by using standard agreements which are in compliance with Kenyan legislation. In particular, said third party will be required to comply with the same data protection obligations as those which we have promised to our Users, as well as sufficient guarantees that it shall apply the appropriate technical and organizational measures to ensure that the data use conforms to the applicable regulations. We will be diligent in its selection of providers via the application of legally compliant verification mechanisms, with the objective of minimizing as much as possible the risks which may affect the security of the information which the third party may access.</p>
+      <p>In general, when handling your personal data, we comply with the applicable data protection regulations under the Kenyan Data Protection Act, 2019, which, in particular, state the following rights:</p>
+      <ul>
+        <li><strong>Right of access and right to information:</strong> The right of access allows Users to find out about and obtain, free of charge, information about their personal data which is being handled. You may ask us to show you the information about you which we store.</li>
+        <li><strong>Right of notification:</strong> Should the provisions on the protection of personal data be violated, the person affected by the violation will be informed, provided that this entails a legally sufficient risk for personal rights and freedoms.</li>
+        <li><strong>Right of rectification:</strong> This right is so-called because it allows you to correct errors, modify any data which may be inaccurate or incomplete, and to guarantee the exactness of the data being handled. You must inform us of any changes in your data and you are the party responsible for updating your information.</li>
+        <li><strong>Right of erasure/deletion/omission ("right to be forgotten"):</strong> You have the right to request that personal data relating to you be deleted immediately and the personal data must be deleted immediately if one of the reasons listed in Kenyan legislation applies, for example that the data are no longer necessary for the purpose for which they were collected.</li>
+        <li><strong>Right of restriction of processing:</strong> In certain cases, you have the right to restrict the processing of data. If such a restriction is requested, the data may only be retained, but may no longer be processed.</li>
+        <li><strong>Right of opposition:</strong> The right of opposition is the User's right to not have their personal data used for certain purposes and for said usage to cease. You may oppose the handling of your data by indicating the specific purposes to which you object. Subsequently, the data may no longer be processed, unless the data processor can prove compelling reasons for the processing which are worthy of protection and which outweigh the interests, rights and freedoms of the data subject, or the processing serves to assert, exercise or defend legal claims. Where personal data are processed for direct marketing purposes, the data subject shall have the right to object at any time to the processing of personal data concerning him/her for the purposes of such advertising, including profiling in so far as it is related to such direct marketing.</li>
+        <li><strong>Right to Portability:</strong> The right to portability allows you to request from us a copy of your personal data in a commonly used, machine readable, structured format.</li>
+        <li><strong>Right to waive an automated decision in individual cases:</strong> In addition, you have the right not to be subject to a decision based exclusively on automated processing, including profiling, which has legal effect against you or significantly affect you in a similar matter.</li>
+        <li><strong>Complaints:</strong> Data subjects whose personal data we process have a right of administrative complaint to the competent supervisory authority. The supervisory authority for data protection in Kenya is the Office of the Data Protection Commissioner (ODPC).</li>
+      </ul>
+
+      <h2>IX. Data Retention.</h2>
+      <p>Except as otherwise permitted or required by applicable law or regulation, we will retain your personal information only for as long as necessary to fulfill any use of your personal information set forth herein. However, we reserve the right to retain publicly available information and de-identified information for any legitimate business purpose without further notice to you or your consent.</p>
+
+      <h2>X. Our Commitment to Data Security.</h2>
+      <p>We take commercially reasonable measures to protect the transmission of all User information. Nevertheless, we cannot guarantee that our security measures will prevent third-party 'hackers' from illegally obtaining this information. We take reasonable measures to prevent such breaches of security. However, given the resourcefulness of cyber-criminals, we are unable to guarantee that our security is completely breach-proof. You assume the risk of such breaches to the extent that they occur despite our reasonable security measures.</p>
+      <p>Further, other than what is stated hereunder, we do not provide User information to third parties; nor will we sell, rent, or provide any of your information to other entities such as advertisers, or other companies selling services similar to this Company's services. The Site may contain advertisements that contain or are in the form of banners/links to third party sites and you understand and acknowledge that such third-party sites generally will contain policies and procedures including, but not limited to, terms of use, privacy policy, etc. that are different from our Site's. If you access a third party's site, we encourage you to read and understand such site's policies and procedures.</p>
+
+      <h2>XI. Jurisdiction, Applicable Law and International Users in general</h2>
+      <p>This Privacy Policy and also the use of our Site and Services shall be governed by Kenyan Law, excluding its conflict of law regulations. Place of Jurisdiction shall be Nairobi, Kenya.</p>
+      <p>Therefore, this Policy is intended to cover collection of personal information within our home jurisdiction. Some countries may require stricter privacy policies than those described in this Policy. If you are accessing the Site from a foreign country, you understand and agree that your personal information may be transferred to, stored, and processed in our home jurisdiction or the jurisdiction of the third parties described herein, and that the data protection and other laws of our home jurisdiction or the jurisdiction of such third parties might not be as comprehensive as those in your country.</p>
+
+      <h2>XII. Where to Direct Questions About Our Privacy Policy.</h2>
+      <p>If you have any questions about this Privacy Policy or the practices described hereunder, you may contact us as the data processor at:</p>
+      <address>
+        <strong>FineEscorts Kenya</strong><br>
+        Privacy Officer<br>
+        Nairobi, Kenya<br>
+        Email: <strong>privacy@fineescorts.co.ke</strong>
+      </address>
+      <hr>
+      <p><em>- End of Privacy Policy -</em></p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms & Conditions</a>
+          <a href="dmca.html">DMCA</a>
+          <a href="reportabuse.html">Report Abuse</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="about.html">About Us</a>
+          <a href="advertise.html">Advertise</a>
+          <a href="contact.html">Contact</a>
+          <a href="reporttrafficking.html">Report Trafficking</a>
+        </div>
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <a href="reviews.html">Reviews</a>
+          <a href="blog.html">Blog</a>
+        </div>
+        <div class="footer-col">
+          <h4>Social</h4>
+          <div style="display: flex; gap: 1rem;">
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fas fa-shield-alt"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="copyright">
+        fineescorts.co.ke ® The Ultimate Guide to Escorts & Adult Entertainment in Kenya ®<br>
+        © 1997 - <span id="year"></span> FineEscorts Kenya
+      </div>
+    </div>
+  </footer>
+
+  <!-- Back to top button -->
+  <button class="back-to-top" id="backToTop"><i class="fas fa-chevron-up"></i></button>
+
+  <script>
+    // Update copyright year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Back to top button
+    const backBtn = document.getElementById('backToTop');
+    if (backBtn) {
+      window.addEventListener('scroll', () => {
+        backBtn.classList.toggle('show', window.scrollY > 300);
+      });
+      backBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  </script>
+</body>
+</html>

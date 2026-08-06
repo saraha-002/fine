@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Booking Confirmed – FineEscorts</title>
+  <meta name="description" content="Your booking has been confirmed. Thank you for choosing FineEscorts.">
+  <meta name="robots" content="noindex, nofollow">
+  
+  <!-- Jost font -->
+   <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
+<link rel="alternate icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .confirmation-card {
+      max-width: 600px;
+      width: 100%;
+      background: #1a1a1a;
+      border-radius: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+      padding: 2.5rem 2rem;
+      border: 1px solid #333;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      font-size: 2.2rem;
+      font-weight: 600;
+      color: #c9a45c;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.02em;
+    }
+    .logo span {
+      color: white;
+      font-weight: 400;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 500;
+      color: white;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .subhead {
+      text-align: center;
+      color: #aaa;
+      font-weight: 300;
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .status-box {
+      background: #222;
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid #333;
+    }
+
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      color: #c9a45c;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top: 3px solid #c9a45c;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .success-icon {
+      color: #27ae60;
+      font-size: 3rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .error-icon {
+      color: #e74c3c;
+      font-size: 3rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem 1.5rem;
+      background: #222;
+      border-radius: 20px;
+      padding: 1.5rem;
+      border: 1px solid #333;
+      margin-bottom: 1.5rem;
+    }
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .detail-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: #888;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.2rem;
+    }
+    .detail-value {
+      font-size: 1.1rem;
+      font-weight: 400;
+      color: white;
+      word-break: break-word;
+    }
+    .detail-value.highlight {
+      color: #c9a45c;
+      font-weight: 500;
+    }
+
+    .contact-note {
+      background: #1e1e1e;
+      border-left: 4px solid #c9a45c;
+      padding: 1rem 1.2rem;
+      border-radius: 16px;
+      margin: 1.5rem 0;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+    .contact-note strong {
+      color: #c9a45c;
+    }
+
+    .btn-primary {
+      display: block;
+      background: #c9a45c;
+      color: #0a0a0a;
+      text-decoration: none;
+      padding: 1rem;
+      border-radius: 40px;
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.2s;
+      margin-top: 2rem;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      font-size: 1rem;
+    }
+    .btn-primary:hover {
+      background: #dbb16c;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(201, 164, 92, 0.3);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .reference {
+      font-size: 0.8rem;
+      color: #666;
+      text-align: center;
+      margin-top: 1.5rem;
+      word-break: break-all;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 500px) {
+      .confirmation-card {
+        padding: 1.5rem;
+      }
+      .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+      }
+      h1 {
+        font-size: 1.6rem;
+      }
+      .logo {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+<script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
+</head>
+<body>
+  <div class="confirmation-card">
+    <div class="logo">Fine<span>Escorts</span></div>
+    <h1>Thank You</h1>
+    <div class="subhead">Your booking is being confirmed</div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="status-box loading">
+      <div class="spinner"></div>
+      <p>Verifying your payment...</p>
+    </div>
+
+    <!-- Success State -->
+    <div id="successState" class="hidden">
+      <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="status-box" style="text-align: center;">
+        <p style="color: #27ae60; font-weight: 500;">Payment successful!</p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Your booking has been confirmed.</p>
+      </div>
+      <div class="detail-grid" id="successDetails">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="hidden">
+      <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+      <div class="status-box" style="text-align: center; color: #e74c3c;">
+        <p>Payment verification failed.</p>
+        <p style="font-size: 0.9rem; color: #aaa;">Please contact support.</p>
+      </div>
+    </div>
+
+    <!-- Fallback booking details from session -->
+    <div id="fallbackDetails" class="hidden">
+      <div class="detail-grid" id="fallbackGrid"></div>
+    </div>
+
+    <div class="contact-note">
+      <p><i class="fas fa-headset"></i> If you have any questions, contact us at <strong>support@fineescorts.co.ke</strong></p>
+    </div>
+
+    <a href="index.html" class="btn-primary"><i class="fas fa-home"></i> Return to Home</a>
+    <div id="referenceDisplay" class="reference"></div>
+  </div>
+
+  <script>
+    // Helper to get URL parameter
+    function getParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    // Get reference from URL
+    const reference = getParam('reference');
+
+    // DOM elements
+    const loadingState = document.getElementById('loadingState');
+    const successState = document.getElementById('successState');
+    const errorState = document.getElementById('errorState');
+    const fallbackDetails = document.getElementById('fallbackDetails');
+    const successDetails = document.getElementById('successDetails');
+    const fallbackGrid = document.getElementById('fallbackGrid');
+    const referenceDisplay = document.getElementById('referenceDisplay');
+
+    // Show reference if available
+    if (reference) {
+      referenceDisplay.textContent = `Transaction reference: ${reference}`;
+    }
+
+    // Retrieve booking data from sessionStorage (as backup)
+    let bookingData = null;
+    try {
+      bookingData = JSON.parse(sessionStorage.getItem('pendingBooking'));
+    } catch (e) {
+      console.warn('No booking data in sessionStorage');
+    }
+
+    // If we have a reference, verify with backend
+    if (reference) {
+      // Call your verification endpoint
+      fetch(`https://fineescorts-payment-verify.onrender.com/api/verify-payment?reference=${reference}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Verification failed');
+          return response.json();
+        })
+        .then(data => {
+          loadingState.classList.add('hidden');
+
+          if (data.verified) {
+            // Success
+            successState.classList.remove('hidden');
+
+            // Build details from verified data
+            const txData = data.data || data;
+            const amount = txData.amount ? (txData.amount / 100).toFixed(2) : '100.00';
+            const email = txData.customer?.email || bookingData?.clientEmail || '—';
+            const date = txData.paid_at ? new Date(txData.paid_at).toLocaleDateString() : new Date().toLocaleDateString();
+
+            successDetails.innerHTML = `
+              <div class="detail-item">
+                <span class="detail-label">Amount paid</span>
+                <span class="detail-value highlight">KES ${amount}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">${escapeHtml(email)}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Date</span>
+                <span class="detail-value">${date}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Reference</span>
+                <span class="detail-value">${escapeHtml(reference)}</span>
+              </div>
+            `;
+
+            // Also show booking details if available
+            if (bookingData) {
+              successDetails.innerHTML += `
+                <div class="detail-item" style="grid-column: span 2; margin-top: 0.5rem;">
+                  <span class="detail-label">Booking</span>
+                  <span class="detail-value">${escapeHtml(bookingData.duration || 'Service')} with ${escapeHtml(bookingData.profileName || 'escort')}</span>
+                </div>
+              `;
+            }
+
+            // Clear sessionStorage
+            sessionStorage.removeItem('pendingBooking');
+          } else {
+            // Verification failed
+            errorState.classList.remove('hidden');
+            if (bookingData) {
+              showFallback();
+            }
+          }
+        })
+        .catch(err => {
+          console.error('Verification error:', err);
+          loadingState.classList.add('hidden');
+          errorState.classList.remove('hidden');
+          if (bookingData) {
+            showFallback();
+          }
+        });
+    } else {
+      // No reference – maybe they arrived directly
+      loadingState.classList.add('hidden');
+      if (bookingData) {
+        // Show fallback from session
+        showFallback();
+      } else {
+        errorState.classList.remove('hidden');
+      }
+    }
+
+    function showFallback() {
+      if (!bookingData) return;
+      fallbackDetails.classList.remove('hidden');
+      fallbackGrid.innerHTML = `
+        <div class="detail-item">
+          <span class="detail-label">Name</span>
+          <span class="detail-value">${escapeHtml(bookingData.clientName)}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Email</span>
+          <span class="detail-value">${escapeHtml(bookingData.clientEmail)}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Phone</span>
+          <span class="detail-value">${escapeHtml(bookingData.clientPhone)}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Date</span>
+          <span class="detail-value">${escapeHtml(bookingData.bookingDate)} ${bookingData.bookingTime ? escapeHtml(bookingData.bookingTime) : ''}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Service</span>
+          <span class="detail-value">${escapeHtml(bookingData.duration)}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Total</span>
+          <span class="detail-value highlight">KES ${escapeHtml(bookingData.total)}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Paid now</span>
+          <span class="detail-value highlight">KES ${escapeHtml(bookingData.payNow)}</span>
+        </div>
+      `;
+    }
+
+    // Helper to escape HTML
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    // If there's no reference and no bookingData, just show error
+    if (!reference && !bookingData) {
+      loadingState.classList.add('hidden');
+      errorState.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>

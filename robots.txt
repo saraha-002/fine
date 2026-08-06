@@ -1,0 +1,22 @@
+# FineEscorts Kenya - Robots.txt
+# Last updated: 2026-07-01
+
+User-agent: *
+Allow: /
+Disallow: /templates/
+Disallow: /data/
+Disallow: /images/
+Disallow: /ficha.html
+
+# Sitemap location
+Sitemap: https://fineescorts.co.ke/sitemap.xml
+
+Crawl-delay: 1
+
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0.5
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 0.5
