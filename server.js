@@ -3,28 +3,113 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { MongoClient, ObjectId } = require('mongodb');
+
+// ─── Load Environment Variables ──────────────────────────────────
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── Middleware ──────────────────────────────────────────────────────
+// ─── Middleware ──────────────────────────────────────────────────
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('.'));
 
-// ─── File-Based Database ───────────────────────────────────────────
-const DATA_DIR = path.join(__dirname, 'data');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-const PROFILES_FILE = path.join(DATA_DIR, 'profiles.json');
-const SUBSCRIPTIONS_FILE = path.join(DATA_DIR, 'subscriptions.json');
+// ─── MongoDB Connection ──────────────────────────────────────────
+const MONGO_URL = process.env.MONGO_URL;
+let db = null;
+let client = null;
 
+async function connectDB() {
+    try {
+        if (!MONGO_URL) {
+            console.error('❌ MONGO_URL environment variable is not set!');
+            console.log('📁 Falling back to file-based storage...');
+            return false;
+        }
+        
+        client = new MongoClient(MONGO_URL);
+        await client.connect();
+        db = client.db('fineescorts');
+        console.log('✅ Connected to MongoDB Atlas successfully!');
+        
+        // Create collections if they don't exist
+        const collections = await db.listCollections().toArray();
+        const collectionNames = collections.map(c => c.name);
+        
+        if (!collectionNames.includes('users')) {
+            await db.createCollection('users');
+            console.log('📁 Created "users" collection');
+        }
+        if (!collectionNames.includes('profiles')) {
+            await db.createCollection('profiles');
+            console.log('📁 Created "profiles" collection');
+        }
+        if (!collectionNames.includes('subscriptions')) {
+            await db.createCollection('subscriptions');
+            console.log('📁 Created "subscriptions" collection');
+        }
+        if (!collectionNames.includes('reviews')) {
+            await db.createCollection('reviews');
+            console.log('📁 Created "reviews" collection');
+        }
+        
+        // ─── MIGRATION: Seed existing profiles from JSON ──────────
+        await migrateProfiles();
+        
+        return true;
+    } catch (err) {
+        console.error('❌ MongoDB connection error:', err.message);
+        console.log('📁 Falling back to file-based storage...');
+        return false;
+    }
+}
+
+// ─── Migration: Seed profiles from profiles.json ──────────────────
+async function migrateProfiles() {
+    try {
+        const profilesCollection = db.collection('profiles');
+        const count = await profilesCollection.countDocuments();
+        
+        if (count === 0) {
+            console.log('📁 Seeding profiles from profiles.json...');
+            const jsonPath = path.join(__dirname, 'data', 'profiles.json');
+            if (fs.existsSync(jsonPath)) {
+                const profiles = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+                if (profiles.length > 0) {
+                    const result = await profilesCollection.insertMany(profiles);
+                    console.log(`✅ Seeded ${result.insertedCount} profiles from profiles.json`);
+                }
+            } else {
+                console.warn('⚠️ profiles.json not found, skipping seed');
+            }
+        } else {
+            console.log(`✅ Already have ${count} profiles in database`);
+        }
+    } catch (err) {
+        console.error('⚠️ Migration error:', err.message);
+    }
+}
+
+// ─── Database Helpers ─────────────────────────────────────────────
+function getCollection(name) {
+    if (db) {
+        return db.collection(name);
+    }
+    // Fallback to file-based storage
+    return null;
+}
+
+// ─── File-Based Fallback ──────────────────────────────────────────
+const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-// Helper: Read/write JSON files
 function readJSON(file, defaultVal = []) {
     try {
-        if (fs.existsSync(file)) {
-            return JSON.parse(fs.readFileSync(file, 'utf8'));
+        const filePath = path.join(DATA_DIR, file);
+        if (fs.existsSync(filePath)) {
+            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
         }
         return defaultVal;
     } catch (e) {
@@ -35,43 +120,10 @@ function readJSON(file, defaultVal = []) {
 
 function writeJSON(file, data) {
     try {
-        fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+        fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, 2), 'utf8');
     } catch (e) {
         console.error(`❌ Error writing ${file}:`, e.message);
     }
-}
-
-// ─── Data Stores ──────────────────────────────────────────────────
-let users = readJSON(USERS_FILE, {});
-let profiles = readJSON(PROFILES_FILE, []);  // Keep as ARRAY
-let subscriptions = readJSON(SUBSCRIPTIONS_FILE, {});
-
-// ─── MIGRATION: Auto-upgrade existing profiles to new schema ────
-let profilesChanged = false;
-profiles = profiles.map(p => {
-    let changed = false;
-    // Add missing fields with safe defaults
-    if (!p.displayName) { p.displayName = p.name || p.displayName || 'Unnamed'; changed = true; }
-    if (!p.location) { p.location = p.city || 'Unknown'; changed = true; }
-    if (!p.phone) { p.phone = p.fullNumber || ''; changed = true; }
-    if (!p.photos) { p.photos = p.images || []; changed = true; }
-    if (!p.services) { p.services = []; changed = true; }
-    if (!p.userId) { p.userId = null; changed = true; } // Legacy profiles have no owner
-    if (!p.status) { 
-        // Existing profiles are APPROVED by default so they stay live
-        p.status = 'approved'; 
-        p.isApproved = true;
-        changed = true; 
-    }
-    if (!p.createdAt) { p.createdAt = new Date().toISOString(); changed = true; }
-    if (!p.profileViews && p.profileViews !== 0) { p.profileViews = 0; changed = true; }
-    if (p.isApproved === undefined) { p.isApproved = true; changed = true; }
-    return p;
-});
-
-if (profilesChanged) {
-    writeJSON(PROFILES_FILE, profiles);
-    console.log(`✅ Migrated ${profiles.length} existing profiles to new schema (all marked as APPROVED)`);
 }
 
 // ─── Helper Functions ─────────────────────────────────────────────
@@ -79,71 +131,147 @@ function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-function findUserByEmail(email) {
+async function findUserByEmail(email) {
+    const usersCol = getCollection('users');
+    if (usersCol) {
+        return await usersCol.findOne({ email });
+    }
+    // File-based fallback
+    const users = readJSON('users.json', {});
     for (const [id, user] of Object.entries(users)) {
         if (user.email === email) return { id, ...user };
     }
     return null;
 }
 
-function findUserById(id) {
+async function findUserById(id) {
+    const usersCol = getCollection('users');
+    if (usersCol) {
+        return await usersCol.findOne({ _id: new ObjectId(id) });
+    }
+    const users = readJSON('users.json', {});
     return users[id] ? { id, ...users[id] } : null;
 }
 
-function findProfileBySlug(slug) {
-    return profiles.find(p => p.slug === slug);
-}
-
-function findProfileByUserId(userId) {
+async function findProfileByUserId(userId) {
+    const profilesCol = getCollection('profiles');
+    if (profilesCol) {
+        return await profilesCol.findOne({ userId });
+    }
+    const profiles = readJSON('profiles.json', []);
     return profiles.find(p => p.userId === userId);
 }
 
-function getProfilesByStatus(status) {
-    return profiles.filter(p => p.status === status);
+async function findProfileBySlug(slug) {
+    const profilesCol = getCollection('profiles');
+    if (profilesCol) {
+        return await profilesCol.findOne({ slug });
+    }
+    const profiles = readJSON('profiles.json', []);
+    return profiles.find(p => p.slug === slug);
+}
+
+async function getAllProfiles() {
+    const profilesCol = getCollection('profiles');
+    if (profilesCol) {
+        return await profilesCol.find({}).toArray();
+    }
+    return readJSON('profiles.json', []);
+}
+
+async function saveProfile(profile) {
+    const profilesCol = getCollection('profiles');
+    if (profilesCol) {
+        const result = await profilesCol.insertOne(profile);
+        return { ...profile, _id: result.insertedId };
+    }
+    const profiles = readJSON('profiles.json', []);
+    profiles.push(profile);
+    writeJSON('profiles.json', profiles);
+    return profile;
+}
+
+async function updateProfile(slug, updates) {
+    const profilesCol = getCollection('profiles');
+    if (profilesCol) {
+        await profilesCol.updateOne({ slug }, { $set: updates });
+        return await profilesCol.findOne({ slug });
+    }
+    const profiles = readJSON('profiles.json', []);
+    const index = profiles.findIndex(p => p.slug === slug);
+    if (index !== -1) {
+        profiles[index] = { ...profiles[index], ...updates };
+        writeJSON('profiles.json', profiles);
+        return profiles[index];
+    }
+    return null;
 }
 
 // ─── Auth Middleware ──────────────────────────────────────────────
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
         return res.status(401).json({ message: 'No token provided' });
     }
     const token = authHeader.split(' ')[1];
-    let userId = null;
+    
+    const usersCol = getCollection('users');
+    if (usersCol) {
+        const user = await usersCol.findOne({ token });
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid token' });
+        }
+        req.userId = user._id.toString();
+        req.user = user;
+        return next();
+    }
+    
+    // File-based fallback
+    const users = readJSON('users.json', {});
     for (const [id, user] of Object.entries(users)) {
         if (user.token === token) {
-            userId = id;
-            break;
+            req.userId = id;
+            req.user = { id, ...user };
+            return next();
         }
     }
-    if (!userId) {
-        return res.status(401).json({ message: 'Invalid token' });
-    }
-    req.userId = userId;
-    next();
+    return res.status(401).json({ message: 'Invalid token' });
 }
 
 // ─── Routes ────────────────────────────────────────────────────────
 
 // ─── Auth Routes ──────────────────────────────────────────────────
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password required' });
     }
-    if (findUserByEmail(email)) {
+    
+    const existing = await findUserByEmail(email);
+    if (existing) {
         return res.status(409).json({ message: 'Email already registered' });
     }
-    const userId = crypto.randomBytes(16).toString('hex');
+    
+    const userId = new ObjectId().toString();
     const token = generateToken();
-    users[userId] = {
+    const newUser = {
+        _id: new ObjectId(userId),
         email,
-        password, // ⚠️ Hash this with bcrypt in production!
+        password, // ⚠️ Hash with bcrypt in production!
         token,
         role: 'escort',
         createdAt: new Date().toISOString()
     };
-    writeJSON(USERS_FILE, users);
+    
+    const usersCol = getCollection('users');
+    if (usersCol) {
+        await usersCol.insertOne(newUser);
+    } else {
+        const users = readJSON('users.json', {});
+        users[userId] = newUser;
+        writeJSON('users.json', users);
+    }
+    
     res.status(201).json({
         message: 'Registration successful',
         token,
@@ -152,78 +280,60 @@ app.post('/api/auth/register', (req, res) => {
     });
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password required' });
     }
-    const user = findUserByEmail(email);
+    
+    const user = await findUserByEmail(email);
     if (!user || user.password !== password) {
         return res.status(401).json({ message: 'Invalid credentials' });
     }
-    // Refresh token
+    
     const token = generateToken();
-    users[user.id].token = token;
-    writeJSON(USERS_FILE, users);
-
-    const profile = findProfileByUserId(user.id);
-    const subStatus = profile ? subscriptions[profile.slug] || { active: false } : { active: false };
-
+    const usersCol = getCollection('users');
+    if (usersCol) {
+        await usersCol.updateOne({ _id: user._id }, { $set: { token } });
+    } else {
+        const users = readJSON('users.json', {});
+        if (users[user.id]) {
+            users[user.id].token = token;
+            writeJSON('users.json', users);
+        }
+    }
+    
+    const profile = await findProfileByUserId(user._id?.toString() || user.id);
+    const subStatus = profile ? { active: false } : { active: false };
+    
     res.json({
         message: 'Login successful',
         token,
         user: { email: user.email, role: user.role || 'escort' },
-        subscription: {
-            active: subStatus.active || false,
-            expired: subStatus.expiry ? new Date(subStatus.expiry) < new Date() : false
-        }
+        subscription: subStatus
     });
 });
 
-app.post('/api/auth/reset-password', (req, res) => {
-    const { token, newPassword } = req.body;
-    if (!token || !newPassword) {
-        return res.status(400).json({ message: 'Token and new password required' });
-    }
-    for (const [id, user] of Object.entries(users)) {
-        if (user.resetToken === token) {
-            users[id].password = newPassword;
-            delete users[id].resetToken;
-            writeJSON(USERS_FILE, users);
-            return res.json({ message: 'Password reset successful' });
-        }
-    }
-    res.status(404).json({ message: 'Invalid or expired reset token' });
-});
-
-// ─── Profile Routes ───────────────────────────────────────────────
-app.get('/api/profiles/me', authenticate, (req, res) => {
-    const profile = findProfileByUserId(req.userId);
+// ─── Profile Routes ──────────────────────────────────────────────
+app.get('/api/profiles/me', authenticate, async (req, res) => {
+    const profile = await findProfileByUserId(req.userId);
     if (!profile) {
         return res.status(404).json({ message: 'Profile not found' });
     }
-    const sub = subscriptions[profile.slug] || { active: false };
-    const result = {
-        ...profile,
-        subscription: {
-            active: sub.active || false,
-            tier: sub.tier || 'free',
-            duration: sub.duration || 'none',
-            amount: sub.amount || 0,
-            expiryDate: sub.expiry || null
-        }
-    };
-    res.json(result);
+    res.json(profile);
 });
 
-app.post('/api/profiles', authenticate, (req, res) => {
+app.post('/api/profiles', authenticate, async (req, res) => {
     const { displayName, age, location, ethnicity, description, services, phone } = req.body;
     if (!displayName || !age || !location || !description || !phone) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
-    if (findProfileByUserId(req.userId)) {
+    
+    const existing = await findProfileByUserId(req.userId);
+    if (existing) {
         return res.status(409).json({ message: 'You already have a profile' });
     }
+    
     const slug = displayName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
     const newProfile = {
         slug,
@@ -246,164 +356,79 @@ app.post('/api/profiles', authenticate, (req, res) => {
         profileViews: 0,
         verified: false
     };
-    profiles.push(newProfile);
-    writeJSON(PROFILES_FILE, profiles);
+    
+    const saved = await saveProfile(newProfile);
     res.status(201).json({
         message: 'Profile created successfully. Awaiting admin approval.',
-        profile: newProfile
-    });
-});
-
-app.put('/api/profiles/me', authenticate, (req, res) => {
-    const index = profiles.findIndex(p => p.userId === req.userId);
-    if (index === -1) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
-    const { displayName, age, location, ethnicity, description, services, phone, photos } = req.body;
-    if (displayName) { profiles[index].displayName = displayName; profiles[index].name = displayName; }
-    if (age) { profiles[index].age = parseInt(age); }
-    if (location) { profiles[index].location = location; profiles[index].city = location; }
-    if (ethnicity !== undefined) { profiles[index].ethnicity = ethnicity; }
-    if (description) { profiles[index].description = description; }
-    if (services) { profiles[index].services = services; }
-    if (phone) { profiles[index].phone = phone; profiles[index].fullNumber = phone; }
-    if (photos) { profiles[index].photos = photos; profiles[index].images = photos; }
-    profiles[index].updatedAt = new Date().toISOString();
-    writeJSON(PROFILES_FILE, profiles);
-    res.json({
-        message: 'Profile updated successfully',
-        profile: profiles[index]
-    });
-});
-
-app.post('/api/profiles/me/photos', authenticate, (req, res) => {
-    // ⚠️ In production, use multer for file uploads.
-    // For now, this is a placeholder.
-    res.json({ message: 'Photo upload endpoint (integrate multer)', photos: [] });
-});
-
-app.post('/api/profiles/me/activate', authenticate, (req, res) => {
-    const { tier, duration } = req.body;
-    const index = profiles.findIndex(p => p.userId === req.userId);
-    if (index === -1) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
-    const slug = profiles[index].slug;
-    const sub = subscriptions[slug] || {};
-    if (!sub.active) {
-        return res.status(400).json({ message: 'No active subscription found. Please complete payment first.' });
-    }
-    profiles[index].isApproved = true;
-    profiles[index].status = 'approved';
-    profiles[index].subscriptionTier = tier || sub.tier;
-    profiles[index].subscriptionDuration = duration || sub.duration;
-    profiles[index].activatedAt = new Date().toISOString();
-    writeJSON(PROFILES_FILE, profiles);
-    res.json({
-        message: '✅ Profile activated successfully! Your profile is now live.',
-        profile: profiles[index]
+        profile: saved
     });
 });
 
 // ─── Admin Routes ──────────────────────────────────────────────────
-app.get('/api/admin/stats', authenticate, (req, res) => {
-    const user = findUserById(req.userId);
+app.get('/api/admin/stats', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
     if (!user || user.role !== 'admin') {
         return res.status(403).json({ message: 'Admin access required' });
     }
+    const profiles = await getAllProfiles();
     const pending = profiles.filter(p => p.status === 'pending' || !p.isApproved).length;
     const approved = profiles.filter(p => p.status === 'approved' || p.isApproved).length;
     const rejected = profiles.filter(p => p.status === 'rejected').length;
     res.json({ pending, approved, rejected, total: profiles.length });
 });
 
-app.get('/api/admin/profiles', authenticate, (req, res) => {
-    const user = findUserById(req.userId);
+app.get('/api/admin/profiles', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
     if (!user || user.role !== 'admin') {
         return res.status(403).json({ message: 'Admin access required' });
     }
     const { status } = req.query;
-    let result = profiles;
+    let profiles = await getAllProfiles();
     if (status === 'pending') {
-        result = profiles.filter(p => p.status === 'pending' || !p.isApproved);
+        profiles = profiles.filter(p => p.status === 'pending' || !p.isApproved);
     } else if (status === 'approved') {
-        result = profiles.filter(p => p.status === 'approved' || p.isApproved);
+        profiles = profiles.filter(p => p.status === 'approved' || p.isApproved);
     } else if (status === 'rejected') {
-        result = profiles.filter(p => p.status === 'rejected');
+        profiles = profiles.filter(p => p.status === 'rejected');
     }
-    res.json(result);
+    res.json(profiles);
 });
 
-app.put('/api/admin/profiles/:slug/approve', authenticate, (req, res) => {
-    const user = findUserById(req.userId);
+app.put('/api/admin/profiles/:slug/approve', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
     if (!user || user.role !== 'admin') {
         return res.status(403).json({ message: 'Admin access required' });
     }
     const slug = req.params.slug;
-    const index = profiles.findIndex(p => p.slug === slug);
-    if (index === -1) {
+    const updated = await updateProfile(slug, { isApproved: true, status: 'approved', approvedAt: new Date().toISOString() });
+    if (!updated) {
         return res.status(404).json({ message: 'Profile not found' });
     }
-    profiles[index].isApproved = true;
-    profiles[index].status = 'approved';
-    profiles[index].approvedAt = new Date().toISOString();
-    writeJSON(PROFILES_FILE, profiles);
-    res.json({ message: '✅ Profile approved successfully', profile: profiles[index] });
+    res.json({ message: '✅ Profile approved successfully', profile: updated });
 });
 
-app.delete('/api/admin/profiles/:slug', authenticate, (req, res) => {
-    const user = findUserById(req.userId);
+app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
     if (!user || user.role !== 'admin') {
         return res.status(403).json({ message: 'Admin access required' });
     }
     const slug = req.params.slug;
-    const index = profiles.findIndex(p => p.slug === slug);
-    if (index === -1) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
-    profiles.splice(index, 1);
-    writeJSON(PROFILES_FILE, profiles);
-    res.json({ message: '❌ Profile rejected and deleted successfully' });
-});
-
-// ─── Subscription Routes ──────────────────────────────────────────
-app.post('/api/subscribe', (req, res) => {
-    const { slug, plan, tier, duration, amount } = req.body;
-    if (!slug) {
-        return res.status(400).json({ message: 'Profile slug required' });
-    }
-    subscriptions[slug] = {
-        active: true,
-        tier: tier || plan || 'verified',
-        duration: duration || 'monthly',
-        amount: amount || 500,
-        startedAt: new Date().toISOString(),
-        expiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-    };
-    writeJSON(SUBSCRIPTIONS_FILE, subscriptions);
-    console.log(`✅ Subscription activated for ${slug}`);
-    res.json({
-        success: true,
-        message: 'Subscription activated successfully',
-        subscription: subscriptions[slug]
-    });
-});
-
-app.post('/api/payment/callback', (req, res) => {
-    const { transactionId, status, metadata } = req.body;
-    console.log(`📲 Payment callback: ${transactionId} -> ${status}`);
-    if (status === 'SUCCESS' || status === 'COMPLETED') {
-        const slug = metadata?.slug;
-        if (slug && subscriptions[slug]) {
-            subscriptions[slug].active = true;
-            subscriptions[slug].paidAt = new Date().toISOString();
-            writeJSON(SUBSCRIPTIONS_FILE, subscriptions);
-            console.log(`✅ Payment success: ${slug} activated`);
+    const profilesCol = getCollection('profiles');
+    if (profilesCol) {
+        const result = await profilesCol.deleteOne({ slug });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: 'Profile not found' });
         }
-        res.json({ success: true, message: 'Payment processed' });
     } else {
-        res.json({ success: false, message: 'Payment failed' });
+        const profiles = readJSON('profiles.json', []);
+        const index = profiles.findIndex(p => p.slug === slug);
+        if (index === -1) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+        profiles.splice(index, 1);
+        writeJSON('profiles.json', profiles);
     }
+    res.json({ message: '❌ Profile rejected and deleted successfully' });
 });
 
 // ─── Serve Pages ──────────────────────────────────────────────────
@@ -435,7 +460,6 @@ app.get('/payment.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'payment.html'));
 });
 
-// ─── Static Profiles ──────────────────────────────────────────────
 app.get('/profiles/:slug.html', (req, res) => {
     const filePath = path.join(__dirname, 'profiles', `${req.params.slug}.html`);
     if (fs.existsSync(filePath)) {
@@ -446,10 +470,13 @@ app.get('/profiles/:slug.html', (req, res) => {
 });
 
 // ─── Start Server ──────────────────────────────────────────────────
-app.listen(PORT, () => {
-    console.log(`🚀 FineEscorts Server running at http://localhost:${PORT}`);
-    console.log(`📊 API endpoints at http://localhost:${PORT}/api/`);
-    console.log(`📁 Total profiles loaded: ${profiles.length}`);
-    console.log(`✅ All existing profiles automatically marked as APPROVED (live on site)`);
-    console.log(`📝 New signups will be added to the same array (pending admin approval)`);
-});
+async function startServer() {
+    await connectDB();
+    app.listen(PORT, () => {
+        console.log(`🚀 FineEscorts Server running at http://localhost:${PORT}`);
+        console.log(`📊 API endpoints at http://localhost:${PORT}/api/`);
+        console.log(`📁 Database: ${db ? 'MongoDB Atlas ✅' : 'File-based storage ⚠️'}`);
+    });
+}
+
+startServer();
