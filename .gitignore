@@ -1,0 +1,85 @@
+# ─── Node Modules ──────────────────────────────────────────────────
+node_modules/
+package-lock.json
+yarn.lock
+
+# ─── Environment Variables (SECRETS) ──────────────────────────────
+.env
+.env.local
+.env.production
+.env.development
+
+# ─── Sensitive Data Files ──────────────────────────────────────────
+data/users.json
+data/subscriptions.json
+data/reviews.json
+data/sessions.json
+
+# ─── Service Account Keys (Never Commit) ──────────────────────────
+service-account-key.json
+oauth-credentials.json
+*.key
+*.pem
+*.crt
+
+# ─── Backup Folders ────────────────────────────────────────────────
+profiles_backup_*/
+backup_*/
+*.backup
+
+# ─── Logs ──────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── OS Files ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+
+# ─── IDE / Editor Files ────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ─── Build / Generated Files ──────────────────────────────────────
+dist/
+build/
+*.min.js
+*.min.css
+*.map
+
+# ─── Temporary Files ──────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.temp
+
+# ─── Coverage Reports ──────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── Environment Files ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── MongoDB Data ──────────────────────────────────────────────────
+mongodb-data/
+dump/
+
+# ─── Render Deployment ─────────────────────────────────────────────
+render.yaml
+render.yml
+
+# ─── Local Development Files ──────────────────────────────────────
+localhost.pem
+localhost-key.pem
