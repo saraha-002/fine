@@ -370,6 +370,44 @@ app.post('/api/profiles', authenticate, async (req, res) => {
     });
 });
 
+// ─── UPDATE PROFILE ──────────────────────────────────────────────
+app.put('/api/profiles/me', authenticate, async (req, res) => {
+    try {
+        const { displayName, age, location, ethnicity, description, services, phone, photos } = req.body;
+        
+        // Find the profile
+        const profile = await findProfileByUserId(req.userId);
+        if (!profile) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+        
+        // Build update object
+        const updates = {};
+        if (displayName !== undefined) updates.displayName = displayName;
+        if (age !== undefined) updates.age = parseInt(age);
+        if (location !== undefined) updates.location = location;
+        if (ethnicity !== undefined) updates.ethnicity = ethnicity;
+        if (description !== undefined) updates.description = description;
+        if (services !== undefined) updates.services = services;
+        if (phone !== undefined) updates.phone = phone;
+        if (photos !== undefined) updates.photos = photos;
+        
+        // Update the profile
+        const updated = await updateProfile(profile.slug, updates);
+        
+        res.json({
+            message: '✅ Profile updated successfully',
+            profile: updated
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({ 
+            message: 'Failed to update profile',
+            error: error.message 
+        });
+    }
+});
+
 // ─── Admin Routes ──────────────────────────────────────────────────
 app.get('/api/admin/stats', authenticate, async (req, res) => {
     const user = await findUserById(req.userId);
@@ -412,6 +450,8 @@ app.put('/api/admin/profiles/:slug/approve', authenticate, async (req, res) => {
     }
     res.json({ message: '✅ Profile approved successfully', profile: updated });
 });
+
+
 
 app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
     const user = await findUserById(req.userId);
