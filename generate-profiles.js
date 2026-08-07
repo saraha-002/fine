@@ -820,49 +820,60 @@ const context = {
 console.log(`   ✅ Generated ${profileCount} profile pages`);
 
 // ---------- Generate city pages ----------
-console.log("\n🏙️ Generating city pages...");
+// ---------- Generate city pages (Dynamic - ALL cities) ----------
+console.log("\n🏙️ Generating city pages for all locations...");
+
+// Get all unique cities from profiles
+const allCities = [...new Set(profiles.map(p => p.city).filter(Boolean))];
 let cityCount = 0;
-for (const [city, cityProfiles] of Object.entries(cityGroups)) {
-  const citySlug = slugify(city);
-  let profilesHtml = "";
-  for (const p of cityProfiles) {
-    profilesHtml += `
-      <div class="escort-card">
-        <img class="escort-card-image" src="${p.images?.[0] || ''}" alt="${escapeHtml(p.name)} verified escort in ${escapeHtml(p.city)}" loading="lazy">
-        <div class="escort-card-content">
-          <div class="escort-card-name">${escapeHtml(sanitizeName(p.name))}</div>
-          <div class="escort-card-location">${escapeHtml(p.city)}</div>
-          <a href="profiles/${p.slug}.html" class="view-profile-btn">View Profile</a>
-        </div>
-      </div>`;
-  }
-  const context = {
-    baseUrl: BASE_URL,
-    city: city,
-    citySlug: citySlug,
-    profileCount: cityProfiles.length,
-    profiles: profilesHtml,
-    jsonld: JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "ItemList",
-      "name": `${city} Escorts`,
-      "description": `List of premium escort companions available in ${city}, Kenya.`,
-      "url": `${BASE_URL}${citySlug}-escorts.html`,
-      "numberOfItems": cityProfiles.length,
-      "itemListElement": cityProfiles.map((p, idx) => ({
-        "@type": "ListItem",
-        "position": idx+1,
-        "url": `${BASE_URL}profiles/${p.slug}.html`,
-        "name": sanitizeName(p.name)
-      }))
-    }, null, 2),
-    topCityLinks: getTopCityLinksForRoot(),
-    relatedProfiles: getRelatedProfilesForProfile(cityProfiles[0])
-  };
-  const page = render(cityTemplate, context);
-  fs.writeFileSync(path.join(CITY_PAGES_OUTPUT_DIR, `${citySlug}-escorts.html`), page);
-  cityCount++;
-}
+
+allCities.forEach(city => {
+    const citySlug = slugify(city);
+    const cityProfiles = profiles.filter(p => p.city === city);
+    
+    let profilesHtml = "";
+    for (const p of cityProfiles) {
+        profilesHtml += `
+            <div class="escort-card">
+                <img class="escort-card-image" src="${p.images?.[0] || ''}" alt="${escapeHtml(p.name)} verified escort in ${escapeHtml(p.city)}" loading="lazy">
+                <div class="escort-card-content">
+                    <div class="escort-card-name">${escapeHtml(sanitizeName(p.name))}</div>
+                    <div class="escort-card-location">${escapeHtml(p.city)}</div>
+                    <a href="profiles/${p.slug}.html" class="view-profile-btn">View Profile</a>
+                </div>
+            </div>`;
+    }
+    
+    const context = {
+        baseUrl: BASE_URL,
+        city: city,
+        citySlug: citySlug,
+        profileCount: cityProfiles.length,
+        profiles: profilesHtml,
+        jsonld: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            "name": `${city} Escorts`,
+            "description": `List of premium escort companions available in ${city}, Kenya.`,
+            "url": `${BASE_URL}${citySlug}-escorts.html`,
+            "numberOfItems": cityProfiles.length,
+            "itemListElement": cityProfiles.map((p, idx) => ({
+                "@type": "ListItem",
+                "position": idx+1,
+                "url": `${BASE_URL}profiles/${p.slug}.html`,
+                "name": sanitizeName(p.name)
+            }))
+        }, null, 2),
+        topCityLinks: getTopCityLinksForRoot(),
+        relatedProfiles: getRelatedProfilesForProfile(cityProfiles[0])
+    };
+    
+    const page = render(cityTemplate, context);
+    fs.writeFileSync(path.join(CITY_PAGES_OUTPUT_DIR, `${citySlug}-escorts.html`), page);
+    cityCount++;
+    console.log(`   📄 Generated city page: ${city} (${cityProfiles.length} profiles)`);
+});
+
 console.log(`   ✅ Generated ${cityCount} city pages`);
 
 console.log("\n" + "=".repeat(50));

@@ -99,6 +99,10 @@ async function loadProfiles() {
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     allProfiles = await res.json();
     filteredProfiles = [...allProfiles];
+    
+    // ✅ Populate city filter dynamically from all profiles
+    populateCityFilter(allProfiles);
+    
     renderProfiles();
     renderPagination();
   } catch (err) {
@@ -157,19 +161,44 @@ function renderProfiles() {
 }
 
 function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>"']/g, function(m) {
-    switch (m) {
-      case '&': return '&amp;';
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '"': return '&quot;';
-      case "'": return '&#039;';
-      default: return m;
-    }
-  });
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, function(m) {
+        switch (m) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#039;';
+            default: return m;
+        }
+    });
 }
 
+/* ===============================
+POPULATE CITY FILTER (Dynamic)
+================================ */
+function populateCityFilter(profiles) {
+    const cityFilter = document.getElementById('cityFilter');
+    if (!cityFilter) return;
+
+    // Get all unique cities from profiles (filter out null/undefined)
+    const cities = [...new Set(profiles.map(p => p.city).filter(Boolean))].sort();
+
+    // Preserve the "Select Location" option
+    const defaultOption = cityFilter.querySelector('option[value=""]');
+    cityFilter.innerHTML = '';
+    cityFilter.appendChild(defaultOption);
+
+    // Add each city as an option
+    cities.forEach(city => {
+        const option = document.createElement('option');
+        option.value = city;
+        option.textContent = city;
+        cityFilter.appendChild(option);
+    });
+
+    console.log(`📍 Loaded ${cities.length} cities into filter`);
+}
 /* ===============================
 PAGINATION
 ================================ */
