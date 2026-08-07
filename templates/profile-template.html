@@ -270,9 +270,12 @@
             <a href="tel:{{fullNumber}}" class="call-now-btn" style="flex: 1; background: #c7a76c; border: none; color: #0d0d0d; font-weight: 700; font-size: 18px; padding: 14px 0; border-radius: 14px; text-align: center; text-decoration: none; transition: background 0.2s;">
               <i class="fas fa-phone"></i> Call
             </a>
-            <a href="https://wa.me/254{{fullNumber|replace('^0', '')}}?text=Hello%20{{name}}%2C%20I%20saw%20your%20profile%20on%20FineEscorts" target="_blank" class="wa-now-btn" style="flex: 1; background: #25D366; border: none; color: #0d0d0d; font-weight: 700; font-size: 18px; padding: 14px 0; border-radius: 14px; text-align: center; text-decoration: none; transition: background 0.2s;">
-              <i class="fab fa-whatsapp"></i> WhatsApp
-            </a>
+    <a href="https://wa.me/{{waNumber}}?text=Hello%20{{name}}%2C%20I%20saw%20your%20profile%20on%20FineEscorts" 
+   target="_blank" 
+   class="wa-now-btn" 
+   style="flex: 1; background: #25D366; border: none; color: #0d0d0d; font-weight: 700; font-size: 18px; padding: 14px 0; border-radius: 14px; text-align: center; text-decoration: none; transition: background 0.2s;">
+    <i class="fab fa-whatsapp"></i> WhatsApp
+</a>
           </div>
           <p style="text-align: center; color: #888; font-size: 12px; margin-top: 12px;">
             <i class="fas fa-shield-alt"></i> Discreet · Verified profile · Active today
@@ -389,11 +392,12 @@
         </div>
       </div>
       <!-- WhatsApp button -->
-      <a href="https://wa.me/254{{fullNumber|replace('^0', '')}}?text=Hello%20{{name}}%2C%20I%20saw%20your%20profile%20on%20FineEscorts" 
-         target="_blank" 
-         class="sticky-wa-btn">
-        <i class="fab fa-whatsapp"></i> WhatsApp
-      </a>
+    <!-- WhatsApp button -->
+<a href="https://wa.me/{{waNumber}}?text=Hello%20{{name}}%2C%20I%20saw%20your%20profile%20on%20FineEscorts" 
+   target="_blank" 
+   class="sticky-wa-btn">
+    <i class="fab fa-whatsapp"></i> WhatsApp
+</a>
     </div>
   </div>
 </body>
