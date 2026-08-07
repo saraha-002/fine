@@ -610,7 +610,108 @@ app.get('/profiles/:slug.html', (req, res) => {
         res.status(404).send('Profile not found');
     }
 });
+// ─── Cloudinary Configuration ─────────────────────────────────────
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const multer = require('multer');
 
+// Configure Cloudinary with environment variables
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'immyuh56',
+    api_key: process.env.CLOUDINARY_API_KEY || '135327946836997',
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configure Multer storage for Cloudinary
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'fineescorts-profiles',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+        transformation: [
+            { width: 800, height: 1000, crop: 'limit', quality: 'auto' }
+        ]
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+// ─── PHOTO UPLOAD ENDPOINT ────────────────────────────────────────
+app.post('/api/profiles/me/photos', authenticate, upload.array('photos', 10), async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No photos uploaded' });
+        }
+
+        // Get the profile
+        const profile = await findProfileByUserId(req.userId);
+        if (!profile) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+
+        // Check photo limit based on subscription tier
+        const tier = profile.subscriptionTier || 'free';
+        const maxPhotos = { free: 3, standard: 3, premium: 5, vip: 10 }[tier] || 5;
+        const existingPhotos = profile.photos || [];
+        
+        if (existingPhotos.length + req.files.length > maxPhotos) {
+            return res.status(400).json({ 
+                message: `Maximum ${maxPhotos} photos allowed. You already have ${existingPhotos.length}.` 
+            });
+        }
+
+        // Get Cloudinary URLs from uploaded files
+        const photoUrls = req.files.map(file => file.path);
+
+        // Update profile with new photos
+        const allPhotos = [...existingPhotos, ...photoUrls];
+        const updated = await updateProfile(profile.slug, { photos: allPhotos });
+
+        res.json({
+            message: '✅ Photos uploaded successfully',
+            photos: updated.photos
+        });
+    } catch (error) {
+        console.error('Photo upload error:', error);
+        res.status(500).json({
+            message: 'Failed to upload photos',
+            error: error.message
+        });
+    }
+});
+
+// ─── DELETE PHOTO ENDPOINT ────────────────────────────────────────
+app.delete('/api/profiles/me/photos', authenticate, async (req, res) => {
+    try {
+        const { photoUrl } = req.body;
+        if (!photoUrl) {
+            return res.status(400).json({ message: 'Photo URL required' });
+        }
+
+        const profile = await findProfileByUserId(req.userId);
+        if (!profile) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+
+        // Remove the photo from the array
+        const updatedPhotos = (profile.photos || []).filter(p => p !== photoUrl);
+        const updated = await updateProfile(profile.slug, { photos: updatedPhotos });
+
+        res.json({
+            message: '✅ Photo deleted successfully',
+            photos: updated.photos
+        });
+    } catch (error) {
+        console.error('Delete photo error:', error);
+        res.status(500).json({
+            message: 'Failed to delete photo',
+            error: error.message
+        });
+    }
+});
 // ─── Start Server ──────────────────────────────────────────────────
 async function startServer() {
     await connectDB();

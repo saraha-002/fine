@@ -384,27 +384,44 @@
 
     // ─── UPLOAD PHOTOS ─────────────────────────────────────────────
     async function uploadPhotos() {
-      const token = getToken();
-      if (!token) return;
-      const input = document.getElementById('newPhotos');
-      const files = input.files;
-      if (files.length === 0) { alert('Please select photos to upload.'); return; }
-      const max = MAX_PHOTOS[currentProfile?.subscription?.tier] || 5;
-      const currentCount = (currentProfile?.photos || []).length;
-      if (currentCount + files.length > max) { alert(`You can only have ${max} photos. You already have ${currentCount}.`); return; }
-      const formData = new FormData();
-      for (let file of files) formData.append('photos', file);
-      try {
-        const res = await fetch(`${API_BASE}/profiles/me/photos`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
-        if (!res.ok) throw new Error('Upload failed');
+    const token = getToken();
+    if (!token) return;
+    const input = document.getElementById('newPhotos');
+    const files = input.files;
+    if (files.length === 0) { alert('Please select photos to upload.'); return; }
+
+    // Check max photos based on subscription tier
+    const tier = currentProfile?.subscription?.tier || 'free';
+    const max = { free: 3, standard: 3, premium: 5, vip: 10 }[tier] || 5;
+    const currentCount = (currentProfile?.photos || []).length;
+    if (currentCount + files.length > max) { 
+        alert(`You can only have ${max} photos. You already have ${currentCount}.`); 
+        return; 
+    }
+
+    const formData = new FormData();
+    for (let file of files) {
+        formData.append('photos', file);
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/profiles/me/photos`, { 
+            method: 'POST', 
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData 
+        });
         const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Upload failed');
+        
         currentProfile.photos = data.photos;
         renderPhotos(currentProfile);
         renderSubscription(currentProfile);
         input.value = '';
         alert('✅ Photos uploaded successfully!');
-      } catch (err) { alert('❌ Error uploading photos: ' + err.message); }
+    } catch (err) { 
+        alert('❌ Error uploading photos: ' + err.message); 
     }
+}
 
     // ─── DELETE PHOTO ──────────────────────────────────────────────
     async function deletePhoto(encodedUrl) {
