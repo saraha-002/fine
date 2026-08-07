@@ -1,3 +1,9 @@
+// ─── Fetch polyfill for older Node versions ──────────────────────
+if (!global.fetch) {
+    const fetch = require('node-fetch');
+    global.fetch = fetch;
+} 
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
@@ -429,6 +435,67 @@ app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
         writeJSON('profiles.json', profiles);
     }
     res.json({ message: '❌ Profile rejected and deleted successfully' });
+});
+
+// ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
+app.post('/api/pay', async (req, res) => {
+    try {
+        const { name, phone, amount } = req.body;
+        
+        // Validate required fields
+        if (!phone || !amount) {
+            return res.status(400).json({ 
+                error: 'Phone number and amount are required' 
+            });
+        }
+
+        // Forward the request to Sarahapay
+        const response = await fetch('https://sarahapay.onrender.com/api/pay', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f26803361aa087df169acc4ac4'
+            },
+            body: JSON.stringify({
+                name: name || 'FineEscorts Payment',
+                phone: phone,
+                amount: amount
+            })
+        });
+
+        const data = await response.json();
+        
+        // Forward the response back to the client
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('Payment proxy error:', error);
+        res.status(500).json({ 
+            error: 'Payment service unavailable',
+            details: error.message 
+        });
+    }
+});
+
+// ─── Transaction Status Proxy ─────────────────────────────────────
+app.get('/api/transaction/:id', async (req, res) => {
+    try {
+        const transactionId = req.params.id;
+        
+        const response = await fetch(`https://sarahapay.onrender.com/api/transaction/${transactionId}`, {
+            headers: {
+                'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4'
+            }
+        });
+
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('Transaction status error:', error);
+        res.status(500).json({ 
+            error: 'Transaction status unavailable',
+            details: error.message 
+        });
+    }
 });
 
 // ─── Serve Pages ──────────────────────────────────────────────────

@@ -151,7 +151,7 @@
   <script>
     const API_SECRET = "103e07b75c0b3d874cd4376dd0e095729f66d4f26803361aa087df169acc4ac4";
     const RECAPTCHA_SITE_KEY = "6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5";
-    const SARAHAPAY_API = "https://sarahapay.onrender.com";
+    const SARAHAPAY_API = ''; // Use relative path to your server
 
     const PRICING = { daily: { standard: 100, premium: 150, vip: 200 }, weekly: { standard: 600, premium: 900, vip: 1000 }, monthly: { standard: 1500, premium: 2500, vip: 4000 } };
     const TIER_NAMES = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
@@ -223,7 +223,7 @@
       } catch (err) { showStatus('Security verification failed. Please refresh and try again.', 'error'); payBtn.innerHTML = originalText; payBtn.disabled = false; return; }
 
       try {
-        const response = await fetch(`${SARAHAPAY_API}/api/pay`, {
+        const response = await fetch('/api/pay', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Secret': API_SECRET, 'X-Recaptcha-Token': recaptchaToken },
           body: JSON.stringify({ name: `${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]})`, phone: formattedPhone, amount: currentAmount })
@@ -287,7 +287,7 @@
 
     async function checkPaymentStatus(transactionId) {
       try {
-        const response = await fetch(`${SARAHAPAY_API}/api/transaction/${transactionId}`);
+        const response = await fetch(`/api/transaction/${transactionId}`);
         if (!response.ok) return { status: 'PENDING' };
         const data = await response.json();
         return { status: data.status, data };

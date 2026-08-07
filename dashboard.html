@@ -127,7 +127,7 @@
     <p>&copy; 2026 FineEscorts Kenya. All rights reserved.</p>
   </footer>
 
-  <script>
+ <script>
     const API_BASE = '/api';
     const PRICING = { daily: { standard: 100, premium: 150, vip: 200 }, weekly: { standard: 600, premium: 900, vip: 1000 }, monthly: { standard: 1500, premium: 2500, vip: 4000 } };
     const TIER_LABELS = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
@@ -139,10 +139,12 @@
     let selectedDuration = 'monthly';
     let selectedTier = 'premium';
 
+    // ─── AUTH HELPERS ──────────────────────────────────────────────
     function getToken() { return localStorage.getItem('token'); }
-    function logout() { localStorage.removeItem('token'); localStorage.removeItem('userEmail'); window.location.href = '/'; }
+    function logout() { localStorage.removeItem('token'); localStorage.removeItem('userEmail'); localStorage.removeItem('showOnboarding'); window.location.href = '/'; }
     function requireAuth() { if (!getToken()) { window.location.href = '/login.html'; return false; } return true; }
 
+    // ─── TAB SWITCHING ─────────────────────────────────────────────
     function switchTab(tabId) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
@@ -150,6 +152,7 @@
       document.querySelector(`.tab-button[data-tab="${tabId}"]`)?.classList.add('active');
     }
 
+    // ─── API FETCH ──────────────────────────────────────────────────
     async function apiFetch(endpoint, options = {}) {
       const token = getToken();
       const headers = { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }), ...options.headers };
@@ -158,20 +161,123 @@
       return { res, data };
     }
 
+    // ─── ONBOARDING BANNER ─────────────────────────────────────────
+    function showOnboardingBanner() {
+      const container = document.querySelector('.dashboard-container');
+      if (!container) return;
+
+      // Check if onboarding flag exists
+      if (localStorage.getItem('showOnboarding') !== 'true') return;
+
+      const banner = document.createElement('div');
+      banner.id = 'onboardingBanner';
+      banner.style.cssText = `
+        background: linear-gradient(135deg, #1a3a2a 0%, #0d1f15 100%);
+        padding: 20px 24px;
+        border-radius: 12px;
+        border: 1px solid #4CAF50;
+        margin-bottom: 25px;
+        color: #eaeaea;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+      `;
+      banner.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+          <i class="fas fa-info-circle" style="color: #4CAF50; font-size: 28px;"></i>
+          <div>
+            <div style="font-weight: 600; font-size: 16px; color: #ffffff;">🎉 Welcome to FineEscorts!</div>
+            <div style="color: #a0a0a0; font-size: 14px;">Complete your profile by adding a description, uploading photos, and choosing a subscription to go live.</div>
+          </div>
+        </div>
+        <button onclick="dismissOnboarding()" style="
+          background: #c7a76c;
+          border: none;
+          padding: 8px 20px;
+          border-radius: 30px;
+          cursor: pointer;
+          font-weight: 600;
+          color: #0d0d0d;
+          font-size: 14px;
+          transition: all 0.2s;
+          white-space: nowrap;
+        " onmouseover="this.style.background='#dbb87a'" onmouseout="this.style.background='#c7a76c'">
+          Got it! Start Building
+        </button>
+      `;
+      container.prepend(banner);
+    }
+
+    function dismissOnboarding() {
+      const banner = document.getElementById('onboardingBanner');
+      if (banner) banner.remove();
+      localStorage.removeItem('showOnboarding');
+    }
+
+    // ─── LOAD PROFILE ──────────────────────────────────────────────
     async function loadProfile() {
       if (!requireAuth()) return;
       try {
         const { res, data } = await apiFetch('/profiles/me');
-        if (!res.ok) { if (res.status === 404) { alert('You don\'t have a profile yet. Please create one first.'); window.location.href = '/signup.html'; return; } throw new Error(data.message || 'Failed to load profile'); }
+        if (!res.ok) { 
+          if (res.status === 404) { 
+            alert('You don\'t have a profile yet. Please create one first.'); 
+            window.location.href = '/signup.html'; 
+            return; 
+          } 
+          throw new Error(data.message || 'Failed to load profile'); 
+        }
         currentProfile = data;
         renderProfile(currentProfile);
         renderPhotos(currentProfile);
         renderSubscription(currentProfile);
         populateEditForm(currentProfile);
-      } catch (err) { document.getElementById('profileDisplay').innerHTML = `<div style="color:#ff6b6b; padding:20px; background:#2a1a1a; border-radius:8px;"><i class="fas fa-exclamation-circle"></i> ${err.message}</div>`; }
+        
+        // Show onboarding banner if this is a new user
+        showOnboardingBanner();
+      } catch (err) { 
+        document.getElementById('profileDisplay').innerHTML = `<div style="color:#ff6b6b; padding:20px; background:#2a1a1a; border-radius:8px;"><i class="fas fa-exclamation-circle"></i> ${err.message}</div>`; 
+      }
     }
 
+    // ─── RENDER PROFILE ─────────────────────────────────────────────
     function renderProfile(profile) {
+      const hasDescription = profile.description && profile.description.trim().length > 0;
+      const hasServices = profile.services && profile.services.length > 0;
+      const hasPhotos = profile.photos && profile.photos.length > 0;
+      const completeness = [hasDescription, hasServices, hasPhotos].filter(Boolean).length;
+
+      // Profile completeness indicator
+      let completenessHtml = '';
+      if (!profile.isApproved) {
+        const total = 3;
+        const percentage = Math.round((completeness / total) * 100);
+        const statusText = completeness === 0 ? 'Just getting started' :
+                           completeness === 1 ? 'Almost there!' :
+                           completeness === 2 ? 'One more step!' : 'Complete!';
+        const color = completeness === 0 ? '#FF9800' :
+                      completeness === 1 ? '#FF9800' :
+                      completeness === 2 ? '#FF9800' : '#4CAF50';
+        completenessHtml = `
+          <div style="margin: 8px 0 12px 0; padding: 10px 14px; background: #0d0d0d; border-radius: 8px; border: 1px solid ${color};">
+            <div style="display: flex; justify-content: space-between; align-items: center; color: #eaeaea; font-size: 13px;">
+              <span><strong>Profile Completeness:</strong> ${completeness}/${total} (${statusText})</span>
+              <span style="color: ${color};">${percentage}%</span>
+            </div>
+            <div style="width: 100%; height: 4px; background: #2a2a2a; border-radius: 2px; margin-top: 6px; overflow: hidden;">
+              <div style="width: ${percentage}%; height: 100%; background: ${color}; border-radius: 2px; transition: width 0.5s;"></div>
+            </div>
+            <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 12px;">
+              <span style="color: ${hasDescription ? '#4CAF50' : '#888'};"><i class="fas ${hasDescription ? 'fa-check-circle' : 'fa-circle'}"></i> Description ${hasDescription ? '✅' : '❌'}</span>
+              <span style="color: ${hasServices ? '#4CAF50' : '#888'};"><i class="fas ${hasServices ? 'fa-check-circle' : 'fa-circle'}"></i> Services ${hasServices ? '✅' : '❌'}</span>
+              <span style="color: ${hasPhotos ? '#4CAF50' : '#888'};"><i class="fas ${hasPhotos ? 'fa-check-circle' : 'fa-circle'}"></i> Photos ${hasPhotos ? '✅' : '❌'}</span>
+            </div>
+          </div>
+        `;
+      }
+
       const html = `
         <div class="profile-preview">
           <h3>${escapeHtml(profile.displayName)}</h3>
@@ -180,20 +286,28 @@
           <div class="profile-field"><span class="label">Age:</span> ${profile.age}</div>
           <div class="profile-field"><span class="label">Ethnicity:</span> ${escapeHtml(profile.ethnicity || 'Not specified')}</div>
           <div class="profile-field"><span class="label">Phone:</span> ${escapeHtml(profile.phone)}</div>
+          ${completenessHtml}
           <div class="profile-field"><span class="label">Description:</span></div>
-          <div style="margin-top:5px; background:#0d0d0d; padding:10px; border-radius:4px; white-space:pre-line; color:#a0a0a0;">${escapeHtml(profile.description || 'No description yet.')}</div>
+          <div style="margin-top:5px; background:#0d0d0d; padding:10px; border-radius:4px; white-space:pre-line; color:#a0a0a0;">
+            ${hasDescription ? escapeHtml(profile.description) : '<span style="color:#555; font-style:italic;">No description yet. Add one in the Edit tab.</span>'}
+          </div>
           ${profile.subscription?.active ? `<div class="profile-field" style="border-top:2px solid #4CAF50; margin-top:10px; padding-top:10px;"><span class="label">Subscription:</span><span style="color:#4CAF50; font-weight:600;">${TIER_LABELS[profile.subscription.tier] || profile.subscription.tier} (${DURATION_LABELS[profile.subscription.duration] || profile.subscription.duration})</span></div><div class="profile-field"><span class="label">Expires:</span><span>${new Date(profile.subscription.expiryDate).toLocaleDateString('en-KE', { day:'numeric', month:'long', year:'numeric' })}</span></div>` : ''}
         </div>`;
       document.getElementById('profileDisplay').innerHTML = html;
     }
 
+    // ─── RENDER PHOTOS ─────────────────────────────────────────────
     function renderPhotos(profile) {
       const grid = document.getElementById('photoGrid');
       const photos = profile.photos || [];
-      if (photos.length === 0) { grid.innerHTML = `<div style="padding:20px; text-align:center; color:#888; background:#1a1a1a; border-radius:8px; width:100%;"><i class="fas fa-camera" style="font-size:30px; display:block; margin-bottom:10px;"></i>No photos uploaded yet.</div>`; return; }
+      if (photos.length === 0) { 
+        grid.innerHTML = `<div style="padding:20px; text-align:center; color:#888; background:#1a1a1a; border-radius:8px; width:100%;"><i class="fas fa-camera" style="font-size:30px; display:block; margin-bottom:10px;"></i>No photos uploaded yet. Upload up to ${MAX_PHOTOS[profile.subscription?.tier] || 5} photos.</div>`; 
+        return; 
+      }
       grid.innerHTML = photos.map(url => `<div class="photo-item"><img src="${url}" alt="Profile photo" loading="lazy"><button class="delete-photo" onclick="deletePhoto('${encodeURIComponent(url)}')">×</button></div>`).join('');
     }
 
+    // ─── RENDER SUBSCRIPTION ───────────────────────────────────────
     function renderSubscription(profile) {
       const info = document.getElementById('subscriptionInfo');
       const sub = profile.subscription;
@@ -205,9 +319,10 @@
       const expiry = sub?.expiryDate ? new Date(sub.expiryDate).toLocaleDateString('en-KE', { day:'numeric', month:'long', year:'numeric' }) : null;
       const photoCount = (profile.photos || []).length;
       const maxPhotos = MAX_PHOTOS[tier] || 5;
-      info.innerHTML = `<div class="current-sub"><p><strong>📦 Current Package:</strong> ${tierDisplay} ${isActive ? `✅ (${durationDisplay})` : '❌ (Inactive)'}</p>${isActive && expiry ? `<p><strong>⏳ Expires:</strong> ${expiry}</p>` : ''}${isActive ? `<p><strong>💰 Paid:</strong> KES ${sub?.amount || 0}</p>` : '<p><em>No active subscription. Please upgrade to go live.</em></p>'}<p><strong>📷 Photos Used:</strong> ${photoCount} / ${maxPhotos}</p><p><strong>👤 Profile Status:</strong> ${profile.isApproved ? '✅ Live & Visible' : '⏳ Pending Approval'}</p></div>`;
+      info.innerHTML = `<div class="current-sub"><p><strong>📦 Current Package:</strong> ${tierDisplay} ${isActive ? `✅ (${durationDisplay})` : '❌ (Inactive)'}</p>${isActive && expiry ? `<p><strong>⏳ Expires:</strong> ${expiry}</p>` : ''}${isActive ? `<p><strong>💰 Paid:</strong> KES ${sub?.amount || 0}</p>` : '<p><em>No active subscription. Choose a package below to go live.</em></p>'}<p><strong>📷 Photos Used:</strong> ${photoCount} / ${maxPhotos}</p><p><strong>👤 Profile Status:</strong> ${profile.isApproved ? '✅ Live & Visible' : '⏳ Pending Approval'}</p></div>`;
     }
 
+    // ─── POPULATE EDIT FORM ────────────────────────────────────────
     function populateEditForm(profile) {
       document.getElementById('editDisplayName').value = profile.displayName || '';
       document.getElementById('editAge').value = profile.age || '';
@@ -215,16 +330,33 @@
       document.getElementById('editEthnicity').value = profile.ethnicity || '';
       document.getElementById('editDescription').value = profile.description || '';
       document.getElementById('editPhone').value = profile.phone || '';
+      
+      // Pre-select services
+      const servicesSelect = document.getElementById('editServices');
+      if (profile.services && servicesSelect) {
+        Array.from(servicesSelect.options).forEach(opt => {
+          opt.selected = profile.services.includes(opt.value);
+        });
+      }
     }
 
+    // ─── EDIT PROFILE ──────────────────────────────────────────────
     document.getElementById('editForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const data = { displayName: document.getElementById('editDisplayName').value.trim(), age: parseInt(document.getElementById('editAge').value), location: document.getElementById('editLocation').value, ethnicity: document.getElementById('editEthnicity').value.trim(), description: document.getElementById('editDescription').value.trim(), phone: document.getElementById('editPhone').value.trim() };
+      const data = { 
+        displayName: document.getElementById('editDisplayName').value.trim(), 
+        age: parseInt(document.getElementById('editAge').value), 
+        location: document.getElementById('editLocation').value, 
+        ethnicity: document.getElementById('editEthnicity').value.trim(), 
+        description: document.getElementById('editDescription').value.trim(), 
+        services: Array.from(document.getElementById('editServices').selectedOptions).map(opt => opt.value),
+        phone: document.getElementById('editPhone').value.trim() 
+      };
       if (!data.displayName) return alert('Display name is required.');
       if (!data.age || data.age < 18) return alert('Age must be at least 18.');
       if (!data.location) return alert('Please select a location.');
-      if (!data.description) return alert('Description is required.');
       if (!data.phone) return alert('Phone number is required.');
+      // Description is now optional – can be added later
       try {
         const { res, data: result } = await apiFetch('/profiles/me', { method: 'PUT', body: JSON.stringify(data) });
         if (!res.ok) throw new Error(result.message || 'Update failed');
@@ -236,6 +368,7 @@
       } catch (err) { alert('❌ Error updating profile: ' + err.message); }
     });
 
+    // ─── UPLOAD PHOTOS ─────────────────────────────────────────────
     async function uploadPhotos() {
       const token = getToken();
       if (!token) return;
@@ -259,6 +392,7 @@
       } catch (err) { alert('❌ Error uploading photos: ' + err.message); }
     }
 
+    // ─── DELETE PHOTO ──────────────────────────────────────────────
     async function deletePhoto(encodedUrl) {
       const url = decodeURIComponent(encodedUrl);
       if (!confirm('Delete this photo?')) return;
@@ -274,6 +408,7 @@
       } catch (err) { alert('❌ Error deleting photo: ' + err.message); }
     }
 
+    // ─── SUBSCRIPTION ──────────────────────────────────────────────
     function setDuration(dur) {
       selectedDuration = dur;
       document.querySelectorAll('.duration-btn').forEach(btn => {
@@ -306,10 +441,23 @@
       window.location.href = `/payment.html?package=${tier}&duration=${selectedDuration}&email=${encodeURIComponent(email)}`;
     }
 
+    // ─── UTILITY ────────────────────────────────────────────────────
     function escapeHtml(str) { if (!str) return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
-    document.addEventListener('DOMContentLoaded', () => { loadProfile(); setDuration('monthly'); });
-    window.switchTab = switchTab; window.logout = logout; window.uploadPhotos = uploadPhotos; window.deletePhoto = deletePhoto; window.setDuration = setDuration; window.selectSubscription = selectSubscription;
+    // ─── INIT ───────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => { 
+      loadProfile(); 
+      setDuration('monthly'); 
+    });
+
+    // ─── GLOBAL EXPOSURE ───────────────────────────────────────────
+    window.switchTab = switchTab; 
+    window.logout = logout; 
+    window.uploadPhotos = uploadPhotos; 
+    window.deletePhoto = deletePhoto; 
+    window.setDuration = setDuration; 
+    window.selectSubscription = selectSubscription;
+    window.dismissOnboarding = dismissOnboarding;
   </script>
 </body>
 </html>
