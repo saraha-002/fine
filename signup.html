@@ -191,16 +191,15 @@
         const token = registerData.token;
 
         // 2. Create minimal profile (empty description, services, no photos)
-        const profileData = {
-          displayName,
-          age,
-          location,
-          ethnicity,
-          description: '', // empty for now – user will fill later
-          services: [],    // empty for now
-          phone,
-        };
-
+      const profileData = {
+  displayName,
+  age,
+  location,
+  ethnicity,
+  description: 'Profile description coming soon.', // Placeholder to pass validation
+  services: [],    // empty for now
+  phone,
+};
         const profileRes = await fetch('/api/profiles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
