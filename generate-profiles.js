@@ -1,6 +1,21 @@
 const fs = require("fs");
 const path = require("path");
 
+// ─── Format phone for WhatsApp ────────────────────────────────────
+function formatWhatsAppNumber(phone) {
+    if (!phone) return '';
+    // Remove all non-digit characters
+    let cleaned = phone.replace(/\D/g, '');
+    // If starts with 0, replace with 254
+    if (cleaned.startsWith('0')) {
+        cleaned = '254' + cleaned.substring(1);
+    }
+    // If doesn't start with 254, add it
+    if (!cleaned.startsWith('254')) {
+        cleaned = '254' + cleaned;
+    }
+    return cleaned;
+}
 // ---------- Split description into preview (180 words) + full text ----------
 function splitDescription(text, wordLimit = 35) {
     if (!text) return { preview: '', full: '', hasMore: false };
@@ -776,14 +791,14 @@ const context = {
     today: currentDate,
     maskedNumber: maskedNumber,
     fullNumber: fullNumber,
+    waNumber: formatWhatsAppNumber(fullNumber),  // ⬅️ ADD THIS LINE
     escortId: profile.slug.replace(/-/g, '_').toUpperCase(),
     verifiedBadge: verifiedBadge,
     vipBadge: vipBadge,
     ethnicityPart: ethnicityPart,
     heroImage: heroImage,
     ogImage: ogImage,
-    // description: finalDescription,  // REMOVED – we now use bioHtml
-    bioHtml: bioHtml,                 // NEW – the complete bio block
+    bioHtml: bioHtml,
     name: sanitizeName(profile.name),
     vibe: vibe,
     trustBadgesHtml: trustBadgesHtml,
