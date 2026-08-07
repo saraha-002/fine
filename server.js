@@ -436,6 +436,41 @@ app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
     }
     res.json({ message: '❌ Profile rejected and deleted successfully' });
 });
+// ─── ACTIVATE PROFILE AFTER PAYMENT ──────────────────────────────
+app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
+    try {
+        const { tier, duration } = req.body;
+        const profile = await findProfileByUserId(req.userId);
+        
+        if (!profile) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+        
+        // Update profile to approved
+        const updated = await updateProfile(profile.slug, {
+            isApproved: true,
+            status: 'approved',
+            approvedAt: new Date().toISOString(),
+            subscriptionTier: tier || 'premium',
+            subscriptionDuration: duration || 'monthly'
+        });
+        
+        res.json({ 
+            success: true,
+            message: '✅ Profile activated and live!',
+            profile: updated 
+        });
+    } catch (error) {
+        console.error('Activation error:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to activate profile',
+            error: error.message 
+        });
+    }
+});
+
+// ⬆️⬆️⬆️ END OF ACTIVATION ENDPOINT ⬆️⬆️⬆️
 
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 app.post('/api/pay', async (req, res) => {

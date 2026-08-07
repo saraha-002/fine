@@ -9,7 +9,7 @@ const API_SECRET = "103e07b75c0b3d874cd4376dd0e095729f66d4f26803361aa087df169acc
 const RECAPTCHA_SITE_KEY = "6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5";
 
 // ---------- Sarahapay API ----------
-const SARAHAPAY_API = "https://sarahapay.onrender.com";
+const SARAHAPAY_API = ''; // Use relative path to your server
 
 // ===============================
 // STATE
@@ -312,7 +312,7 @@ async function initiatePayment() {
     }
 
     try {
-        const response = await fetch(`${SARAHAPAY_API}/api/pay`, {
+        const response = await fetch('/api/pay', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -406,7 +406,7 @@ function resetPayButton() {
 
 async function checkPaymentStatus(transactionId) {
     try {
-        const response = await fetch(`${SARAHAPAY_API}/api/transaction/${transactionId}`);
+        const response = await fetch(`/api/transaction/${transactionId}`);
         if (!response.ok) {
             return { status: 'PENDING' };
         }
