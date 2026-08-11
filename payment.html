@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/profile.css">
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <script src="https://www.google.com/recaptcha/api.js?render=6LcdW4AtAAAAABlmxTumH0ghfDOmSJpZ-dUCmjv8"></script>
+ <script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
   <style>
     body { background: #0d0d0d; font-family: 'Jost', sans-serif; min-height: 100vh; }
     .payment-container { max-width: 600px; margin: 40px auto; padding: 30px; background: #1a1a1a; border-radius: 12px; border: 1px solid #2c2c2c; }
@@ -148,22 +148,22 @@
     <p>&copy; 2026 FineEscorts Kenya. All rights reserved.</p>
   </footer>
 
-  <script>
+<script>
     // API Configuration
     const API_BASE = 'https://fine-2zxp.onrender.com';
     const API_SECRET = '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4';
-    const RECAPTCHA_SITE_KEY = '6LcdW4AtAAAAABlmxTumH0ghfDOmSJpZ-dUCmjv8';
+    const RECAPTCHA_SITE_KEY = '6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5';;
 
     const PRICING = {
-      daily: { standard: 100, premium: 150, vip: 200 },
-      weekly: { standard: 600, premium: 900, vip: 1000 },
-      monthly: { standard: 1500, premium: 2500, vip: 4000 }
+        daily: { standard: 100, premium: 150, vip: 200 },
+        weekly: { standard: 600, premium: 900, vip: 1000 },
+        monthly: { standard: 1500, premium: 2500, vip: 4000 }
     };
     const TIER_NAMES = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
     const DURATION_NAMES = { daily: 'Daily (24hrs)', weekly: 'Weekly (7 days)', monthly: 'Monthly (30 days)' };
 
     function getUserEmail() {
-      return localStorage.getItem('userEmail') || '';
+        return localStorage.getItem('userEmail') || '';
     }
 
     let selectedDuration = 'daily';
@@ -176,226 +176,224 @@
     const POLL_INTERVAL = 1000;
 
     function getParams() {
-      const params = new URLSearchParams(window.location.search);
-      return {
-        package: params.get('package') || 'premium',
-        duration: params.get('duration') || 'daily',
-        email: params.get('email') || ''
-      };
+        var params = new URLSearchParams(window.location.search);
+        return {
+            package: params.get('package') || 'premium',
+            duration: params.get('duration') || 'daily',
+            email: params.get('email') || ''
+        };
     }
 
     function selectDuration(duration) {
-      selectedDuration = duration;
-      document.querySelectorAll('.duration-btn').forEach(function(btn) {
-        btn.classList.toggle('active', btn.dataset.duration === duration);
-      });
-      updatePrices();
-      updatePayButton();
+        selectedDuration = duration;
+        document.querySelectorAll('.duration-btn').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.duration === duration);
+        });
+        updatePrices();
+        updatePayButton();
     }
 
     function selectPackage(tier) {
-      selectedTier = tier;
-      document.querySelectorAll('.package-card').forEach(function(card) {
-        card.classList.toggle('selected', card.dataset.tier === tier);
-      });
-      updatePayButton();
+        selectedTier = tier;
+        document.querySelectorAll('.package-card').forEach(function(card) {
+            card.classList.toggle('selected', card.dataset.tier === tier);
+        });
+        updatePayButton();
     }
 
     function updatePrices() {
-      const prices = PRICING[selectedDuration];
-      document.getElementById('price-standard').textContent = 'KES ' + prices.standard;
-      document.getElementById('price-premium').textContent = 'KES ' + prices.premium;
-      document.getElementById('price-vip').textContent = 'KES ' + prices.vip;
+        var prices = PRICING[selectedDuration];
+        document.getElementById('price-standard').textContent = 'KES ' + prices.standard;
+        document.getElementById('price-premium').textContent = 'KES ' + prices.premium;
+        document.getElementById('price-vip').textContent = 'KES ' + prices.vip;
     }
 
     function updatePayButton() {
-      const prices = PRICING[selectedDuration];
-      currentAmount = prices[selectedTier];
-      var payBtn = document.getElementById('payNowBtn');
-      payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount + ' for ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')';
-      payBtn.className = 'btn-pay';
-      payBtn.disabled = false;
-      payBtn.onclick = initiatePayment;
-      document.getElementById('phoneNumber').disabled = false;
+        var prices = PRICING[selectedDuration];
+        currentAmount = prices[selectedTier];
+        var payBtn = document.getElementById('payNowBtn');
+        payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount + ' for ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')';
+        payBtn.className = 'btn-pay';
+        payBtn.disabled = false;
+        payBtn.onclick = initiatePayment;
+        document.getElementById('phoneNumber').disabled = false;
     }
 
     async function initiatePayment() {
-      var userPhone = document.getElementById('phoneNumber').value.trim();
-      if (!userPhone) {
-        showStatus('Please enter your M-Pesa phone number', 'error');
-        return;
-      }
-
-      var formattedPhone = userPhone.replace(/[^0-9]/g, '');
-      if (formattedPhone.startsWith('0')) {
-        formattedPhone = '254' + formattedPhone.substring(1);
-      }
-      if (!formattedPhone.startsWith('254')) {
-        formattedPhone = '254' + formattedPhone;
-      }
-      if (formattedPhone.length !== 12) {
-        showStatus('Enter valid phone number (e.g., 0712345678)', 'error');
-        return;
-      }
-
-      var payBtn = document.getElementById('payNowBtn');
-      var originalText = payBtn.innerHTML;
-      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending prompt...';
-      payBtn.disabled = true;
-      showStatus('Initiating M-Pesa payment...', 'info');
-
-      // Generate reCAPTCHA token
-      var recaptchaToken = '';
-      try {
-        if (typeof grecaptcha === 'undefined') {
-          throw new Error('reCAPTCHA not loaded');
+        var userPhone = document.getElementById('phoneNumber').value.trim();
+        if (!userPhone) {
+            showStatus('Please enter your M-Pesa phone number', 'error');
+            return;
         }
 
-        recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' });
-        console.log('✅ reCAPTCHA token generated');
-
-        if (!recaptchaToken || recaptchaToken.length === 0) {
-          throw new Error('Token is empty');
+        var formattedPhone = userPhone.replace(/[^0-9]/g, '');
+        if (formattedPhone.startsWith('0')) {
+            formattedPhone = '254' + formattedPhone.substring(1);
         }
-      } catch (err) {
-        console.error('reCAPTCHA error:', err);
-        showStatus('Security verification failed. Please refresh and try again.', 'error');
-        payBtn.innerHTML = originalText;
-        payBtn.disabled = false;
-        return;
-      }
-
-      // Build payload
-      var payload = {
-        name: TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')',
-        phone: formattedPhone,
-        amount: currentAmount,
-        email: getUserEmail()
-      };
-      console.log('📤 Sending payload:', payload);
-
-      // Send payment request
-      try {
-        var response = await fetch(API_BASE + '/api/pay', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-Secret': API_SECRET,
-            'X-Recaptcha-Token': recaptchaToken
-          },
-          body: JSON.stringify(payload)
-        });
-        var data = await response.json();
-        console.log('📥 Response:', data);
-
-        if (response.ok && data.transactionId) {
-          showStatus('✅ M-Pesa prompt sent! Check your phone and enter PIN.', 'success');
-          payBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Waiting for PIN...';
-          startPaymentPolling(data.transactionId);
-        } else {
-          throw new Error(data.error || data.details || data.message || 'Payment initiation failed');
+        if (!formattedPhone.startsWith('254')) {
+            formattedPhone = '254' + formattedPhone;
         }
-      } catch (error) {
-        console.error('Payment error:', error);
-        showStatus(error.message || 'Payment failed. Please try again.', 'error');
-        payBtn.innerHTML = originalText;
-        payBtn.disabled = false;
-      }
+        if (formattedPhone.length !== 12) {
+            showStatus('Enter valid phone number (e.g., 0712345678)', 'error');
+            return;
+        }
+
+        var payBtn = document.getElementById('payNowBtn');
+        var originalText = payBtn.innerHTML;
+        payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending prompt...';
+        payBtn.disabled = true;
+        showStatus('Initiating M-Pesa payment...', 'info');
+
+        // ─── Generate reCAPTCHA token ──────────────────────────────────
+        var recaptchaToken = '';
+        try {
+            if (typeof grecaptcha === 'undefined') {
+                throw new Error('reCAPTCHA not loaded');
+            }
+            recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' });
+            console.log('✅ reCAPTCHA token generated');
+            if (!recaptchaToken || recaptchaToken.length === 0) {
+                throw new Error('Token is empty');
+            }
+        } catch (err) {
+            console.error('reCAPTCHA error:', err);
+            showStatus('Security verification failed. Please refresh and try again.', 'error');
+            payBtn.innerHTML = originalText;
+            payBtn.disabled = false;
+            return;
+        }
+
+        // ─── Build payload ──────────────────────────────────────────────
+        var payload = {
+            name: TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')',
+            phone: formattedPhone,
+            amount: currentAmount,
+            email: getUserEmail()
+        };
+        console.log('📤 Sending payload:', payload);
+
+        // ─── Send payment request ──────────────────────────────────────
+        try {
+            var response = await fetch(API_BASE + '/api/pay', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Secret': API_SECRET,
+                    'X-Recaptcha-Token': recaptchaToken  // ✅ Send token in HEADERS
+                },
+                body: JSON.stringify(payload)
+            });
+            var data = await response.json();
+            console.log('📥 Response:', data);
+
+            if (response.ok && data.transactionId) {
+                showStatus('✅ M-Pesa prompt sent! Check your phone and enter PIN.', 'success');
+                payBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Waiting for PIN...';
+                startPaymentPolling(data.transactionId);
+            } else {
+                throw new Error(data.error || data.details || data.message || 'Payment initiation failed');
+            }
+        } catch (error) {
+            console.error('Payment error:', error);
+            showStatus(error.message || 'Payment failed. Please try again.', 'error');
+            payBtn.innerHTML = originalText;
+            payBtn.disabled = false;
+        }
     }
 
     function startPaymentPolling(transactionId) {
-      if (pollingInterval) clearInterval(pollingInterval);
-      if (waitingTimer) clearTimeout(waitingTimer);
-      pollingAttempts = 0;
-      waitingTimer = setTimeout(function() {
-        showStatus('⏳ Still waiting for payment confirmation. If you cancelled the prompt, please try again.', 'info');
-      }, 10000);
+        if (pollingInterval) clearInterval(pollingInterval);
+        if (waitingTimer) clearTimeout(waitingTimer);
+        pollingAttempts = 0;
+        waitingTimer = setTimeout(function() {
+            showStatus('⏳ Still waiting for payment confirmation. If you cancelled the prompt, please try again.', 'info');
+        }, 10000);
 
-      pollingInterval = setInterval(async function() {
-        pollingAttempts++;
-        var result = await checkPaymentStatus(transactionId);
-        if (result.status === 'SUCCESS' || result.status === 'COMPLETED' || result.status === 'Success') {
-          clearInterval(pollingInterval);
-          clearTimeout(waitingTimer);
-          showStatus('✅ Payment successful! Activating your profile...', 'info');
-          var token = localStorage.getItem('token');
-          if (token) {
-            try {
-              var activationRes = await fetch(API_BASE + '/api/profiles/me/activate', {
-                method: 'POST',
-                headers: {
-                  'Authorization': 'Bearer ' + token,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ tier: selectedTier, duration: selectedDuration })
-              });
-              var activationData = await activationRes.json();
-              console.log('Activation response:', activationData);
-            } catch (e) {
-              console.error('Activation error:', e);
+        pollingInterval = setInterval(async function() {
+            pollingAttempts++;
+            var result = await checkPaymentStatus(transactionId);
+            if (result.status === 'SUCCESS' || result.status === 'COMPLETED' || result.status === 'Success') {
+                clearInterval(pollingInterval);
+                clearTimeout(waitingTimer);
+                showStatus('✅ Payment successful! Activating your profile...', 'info');
+                var token = localStorage.getItem('token');
+                if (token) {
+                    try {
+                        var activationRes = await fetch(API_BASE + '/api/profiles/me/activate', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ tier: selectedTier, duration: selectedDuration })
+                        });
+                        var activationData = await activationRes.json();
+                        console.log('Activation response:', activationData);
+                    } catch (e) {
+                        console.error('Activation error:', e);
+                    }
+                }
+                document.getElementById('paymentForm').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'block';
+                document.getElementById('successText').textContent = 'Your ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ') subscription is now active. ✅ Your profile is now visible to clients!';
+                localStorage.setItem('subscription_package', JSON.stringify({
+                    tier: selectedTier,
+                    duration: selectedDuration,
+                    amount: currentAmount
+                }));
+                return;
             }
-          }
-          document.getElementById('paymentForm').style.display = 'none';
-          document.getElementById('successMessage').style.display = 'block';
-          document.getElementById('successText').textContent = 'Your ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ') subscription is now active. ✅ Your profile is now visible to clients!';
-          localStorage.setItem('subscription_package', JSON.stringify({
-            tier: selectedTier,
-            duration: selectedDuration,
-            amount: currentAmount
-          }));
-          return;
-        }
-        if (result.status === 'FAILED' || result.status === 'CANCELLED' || result.status === 'REVERSED' || result.status === 'TIMEOUT') {
-          clearInterval(pollingInterval);
-          clearTimeout(waitingTimer);
-          showStatus('❌ Payment failed or was cancelled. Please try again.', 'error');
-          resetPayButton();
-          return;
-        }
-        if (pollingAttempts >= MAX_ATTEMPTS) {
-          clearInterval(pollingInterval);
-          clearTimeout(waitingTimer);
-          showStatus('❌ Payment not completed. You did not enter your M-Pesa PIN or cancelled the prompt. Please try again.', 'error');
-          resetPayButton();
-        }
-      }, POLL_INTERVAL);
+            if (result.status === 'FAILED' || result.status === 'CANCELLED' || result.status === 'REVERSED' || result.status === 'TIMEOUT') {
+                clearInterval(pollingInterval);
+                clearTimeout(waitingTimer);
+                showStatus('❌ Payment failed or was cancelled. Please try again.', 'error');
+                resetPayButton();
+                return;
+            }
+            if (pollingAttempts >= MAX_ATTEMPTS) {
+                clearInterval(pollingInterval);
+                clearTimeout(waitingTimer);
+                showStatus('❌ Payment not completed. You did not enter your M-Pesa PIN or cancelled the prompt. Please try again.', 'error');
+                resetPayButton();
+            }
+        }, POLL_INTERVAL);
     }
 
     async function checkPaymentStatus(transactionId) {
-      try {
-        var response = await fetch(API_BASE + '/api/transaction/' + transactionId);
-        if (!response.ok) return { status: 'PENDING' };
-        var data = await response.json();
-        return { status: data.status, data: data };
-      } catch (e) {
-        return { status: 'ERROR' };
-      }
+        try {
+            var response = await fetch(API_BASE + '/api/transaction/' + transactionId);
+            if (!response.ok) return { status: 'PENDING' };
+            var data = await response.json();
+            return { status: data.status, data: data };
+        } catch (e) {
+            return { status: 'ERROR' };
+        }
     }
 
     function resetPayButton() {
-      var payBtn = document.getElementById('payNowBtn');
-      payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount + ' for ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')';
-      payBtn.disabled = false;
+        var payBtn = document.getElementById('payNowBtn');
+        payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount + ' for ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')';
+        payBtn.disabled = false;
     }
 
     function showStatus(message, type) {
-      var statusDiv = document.getElementById('paymentStatus');
-      statusDiv.textContent = message;
-      statusDiv.className = 'payment-status ' + type;
-      statusDiv.style.display = 'block';
+        var statusDiv = document.getElementById('paymentStatus');
+        statusDiv.textContent = message;
+        statusDiv.className = 'payment-status ' + type;
+        statusDiv.style.display = 'block';
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      var params = getParams();
-      if (params.email) localStorage.setItem('userEmail', params.email);
-      if (params.duration) selectDuration(params.duration);
-      if (params.package) selectPackage(params.package);
-      updatePrices();
-      updatePayButton();
+        var params = getParams();
+        if (params.email) localStorage.setItem('userEmail', params.email);
+        if (params.duration) selectDuration(params.duration);
+        if (params.package) selectPackage(params.package);
+        updatePrices();
+        updatePayButton();
     });
 
     window.selectDuration = selectDuration;
     window.selectPackage = selectPackage;
-  </script>
+</script>
 </body>
 </html>

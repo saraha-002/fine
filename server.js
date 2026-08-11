@@ -104,7 +104,7 @@ async function verifyRecaptcha(token) {
     if (!token) return false;
     try {
         // ✅ Use the NEW secret key
-        const secret = process.env.RECAPTCHA_SECRET_KEY || '6LcdW4AtAAAAAIvYNT20koqXLH_Ny14_WOB6LtL2';
+        const secret = process.env.RECAPTCHA_SECRET_KEY || '6LcKDGEtAAAAAIcEmbFQqPmxoOLrK51_AdD2dqen';
         const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -552,15 +552,20 @@ app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 app.post('/api/pay', async (req, res) => {
     try {
-        const { name, phone, amount, email } = req.body;
+        const { name, phone, amount, email, recaptchaToken } = req.body;
         
-        // ─── Verify reCAPTCHA ────────────────────────────────────────
-        const recaptchaToken = req.headers['x-recaptcha-token'];
-        if (!recaptchaToken) {
-            return res.status(400).json({ error: 'reCAPTCHA token required' });
+        // ─── Check for reCAPTCHA token in BOTH body and headers ────
+        let token = recaptchaToken || req.headers['x-recaptcha-token'];
+        
+        console.log('🔑 Token from body:', recaptchaToken ? 'YES (length: ' + recaptchaToken.length + ')' : 'NO');
+        console.log('🔑 Token from headers:', req.headers['x-recaptcha-token'] ? 'YES' : 'NO');
+        
+        if (!token) {
+            console.log('❌ No reCAPTCHA token found anywhere');
+            return res.status(400).json({ error: 'Missing reCAPTCHA token' });
         }
         
-        const isHuman = await verifyRecaptcha(recaptchaToken);
+        const isHuman = await verifyRecaptcha(token);
         if (!isHuman) {
             return res.status(400).json({ error: 'reCAPTCHA verification failed' });
         }
