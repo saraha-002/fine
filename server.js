@@ -547,6 +547,9 @@ app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
 });
 
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
+
+
+// ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 app.post('/api/pay', async (req, res) => {
     try {
         const { name, phone, amount, email } = req.body;
