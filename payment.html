@@ -153,7 +153,7 @@
     // ─── API Configuration ──────────────────────────────────────────
     const API_BASE = 'https://fine-2zxp.onrender.com'; // ✅ ADDED
     const API_SECRET = "103e07b75c0b3d874cd4376dd0e095729f66d4f26803361aa087df169acc4ac4";
-    const RECAPTCHA_SITE_KEY = "6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5";
+    const RECAPTCHA_SITE_KEY = "6LcdW4AtAAAAABlmxTumH0ghfDOmSJpZ-dUCmjv8";
 
     const PRICING = { daily: { standard: 100, premium: 150, vip: 200 }, weekly: { standard: 600, premium: 900, vip: 1000 }, monthly: { standard: 1500, premium: 2500, vip: 4000 } };
     const TIER_NAMES = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
@@ -210,48 +210,82 @@
     }
 
     async function initiatePayment() {
-      const userPhone = document.getElementById('phoneNumber').value.trim();
-      if (!userPhone) { showStatus('Please enter your M-Pesa phone number', 'error'); return; }
-      let formattedPhone = userPhone.replace(/[^0-9]/g, '');
-      if (formattedPhone.startsWith('0')) formattedPhone = '254' + formattedPhone.substring(1);
-      if (!formattedPhone.startsWith('254')) formattedPhone = '254' + formattedPhone;
-      if (formattedPhone.length !== 12) { showStatus('Enter valid phone number (e.g., 0712345678)', 'error'); return; }
+    const userPhone = document.getElementById('phoneNumber').value.trim();
+    if (!userPhone) { showStatus('Please enter your M-Pesa phone number', 'error'); return; }
+    
+    let formattedPhone = userPhone.replace(/[^0-9]/g, '');
+    if (formattedPhone.startsWith('0')) formattedPhone = '254' + formattedPhone.substring(1);
+    if (!formattedPhone.startsWith('254')) formattedPhone = '254' + formattedPhone;
+    if (formattedPhone.length !== 12) { showStatus('Enter valid phone number (e.g., 0712345678)', 'error'); return; }
 
-      const payBtn = document.getElementById('payNowBtn');
-      const originalText = payBtn.innerHTML;
-      payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending prompt...';
-      payBtn.disabled = true;
-      showStatus('Initiating M-Pesa payment...', 'info');
+    const payBtn = document.getElementById('payNowBtn');
+    const originalText = payBtn.innerHTML;
+    payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending prompt...';
+    payBtn.disabled = true;
+    showStatus('Initiating M-Pesa payment...', 'info');
 
-      let recaptchaToken = '';
-      try {
-        if (typeof grecaptcha !== 'undefined') recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' });
-        else { await new Promise(resolve => setTimeout(resolve, 2000)); if (typeof grecaptcha !== 'undefined') recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' }); else throw new Error('reCAPTCHA not loaded'); }
-      } catch (err) { showStatus('Security verification failed. Please refresh and try again.', 'error'); payBtn.innerHTML = originalText; payBtn.disabled = false; return; }
+    // ✅ Wait for reCAPTCHA to be ready
+    let recaptchaToken = '';
+    try {
+        // Wait up to 5 seconds for reCAPTCHA to load
+        let attempts = 0;
+        while (typeof grecaptcha === 'undefined' && attempts < 10) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
+        }
+        
+        if (typeof grecaptcha === 'undefined') {
+            throw new Error('reCAPTCHA not loaded after 5 seconds');
+        }
+        
+        recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' });
+        console.log('✅ reCAPTCHA token generated');
+    } catch (err) {
+        console.error('reCAPTCHA error:', err);
+        showStatus('Security verification failed. Please refresh and try again.', 'error');
+        payBtn.innerHTML = originalText;
+        payBtn.disabled = false;
+        return;
+    }
 
-      try {
-        const response = await fetch(`${API_BASE}/api/pay`, { // ✅ UPDATED
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-API-Secret': API_SECRET, 'X-Recaptcha-Token': recaptchaToken },
-          body: JSON.stringify({ 
-              name: `${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]})`, 
-              phone: formattedPhone, 
-              amount: currentAmount,
-              email: getUserEmail() // ✅ ADDED EMAIL
-          })
+    // If no token, fail
+    if (!recaptchaToken) {
+        showStatus('Security verification failed. Please refresh and try again.', 'error');
+        payBtn.innerHTML = originalText;
+        payBtn.disabled = false;
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/pay`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-API-Secret': API_SECRET, 
+                'X-Recaptcha-Token': recaptchaToken 
+            },
+            body: JSON.stringify({ 
+                name: `${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]})`, 
+                phone: formattedPhone, 
+                amount: currentAmount,
+                email: getUserEmail()
+            })
         });
         const data = await response.json();
         if (response.ok && data.transactionId) {
-          showStatus('✅ M-Pesa prompt sent! Check your phone and enter PIN.', 'success');
-          payBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Waiting for PIN...';
-          startPaymentPolling(data.transactionId);
-        } else { throw new Error(data.error || data.details || data.message || 'Payment initiation failed'); }
-      } catch (error) {
+            showStatus('✅ M-Pesa prompt sent! Check your phone and enter PIN.', 'success');
+            payBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Waiting for PIN...';
+            startPaymentPolling(data.transactionId);
+        } else { 
+            throw new Error(data.error || data.details || data.message || 'Payment initiation failed'); 
+        }
+    } catch (error) {
+        console.error('Payment error:', error);
         showStatus(error.message || 'Payment failed. Please try again.', 'error');
         payBtn.innerHTML = originalText;
         payBtn.disabled = false;
-      }
     }
+}
 
     function startPaymentPolling(transactionId) {
       if (pollingInterval) clearInterval(pollingInterval);
