@@ -209,14 +209,20 @@
       document.getElementById('phoneNumber').disabled = false;
     }
 
-    async function initiatePayment() {
+   async function initiatePayment() {
     const userPhone = document.getElementById('phoneNumber').value.trim();
-    if (!userPhone) { showStatus('Please enter your M-Pesa phone number', 'error'); return; }
+    if (!userPhone) { 
+        showStatus('Please enter your M-Pesa phone number', 'error'); 
+        return; 
+    }
     
     let formattedPhone = userPhone.replace(/[^0-9]/g, '');
     if (formattedPhone.startsWith('0')) formattedPhone = '254' + formattedPhone.substring(1);
     if (!formattedPhone.startsWith('254')) formattedPhone = '254' + formattedPhone;
-    if (formattedPhone.length !== 12) { showStatus('Enter valid phone number (e.g., 0712345678)', 'error'); return; }
+    if (formattedPhone.length !== 12) { 
+        showStatus('Enter valid phone number (e.g., 0712345678)', 'error'); 
+        return; 
+    }
 
     const payBtn = document.getElementById('payNowBtn');
     const originalText = payBtn.innerHTML;
@@ -232,11 +238,12 @@
             throw new Error('reCAPTCHA not loaded');
         }
         
+        // ✅ Execute reCAPTCHA and wait for token
         recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' });
-        console.log('✅ reCAPTCHA token generated');
+        console.log('✅ reCAPTCHA token generated, length:', recaptchaToken?.length || 0);
         
-        if (!recaptchaToken || recaptchaToken.length === 0) {
-            throw new Error('Token is empty');
+        if (!recaptchaToken || recaptchaToken.length < 100) {
+            throw new Error('Token is invalid or too short');
         }
     } catch (err) {
         console.error('❌ reCAPTCHA error:', err);
@@ -245,6 +252,16 @@
         payBtn.disabled = false;
         return;
     }
+
+    // ─── Build payload ──────────────────────────────────────────────
+    const payload = {
+        name: `${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]})`,
+        phone: formattedPhone,
+        amount: Number(currentAmount),
+        email: getUserEmail()
+    };
+    
+    console.log('📤 Sending payload:', payload);
 
     // ─── Send payment request ──────────────────────────────────────
     try {
@@ -255,14 +272,12 @@
                 'X-API-Secret': API_SECRET, 
                 'X-Recaptcha-Token': recaptchaToken 
             },
-            body: JSON.stringify({ 
-                name: `${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]})`, 
-                phone: formattedPhone, 
-                amount: currentAmount,
-                email: getUserEmail()
-            })
+            body: JSON.stringify(payload)
         });
+        
         const data = await response.json();
+        console.log('📥 Response:', data);
+        
         if (response.ok && data.transactionId) {
             showStatus('✅ M-Pesa prompt sent! Check your phone and enter PIN.', 'success');
             payBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Waiting for PIN...';
