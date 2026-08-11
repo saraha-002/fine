@@ -110,7 +110,13 @@ async function verifyRecaptcha(token) {
             body: `secret=${secret}&response=${token}`
         });
         const data = await response.json();
-        console.log('🔍 reCAPTCHA:', data.success ? '✅ PASSED' : '❌ FAILED');
+        console.log('🔍 reCAPTCHA full response:', JSON.stringify(data, null, 2));
+        
+        if (data.success === true) {
+            console.log('✅ reCAPTCHA verification PASSED');
+        } else {
+            console.log('❌ reCAPTCHA verification FAILED:', data['error-codes'] || 'No error codes');
+        }
         return data.success === true;
     } catch (error) {
         console.error('reCAPTCHA error:', error);
