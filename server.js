@@ -10,6 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { MongoClient, ObjectId } = require('mongodb');
+const bcrypt = require('bcrypt'); // ✅ ADDED: For password hashing
 
 // ─── Load Environment Variables ──────────────────────────────────
 require('dotenv').config();
@@ -95,6 +96,25 @@ async function migrateProfiles() {
         }
     } catch (err) {
         console.error('⚠️ Migration error:', err.message);
+    }
+}
+
+// ─── reCAPTCHA Verification ────────────────────────────────────────
+async function verifyRecaptcha(token) {
+    if (!token) return false;
+    try {
+        const secret = process.env.RECAPTCHA_SECRET_KEY || '6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5';
+        const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `secret=${secret}&response=${token}`
+        });
+        const data = await response.json();
+        console.log('🔍 reCAPTCHA:', data.success ? '✅ PASSED' : '❌ FAILED');
+        return data.success === true;
+    } catch (error) {
+        console.error('reCAPTCHA error:', error);
+        return false;
     }
 }
 
@@ -260,10 +280,14 @@ app.post('/api/auth/register', async (req, res) => {
     
     const userId = new ObjectId().toString();
     const token = generateToken();
+    
+    // ✅ Hash the password before storing
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
     const newUser = {
         _id: new ObjectId(userId),
         email,
-        password, // ⚠️ Hash with bcrypt in production!
+        password: hashedPassword, // ✅ Stored securely
         token,
         role: 'escort',
         createdAt: new Date().toISOString()
@@ -293,7 +317,13 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     const user = await findUserByEmail(email);
-    if (!user || user.password !== password) {
+    if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    
+    // ✅ Compare hashed password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
         return res.status(401).json({ message: 'Invalid credentials' });
     }
     
@@ -451,8 +481,6 @@ app.put('/api/admin/profiles/:slug/approve', authenticate, async (req, res) => {
     res.json({ message: '✅ Profile approved successfully', profile: updated });
 });
 
-
-
 app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
     const user = await findUserById(req.userId);
     if (!user || user.role !== 'admin') {
@@ -476,6 +504,7 @@ app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
     }
     res.json({ message: '❌ Profile rejected and deleted successfully' });
 });
+
 // ─── ACTIVATE PROFILE AFTER PAYMENT ──────────────────────────────
 app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
     try {
@@ -510,37 +539,45 @@ app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
     }
 });
 
-// ⬆️⬆️⬆️ END OF ACTIVATION ENDPOINT ⬆️⬆️⬆️
-
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 app.post('/api/pay', async (req, res) => {
     try {
-        const { name, phone, amount } = req.body;
+        const { name, phone, amount, email } = req.body;
         
-        // Validate required fields
+        // ─── Verify reCAPTCHA ────────────────────────────────────────
+        const recaptchaToken = req.headers['x-recaptcha-token'];
+        if (!recaptchaToken) {
+            return res.status(400).json({ error: 'reCAPTCHA token required' });
+        }
+        
+        const isHuman = await verifyRecaptcha(recaptchaToken);
+        if (!isHuman) {
+            return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+        }
+        
+        // ─── Validate required fields ───────────────────────────────
         if (!phone || !amount) {
             return res.status(400).json({ 
                 error: 'Phone number and amount are required' 
             });
         }
 
-        // Forward the request to Sarahapay
+        // ─── Forward the request to Sarahapay ────────────────────────
         const response = await fetch('https://sarahapay.onrender.com/api/pay', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f26803361aa087df169acc4ac4'
+                'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4'
             },
             body: JSON.stringify({
                 name: name || 'FineEscorts Payment',
                 phone: phone,
-                amount: amount
+                amount: amount,
+                email: email || ''
             })
         });
 
         const data = await response.json();
-        
-        // Forward the response back to the client
         res.status(response.status).json(data);
     } catch (error) {
         console.error('Payment proxy error:', error);
@@ -610,8 +647,8 @@ app.get('/profiles/:slug.html', (req, res) => {
         res.status(404).send('Profile not found');
     }
 });
+
 // ─── Cloudinary Configuration ─────────────────────────────────────
-// ─── Cloudinary Configuration (Option A – Individual Variables) ──
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
@@ -713,6 +750,7 @@ app.delete('/api/profiles/me/photos', authenticate, async (req, res) => {
         });
     }
 });
+
 // ─── Start Server ──────────────────────────────────────────────────
 async function startServer() {
     await connectDB();

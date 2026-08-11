@@ -149,13 +149,19 @@
   </footer>
 
   <script>
+    // ─── API Configuration ──────────────────────────────────────────
+    const API_BASE = 'https://fine-2zxp.onrender.com'; // ✅ ADDED
     const API_SECRET = "103e07b75c0b3d874cd4376dd0e095729f66d4f26803361aa087df169acc4ac4";
     const RECAPTCHA_SITE_KEY = "6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5";
-    const SARAHAPAY_API = ''; // Use relative path to your server
 
     const PRICING = { daily: { standard: 100, premium: 150, vip: 200 }, weekly: { standard: 600, premium: 900, vip: 1000 }, monthly: { standard: 1500, premium: 2500, vip: 4000 } };
     const TIER_NAMES = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
     const DURATION_NAMES = { daily: 'Daily (24hrs)', weekly: 'Weekly (7 days)', monthly: 'Monthly (30 days)' };
+
+    // ─── Get email from localStorage ─────────────────────────────────
+    function getUserEmail() {
+        return localStorage.getItem('userEmail') || '';
+    }
 
     let selectedDuration = 'daily';
     let selectedTier = 'premium';
@@ -223,10 +229,15 @@
       } catch (err) { showStatus('Security verification failed. Please refresh and try again.', 'error'); payBtn.innerHTML = originalText; payBtn.disabled = false; return; }
 
       try {
-        const response = await fetch('/api/pay', {
+        const response = await fetch(`${API_BASE}/api/pay`, { // ✅ UPDATED
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Secret': API_SECRET, 'X-Recaptcha-Token': recaptchaToken },
-          body: JSON.stringify({ name: `${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]})`, phone: formattedPhone, amount: currentAmount })
+          body: JSON.stringify({ 
+              name: `${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]})`, 
+              phone: formattedPhone, 
+              amount: currentAmount,
+              email: getUserEmail() // ✅ ADDED EMAIL
+          })
         });
         const data = await response.json();
         if (response.ok && data.transactionId) {
@@ -256,7 +267,7 @@
           const token = localStorage.getItem('token');
           if (token) {
             try {
-              const activationRes = await fetch('/api/profiles/me/activate', {
+              const activationRes = await fetch(`${API_BASE}/api/profiles/me/activate`, { // ✅ UPDATED
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tier: selectedTier, duration: selectedDuration })
@@ -287,7 +298,7 @@
 
     async function checkPaymentStatus(transactionId) {
       try {
-        const response = await fetch(`/api/transaction/${transactionId}`);
+        const response = await fetch(`${API_BASE}/api/transaction/${transactionId}`); // ✅ UPDATED
         if (!response.ok) return { status: 'PENDING' };
         const data = await response.json();
         return { status: data.status, data };
