@@ -224,38 +224,29 @@
     payBtn.disabled = true;
     showStatus('Initiating M-Pesa payment...', 'info');
 
-    // ✅ Wait for reCAPTCHA to be ready
+    // ─── Generate reCAPTCHA token ──────────────────────────────────
     let recaptchaToken = '';
     try {
-        // Wait up to 5 seconds for reCAPTCHA to load
-        let attempts = 0;
-        while (typeof grecaptcha === 'undefined' && attempts < 10) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            attempts++;
-        }
-        
+        // ✅ Wait for grecaptcha to be ready
         if (typeof grecaptcha === 'undefined') {
-            throw new Error('reCAPTCHA not loaded after 5 seconds');
+            throw new Error('reCAPTCHA not loaded');
         }
         
         recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' });
         console.log('✅ reCAPTCHA token generated');
+        
+        if (!recaptchaToken || recaptchaToken.length === 0) {
+            throw new Error('Token is empty');
+        }
     } catch (err) {
-        console.error('reCAPTCHA error:', err);
+        console.error('❌ reCAPTCHA error:', err);
         showStatus('Security verification failed. Please refresh and try again.', 'error');
         payBtn.innerHTML = originalText;
         payBtn.disabled = false;
         return;
     }
 
-    // If no token, fail
-    if (!recaptchaToken) {
-        showStatus('Security verification failed. Please refresh and try again.', 'error');
-        payBtn.innerHTML = originalText;
-        payBtn.disabled = false;
-        return;
-    }
-
+    // ─── Send payment request ──────────────────────────────────────
     try {
         const response = await fetch(`${API_BASE}/api/pay`, {
             method: 'POST',
