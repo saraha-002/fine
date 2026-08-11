@@ -103,7 +103,8 @@ async function migrateProfiles() {
 async function verifyRecaptcha(token) {
     if (!token) return false;
     try {
-        const secret = process.env.RECAPTCHA_SECRET_KEY || '6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5';
+        // ✅ Use the NEW secret key
+        const secret = process.env.RECAPTCHA_SECRET_KEY || '6LcdW4AtAAAAAIvYNT20koqXLH_Ny14_WOB6LtL2';
         const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
