@@ -550,30 +550,22 @@ app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
 
 
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
+// ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 app.post('/api/pay', async (req, res) => {
     console.log('🚀 PAYMENT ROUTE HIT - VERSION 2.0');
-    console.log('📋 Request body:', req.body);
-    console.log('📋 All headers:', req.headers);
     
     try {
         const { name, phone, amount, email } = req.body;
         
-        // ─── Get token from headers (case-insensitive) ──────────────
+        // ─── Get token from headers ──────────────────────────────
         let recaptchaToken = req.headers['x-recaptcha-token'] || 
                             req.headers['X-Recaptcha-Token'] || 
-                            req.headers['x-recaptcha-token'] || 
-                            req.headers['X-Recaptcha-Token'] ||
                             req.body.recaptchaToken;
         
         console.log('🔑 Token found:', recaptchaToken ? 'YES' : 'NO');
-        if (recaptchaToken) {
-            console.log('🔑 Token length:', recaptchaToken.length);
-            console.log('🔑 Token prefix:', recaptchaToken.substring(0, 30) + '...');
-        }
         
-        // ─── Check if token exists ───────────────────────────────────
         if (!recaptchaToken) {
-            console.log('❌ No reCAPTCHA token found anywhere');
+            console.log('❌ No reCAPTCHA token found');
             return res.status(400).json({ error: 'Missing reCAPTCHA token' });
         }
         
@@ -587,15 +579,12 @@ app.post('/api/pay', async (req, res) => {
         
         // ─── Validate required fields ───────────────────────────────
         if (!phone || !amount) {
-            console.log('❌ Missing phone or amount');
             return res.status(400).json({ 
                 error: 'Phone number and amount are required' 
             });
         }
         
-        console.log('📤 Forwarding to Sarahapay:', { name, phone, amount, email });
-
-        // ─── Forward the request to Sarahapay ────────────────────────
+        // ─── Forward the request to Sarahapay WITH THE TOKEN ──────
         const response = await fetch('https://sarahapay.onrender.com/api/pay', {
             method: 'POST',
             headers: {
@@ -606,7 +595,8 @@ app.post('/api/pay', async (req, res) => {
                 name: name || 'FineEscorts Payment',
                 phone: phone,
                 amount: Number(amount),
-                email: email || ''
+                email: email || '',
+                recaptchaToken: recaptchaToken // ✅ SEND THE TOKEN TO SARAHAPAY
             })
         });
 
