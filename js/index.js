@@ -104,6 +104,20 @@ async function loadProfiles() {
         renderPagination();
     } catch (err) {
         console.error("Failed to load profiles:", err);
+        // Fallback to static file if API fails
+        fallbackToStatic();
+    }
+}
+
+async function fallbackToStatic() {
+    try {
+        const res = await fetch("data/profiles.json");
+        allProfiles = await res.json();
+        filteredProfiles = [...allProfiles];
+        populateCityFilter(allProfiles);
+        renderProfiles();
+        renderPagination();
+    } catch (err) {
         profileGrid.innerHTML = '<div class="error-message">Failed to load profiles. Please refresh the page.</div>';
     }
 }
