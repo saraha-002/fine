@@ -668,12 +668,23 @@ app.get('/payment.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'payment.html'));
 });
 
-app.get('/profiles/:slug.html', (req, res) => {
-    const filePath = path.join(__dirname, 'profiles', `${req.params.slug}.html`);
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send('Profile not found');
+app.get('/profiles/:slug.html', async (req, res) => {
+    try {
+        const slug = req.params.slug;
+        const profile = await findProfileBySlug(slug);
+        
+        if (!profile) {
+            return res.status(404).send('Profile not found');
+        }
+        
+        // Load the template and render it with the profile data
+        const template = fs.readFileSync(path.join(__dirname, 'templates', 'profile-template.html'), 'utf8');
+        // Use your existing render function to fill the template
+        const html = render(template, { ...profile, /* add other context variables */ });
+        res.send(html);
+    } catch (error) {
+        console.error('Error serving profile:', error);
+        res.status(500).send('Server error');
     }
 });
 
