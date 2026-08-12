@@ -585,21 +585,21 @@ app.post('/api/pay', async (req, res) => {
         }
         
         // ─── Forward the request to Sarahapay WITH THE TOKEN ──────
-        const response = await fetch('https://sarahapay.onrender.com/api/pay', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4'
-            },
-            body: JSON.stringify({
-                name: name || 'FineEscorts Payment',
-                phone: phone,
-                amount: Number(amount),
-                email: email || '',
-                recaptchaToken: recaptchaToken // ✅ SEND THE TOKEN TO SARAHAPAY
-            })
-        });
-
+     const response = await fetch('https://sarahapay.onrender.com/api/pay', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4',
+        'X-Recaptcha-Token': recaptchaToken // ✅ Headers
+    },
+    body: JSON.stringify({
+        name: name || 'FineEscorts Payment',
+        phone: phone,
+        amount: Number(amount),
+        email: email || '',
+        recaptchaToken: recaptchaToken // ✅ Also Body
+    })
+});
         const data = await response.json();
         console.log('📥 Sarahapay response:', data);
         
