@@ -551,30 +551,49 @@ app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
 
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 app.post('/api/pay', async (req, res) => {
+    console.log('🚀 PAYMENT ROUTE HIT - VERSION 2.0');
+    console.log('📋 Request body:', req.body);
+    console.log('📋 All headers:', req.headers);
+    
     try {
         const { name, phone, amount, email } = req.body;
         
-        // ─── Get token from headers (NOT body) ─────────────────────
-        const recaptchaToken = req.headers['x-recaptcha-token'];
+        // ─── Get token from headers (case-insensitive) ──────────────
+        let recaptchaToken = req.headers['x-recaptcha-token'] || 
+                            req.headers['X-Recaptcha-Token'] || 
+                            req.headers['x-recaptcha-token'] || 
+                            req.headers['X-Recaptcha-Token'] ||
+                            req.body.recaptchaToken;
         
-        console.log('🔑 Token from headers:', recaptchaToken ? 'YES (length: ' + recaptchaToken.length + ')' : 'NO');
+        console.log('🔑 Token found:', recaptchaToken ? 'YES' : 'NO');
+        if (recaptchaToken) {
+            console.log('🔑 Token length:', recaptchaToken.length);
+            console.log('🔑 Token prefix:', recaptchaToken.substring(0, 30) + '...');
+        }
         
+        // ─── Check if token exists ───────────────────────────────────
         if (!recaptchaToken) {
-            console.log('❌ No reCAPTCHA token found in headers');
+            console.log('❌ No reCAPTCHA token found anywhere');
             return res.status(400).json({ error: 'Missing reCAPTCHA token' });
         }
         
+        // ─── Verify reCAPTCHA ────────────────────────────────────────
         const isHuman = await verifyRecaptcha(recaptchaToken);
+        console.log('👤 reCAPTCHA result:', isHuman ? 'PASSED ✅' : 'FAILED ❌');
+        
         if (!isHuman) {
             return res.status(400).json({ error: 'reCAPTCHA verification failed' });
         }
         
         // ─── Validate required fields ───────────────────────────────
         if (!phone || !amount) {
+            console.log('❌ Missing phone or amount');
             return res.status(400).json({ 
                 error: 'Phone number and amount are required' 
             });
         }
+        
+        console.log('📤 Forwarding to Sarahapay:', { name, phone, amount, email });
 
         // ─── Forward the request to Sarahapay ────────────────────────
         const response = await fetch('https://sarahapay.onrender.com/api/pay', {
@@ -586,15 +605,17 @@ app.post('/api/pay', async (req, res) => {
             body: JSON.stringify({
                 name: name || 'FineEscorts Payment',
                 phone: phone,
-                amount: amount,
+                amount: Number(amount),
                 email: email || ''
             })
         });
 
         const data = await response.json();
+        console.log('📥 Sarahapay response:', data);
+        
         res.status(response.status).json(data);
     } catch (error) {
-        console.error('Payment proxy error:', error);
+        console.error('❌ Payment proxy error:', error);
         res.status(500).json({ 
             error: 'Payment service unavailable',
             details: error.message 
