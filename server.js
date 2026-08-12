@@ -551,30 +551,21 @@ app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
 
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
+// ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 app.post('/api/pay', async (req, res) => {
-    console.log('🚀 PAYMENT ROUTE HIT - VERSION 3.0');
+    console.log('🚀 PAYMENT ROUTE HIT - VERSION 5.0 (no verification)');
     
     try {
         const { name, phone, amount, email } = req.body;
         
-        // ─── Get token from headers ──────────────────────────────
+        // ─── Get token from headers/body ──────────────────────────
         let recaptchaToken = req.headers['x-recaptcha-token'] || 
                             req.headers['X-Recaptcha-Token'] || 
                             req.body.recaptchaToken;
         
-        console.log('🔑 Token found:', recaptchaToken ? 'YES' : 'NO');
-        
         if (!recaptchaToken) {
             console.log('❌ No reCAPTCHA token found');
             return res.status(400).json({ error: 'Missing reCAPTCHA token' });
-        }
-        
-        // ─── Verify reCAPTCHA ────────────────────────────────────────
-        const isHuman = await verifyRecaptcha(recaptchaToken);
-        console.log('👤 reCAPTCHA result:', isHuman ? 'PASSED ✅' : 'FAILED ❌');
-        
-        if (!isHuman) {
-            return res.status(400).json({ error: 'reCAPTCHA verification failed' });
         }
         
         // ─── Validate required fields ───────────────────────────────
@@ -584,22 +575,24 @@ app.post('/api/pay', async (req, res) => {
             });
         }
         
-        // ─── Forward the request to Sarahapay WITH THE TOKEN ──────
-     const response = await fetch('https://sarahapay.onrender.com/api/pay', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4',
-        'X-Recaptcha-Token': recaptchaToken // ✅ Headers
-    },
-    body: JSON.stringify({
-        name: name || 'FineEscorts Payment',
-        phone: phone,
-        amount: Number(amount),
-        email: email || '',
-        recaptchaToken: recaptchaToken // ✅ Also Body
-    })
-});
+        // ─── Forward the request to Sarahapay ────────────────────────
+        // ✅ NO reCAPTCHA verification here – let Sarahapay handle it
+        const response = await fetch('https://sarahapay.onrender.com/api/pay', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4',
+                'X-Recaptcha-Token': recaptchaToken
+            },
+            body: JSON.stringify({
+                name: name || 'FineEscorts Payment',
+                phone: phone,
+                amount: Number(amount),
+                email: email || '',
+                recaptchaToken: recaptchaToken // Also in body for compatibility
+            })
+        });
+
         const data = await response.json();
         console.log('📥 Sarahapay response:', data);
         
