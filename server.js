@@ -23,6 +23,15 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('.'));
 
+// ─── Render Helper ──────────────────────────────────────────────────
+function render(template, context) {
+    let result = template;
+    for (const [key, value] of Object.entries(context)) {
+        result = result.replace(new RegExp(`{{${key}}}`, 'g'), value !== undefined ? value : '');
+    }
+    return result;
+}
+
 // ─── MongoDB Connection ──────────────────────────────────────────
 const MONGO_URL = process.env.MONGO_URL;
 let db = null;
@@ -162,6 +171,16 @@ function writeJSON(file, data) {
 // ─── Helper Functions ─────────────────────────────────────────────
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');
+}
+
+// ⬇️⬇️⬇️ ADD THE RENDER FUNCTION HERE ⬇️⬇️⬇️
+
+function render(template, context) {
+    let result = template;
+    for (const [key, value] of Object.entries(context)) {
+        result = result.replace(new RegExp(`{{${key}}}`, 'g'), value !== undefined ? value : '');
+    }
+    return result;
 }
 
 async function findUserByEmail(email) {
@@ -668,23 +687,41 @@ app.get('/payment.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'payment.html'));
 });
 
+// ─── DYNAMIC PROFILE PAGE ──────────────────────────────────────────
 app.get('/profiles/:slug.html', async (req, res) => {
     try {
         const slug = req.params.slug;
+        console.log(`🔍 Looking for profile: ${slug}`);
+        
         const profile = await findProfileBySlug(slug);
         
         if (!profile) {
+            console.log(`❌ Profile not found: ${slug}`);
             return res.status(404).send('Profile not found');
         }
         
-        // Load the template and render it with the profile data
-        const template = fs.readFileSync(path.join(__dirname, 'templates', 'profile-template.html'), 'utf8');
-        // Use your existing render function to fill the template
-        const html = render(template, { ...profile, /* add other context variables */ });
+        console.log(`✅ Found profile: ${profile.displayName}`);
+        
+        // Load the template
+        const templatePath = path.join(__dirname, 'templates', 'profile-template.html');
+        let template = fs.readFileSync(templatePath, 'utf8');
+        
+        // Build context for the template
+        const context = {
+            ...profile,
+            name: profile.displayName || profile.name,
+            city: profile.city || profile.location,
+            fullNumber: profile.fullNumber || profile.phone,
+            // Add any other fields your template expects
+        };
+        
+        // Render the template
+        const html = render(template, context);
         res.send(html);
+        
     } catch (error) {
-        console.error('Error serving profile:', error);
-        res.status(500).send('Server error');
+        console.error('❌ Error serving profile:', error);
+        res.status(500).send('Internal Server Error');
     }
 });
 
