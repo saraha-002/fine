@@ -552,7 +552,7 @@ app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 app.post('/api/pay', async (req, res) => {
-    console.log('🚀 PAYMENT ROUTE HIT - VERSION 2.0');
+    console.log('🚀 PAYMENT ROUTE HIT - VERSION 3.0');
     
     try {
         const { name, phone, amount, email } = req.body;
