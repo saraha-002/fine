@@ -522,7 +522,7 @@ app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
             return res.status(404).json({ message: 'Profile not found' });
         }
         
-        // Update profile to approved
+        // ─── Update profile to approved ────────────────────────────
         const updated = await updateProfile(profile.slug, {
             isApproved: true,
             status: 'approved',

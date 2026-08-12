@@ -312,37 +312,37 @@
         pollingInterval = setInterval(async function() {
             pollingAttempts++;
             var result = await checkPaymentStatus(transactionId);
-            if (result.status === 'SUCCESS' || result.status === 'COMPLETED' || result.status === 'Success') {
-                clearInterval(pollingInterval);
-                clearTimeout(waitingTimer);
-                showStatus('✅ Payment successful! Activating your profile...', 'info');
-                var token = localStorage.getItem('token');
-                if (token) {
-                    try {
-                        var activationRes = await fetch(API_BASE + '/api/profiles/me/activate', {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': 'Bearer ' + token,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ tier: selectedTier, duration: selectedDuration })
-                        });
-                        var activationData = await activationRes.json();
-                        console.log('Activation response:', activationData);
-                    } catch (e) {
-                        console.error('Activation error:', e);
-                    }
-                }
-                document.getElementById('paymentForm').style.display = 'none';
-                document.getElementById('successMessage').style.display = 'block';
-                document.getElementById('successText').textContent = 'Your ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ') subscription is now active. ✅ Your profile is now visible to clients!';
-                localStorage.setItem('subscription_package', JSON.stringify({
-                    tier: selectedTier,
-                    duration: selectedDuration,
-                    amount: currentAmount
-                }));
-                return;
-            }
+           if (result.status === 'SUCCESS' || result.status === 'COMPLETED' || result.status === 'Success') {
+    // ─── Payment successful ──────────────────────────────────
+    showStatus('✅ Payment successful! Activating your profile...', 'info');
+    const token = localStorage.getItem('token');
+    
+    if (token) {
+        // ─── Activate profile ──────────────────────────────────
+        const activationRes = await fetch(`${API_BASE}/api/profiles/me/activate`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ tier: selectedTier, duration: selectedDuration })
+        });
+        const activationData = await activationRes.json();
+        console.log('✅ Activation response:', activationData);
+    }
+    
+    // ─── Show success and redirect ────────────────────────────
+    document.getElementById('paymentForm').style.display = 'none';
+    document.getElementById('successMessage').style.display = 'block';
+    document.getElementById('successText').textContent = 
+        `Your ${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]}) subscription is now active. ✅ Your profile is now visible to clients!`;
+    
+    localStorage.setItem('subscription_package', JSON.stringify({
+        tier: selectedTier,
+        duration: selectedDuration,
+        amount: currentAmount
+    }));
+}
             if (result.status === 'FAILED' || result.status === 'CANCELLED' || result.status === 'REVERSED' || result.status === 'TIMEOUT') {
                 clearInterval(pollingInterval);
                 clearTimeout(waitingTimer);
