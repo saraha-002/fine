@@ -511,6 +511,17 @@ app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
     }
     res.json({ message: '❌ Profile rejected and deleted successfully' });
 });
+// ─── GET ALL APPROVED PROFILES (Public - for homepage) ────────────
+app.get('/api/profiles', async (req, res) => {
+    try {
+        const profiles = await getAllProfiles();
+        const approved = profiles.filter(p => p.isApproved === true);
+        res.json(approved);
+    } catch (error) {
+        console.error('Error fetching profiles:', error);
+        res.status(500).json({ error: 'Failed to fetch profiles' });
+    }
+});
 
 // ─── ACTIVATE PROFILE AFTER PAYMENT ──────────────────────────────
 app.post('/api/profiles/me/activate', authenticate, async (req, res) => {

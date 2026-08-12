@@ -94,21 +94,18 @@ let rotationIntervals = [];
 LOAD PROFILES
 ================================ */
 async function loadProfiles() {
-  try {
-    const res = await fetch("data/profiles.json");
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-    allProfiles = await res.json();
-    filteredProfiles = [...allProfiles];
-    
-    // ✅ Populate city filter dynamically from all profiles
-    populateCityFilter(allProfiles);
-    
-    renderProfiles();
-    renderPagination();
-  } catch (err) {
-    console.error("Failed to load profiles:", err);
-    profileGrid.innerHTML = '<div class="error-message">Failed to load profiles. Please refresh the page.</div>';
-  }
+    try {
+        const res = await fetch('https://fine-2zxp.onrender.com/api/profiles');
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        allProfiles = await res.json();
+        filteredProfiles = [...allProfiles];
+        populateCityFilter(allProfiles);
+        renderProfiles();
+        renderPagination();
+    } catch (err) {
+        console.error("Failed to load profiles:", err);
+        profileGrid.innerHTML = '<div class="error-message">Failed to load profiles. Please refresh the page.</div>';
+    }
 }
 
 /* ===============================
