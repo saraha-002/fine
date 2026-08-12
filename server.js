@@ -552,20 +552,19 @@ app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
 // ─── Payment Proxy (Bypass CORS) ──────────────────────────────────
 app.post('/api/pay', async (req, res) => {
     try {
-        const { name, phone, amount, email, recaptchaToken } = req.body;
+        const { name, phone, amount, email } = req.body;
         
-        // ─── Check for reCAPTCHA token in BOTH body and headers ────
-        let token = recaptchaToken || req.headers['x-recaptcha-token'];
+        // ─── Get token from headers (NOT body) ─────────────────────
+        const recaptchaToken = req.headers['x-recaptcha-token'];
         
-        console.log('🔑 Token from body:', recaptchaToken ? 'YES (length: ' + recaptchaToken.length + ')' : 'NO');
-        console.log('🔑 Token from headers:', req.headers['x-recaptcha-token'] ? 'YES' : 'NO');
+        console.log('🔑 Token from headers:', recaptchaToken ? 'YES (length: ' + recaptchaToken.length + ')' : 'NO');
         
-        if (!token) {
-            console.log('❌ No reCAPTCHA token found anywhere');
+        if (!recaptchaToken) {
+            console.log('❌ No reCAPTCHA token found in headers');
             return res.status(400).json({ error: 'Missing reCAPTCHA token' });
         }
         
-        const isHuman = await verifyRecaptcha(token);
+        const isHuman = await verifyRecaptcha(recaptchaToken);
         if (!isHuman) {
             return res.status(400).json({ error: 'reCAPTCHA verification failed' });
         }
