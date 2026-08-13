@@ -850,7 +850,8 @@ app.get('/profiles/:slug.html', async (req, res) => {
         const city = profile.city || profile.location || 'Unknown';
 
         // ─── Gallery with thumbnails ─────────────────────────────────
-        const images = profile.images || profile.photos || [];
+       // ─── Gallery with thumbnails ─────────────────────────────────
+const images = profile.photos || profile.images || [];
         let galleryHtml = '<div class="gallery">No images</div>';
         if (images.length > 0) {
             galleryHtml = `
@@ -894,91 +895,104 @@ app.get('/profiles/:slug.html', async (req, res) => {
             `).join('');
         }
 
-        const context = {
-            // Basic profile info
-            name: displayName,
-            displayName: displayName,
-            city: city,
-            location: city,
-            age: profile.age || 'N/A',
-            fullNumber: fullNumber,
-            maskedNumber: profile.maskedNumber || '07XX XXX XXX',
-            slug: profile.slug || slug,
+      const context = {
+    // Basic profile info
+    name: displayName,
+    displayName: displayName,
+    city: city,
+    location: city,
+    age: profile.age || 'N/A',
+    fullNumber: fullNumber,
+    maskedNumber: profile.maskedNumber || '07XX XXX XXX',
+    slug: profile.slug || slug,
 
-            // Trust signals
-            lastUpdated: Math.floor(Math.random() * 7) + 1,
-            profileViews: profile.profileViews || 0,
-            memberSince: profile.createdAt ? new Date(profile.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' }) : 'Recently',
+    // Trust signals
+    lastUpdated: Math.floor(Math.random() * 7) + 1,
+    profileViews: profile.profileViews || 0,
+    memberSince: profile.createdAt ? new Date(profile.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' }) : 'Recently',
 
-            // Gallery
-            gallery: galleryHtml,
+    // Gallery
+    gallery: galleryHtml,
 
-            // Bio
-            bioHtml: profile.description ?
-                `<p>${escapeHtml(profile.description)}</p>` :
-                '<p>No description available.</p>',
+    // Bio
+    bioHtml: profile.description ?
+        `<p>${escapeHtml(profile.description)}</p>` :
+        '<p>No description available.</p>',
 
-            // Services
-            services: profile.services && profile.services.length > 0 ?
-                profile.services.map(s => `<span class="service">${escapeHtml(s)}</span>`).join('') :
-                getServiceCluster(profile),
+    // Services
+    services: profile.services && profile.services.length > 0 ?
+        profile.services.map(s => `<span class="service">${escapeHtml(s)}</span>`).join('') :
+        getServiceCluster(profile),
 
-            // Reviews
-            reviews: reviewsHtml,
-            topReviewsHtml: topReviewsHtml,
+    // Reviews
+    reviews: reviewsHtml,
+    topReviewsHtml: topReviewsHtml,
 
-            // FAQ
-            faqHtml: getRandomFaqs(profile, 4),
+    // FAQ
+    faqHtml: getRandomFaqs(profile, 4),
 
-            // City links (async)
-            topCityLinks: await getTopCityLinks(),
+    // City links (async)
+    topCityLinks: await getTopCityLinks(),
 
-            // Related profiles (async)
-            relatedProfiles: await getRelatedProfiles(profile),
+    // Related profiles (async)
+    relatedProfiles: await getRelatedProfiles(profile),
 
-            // Escort ID for JavaScript
-            escortId: profile.slug ? profile.slug.replace(/-/g, '_').toUpperCase() : 'UNKNOWN',
+    // Escort ID for JavaScript
+    escortId: profile.slug ? profile.slug.replace(/-/g, '_').toUpperCase() : 'UNKNOWN',
 
-            // Badges
-            verifiedBadge: profile.verified ?
-                '<span class="verified-badge" title="ID &amp; Photo Verified"><i class="fas fa-check-circle"></i> Verified</span>' :
-                '',
-            vipBadge: '',
-            ethnicityPart: profile.ethnicity ? ` · ${profile.ethnicity}` : '',
+    // Badges
+    verifiedBadge: profile.verified ?
+        '<span class="verified-badge" title="ID &amp; Photo Verified"><i class="fas fa-check-circle"></i> Verified</span>' :
+        '',
+    vipBadge: '',
+    ethnicityPart: profile.ethnicity ? ` · ${profile.ethnicity}` : '',
 
-            // WhatsApp number
-            waNumber: formatWhatsAppNumber(fullNumber),
+    // WhatsApp number
+    waNumber: formatWhatsAppNumber(fullNumber),
 
-            // Trust badges
-            trustBadgesHtml: '',
-            localTipHtml: '',
+    // Trust badges
+    trustBadgesHtml: '',
+    localTipHtml: '',
 
-            // Meta data
-            title: `${displayName} – Verified Escort in ${city}`,
-            metaDescription: profile.description ? profile.description.substring(0, 160) : 'Verified escort profile.',
+    // Meta data
+    title: `${displayName} – Verified Escort in ${city}`,
+    metaDescription: profile.description ? profile.description.substring(0, 160) : 'Verified escort profile.',
 
-            // URLs
-            heroImage: images.length > 0 ? images[0] : '',
-            ogImage: images.length > 0 ? images[0] : '',
-            baseUrl: 'https://fine-2zxp.onrender.com',
-            citySlug: city.toLowerCase().replace(/ /g, '-'),
+    // URLs
+    heroImage: images.length > 0 ? images[0] : '',
+    ogImage: images.length > 0 ? images[0] : '',
+    baseUrl: 'https://fine-2zxp.onrender.com',
+    citySlug: city.toLowerCase().replace(/ /g, '-'),
 
-            // JSON-LD (placeholder – could be enhanced)
-            jsonLd: '{}',
+    // JSON-LD (placeholder)
+    jsonLd: '{}',
 
-            // Today's date
-            today: new Date().toISOString().split('T')[0],
+    // Today's date
+    today: new Date().toISOString().split('T')[0],
 
-            // Published date
-            publishedDate: profile.createdAt || new Date().toISOString(),
+    // Published date
+    publishedDate: profile.createdAt || new Date().toISOString(),
 
-            // Social media (empty)
-            socialMedia: [],
+    // Social media (empty)
+    socialMedia: [],
 
-            // First/last name
-            firstName: displayName.split(' ')[0] || displayName,
-            lastName: displayName.split(' ').slice(1).join(' ') || '',
-        };
+    // First/last name
+    firstName: displayName.split(' ')[0] || displayName,
+    lastName: displayName.split(' ').slice(1).join(' ') || '',
+
+    // ⬇️⬇️⬇️ ADD THIS LINE ⬇️⬇️⬇️
+    viewCounterScript: `<script>
+        (async function() {
+            try {
+                const slug = window.location.pathname.split('/').pop().replace('.html', '');
+                await fetch('/api/profiles/' + slug + '/view', { method: 'POST' });
+            } catch (e) {
+                // Silently fail
+            }
+        })();
+    </script>`,
+    // ⬆️⬆️⬆️ END OF ADDITION ⬆️⬆️⬆️
+};
 
         const html = render(template, context);
         res.send(html);
