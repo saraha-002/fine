@@ -103,8 +103,9 @@ async function loadProfiles() {
         renderProfiles();
         renderPagination();
     } catch (err) {
-        console.error("Failed to load profiles:", err);
-        profileGrid.innerHTML = '<div class="error-message">Failed to load profiles. Please refresh the page.</div>';
+        console.error("Failed to load profiles from API:", err);
+        // ✅ Fallback to static file
+        fallbackToStatic();
     }
 }
 async function fallbackToStatic() {
@@ -148,7 +149,7 @@ const profileImage = (profile.photos && profile.photos.length > 0)
       : '';
 
     card.innerHTML = `
-      <div class="card-image" data-images='${JSON.stringify(profile.images || [])}'>
+      <div class="card-image" data-images='${JSON.stringify(profile.photos || profile.images || [])}'>
         <div class="image-layer lazy-image"
              data-src="${profileImage}"
              style="opacity:1; background-image: url('${profileImage}'); background-size: cover; background-position: center;">
@@ -374,7 +375,14 @@ function resetFilters() {
 ATTACH EVENT LISTENERS
 ================================ */
 document.getElementById('searchInput')?.addEventListener('input', filterProfiles);
-document.getElementById('cityFilter')?.addEventListener('change', filterProfiles);
+// ─── City filter redirect ──────────────────────────────────────────
+document.getElementById('cityFilter')?.addEventListener('change', function() {
+    const city = this.value;
+    if (city) {
+        const slug = city.toLowerCase().replace(/ /g, '-');
+        window.location.href = `/${slug}-escorts.html`;
+    }
+});
 document.getElementById('companionFilter')?.addEventListener('change', filterProfiles);
 document.getElementById('serviceFilter')?.addEventListener('change', filterProfiles);
 document.getElementById('resetFiltersBtn')?.addEventListener('click', resetFilters);

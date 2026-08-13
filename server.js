@@ -993,6 +993,98 @@ const images = profile.photos || profile.images || [];
     // ⬆️⬆️⬆️ END OF ADDITION ⬆️⬆️⬆️
 };
 
+// ─── DYNAMIC CITY PAGE ──────────────────────────────────────────────
+app.get('/:citySlug-escorts.html', async (req, res) => {
+    try {
+        const citySlug = req.params.citySlug;
+        console.log(`🔍 Looking for city page: ${citySlug}`);
+
+        // Get all approved profiles
+        const allProfiles = await getAllProfiles();
+        const approved = allProfiles.filter(p => p.isApproved === true);
+
+        // Find the city name from the slug
+        const cityName = citySlug
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+
+        // Filter profiles by city (check both city and location fields)
+        const cityProfiles = approved.filter(p =>
+            (p.city && p.city.toLowerCase() === cityName.toLowerCase()) ||
+            (p.location && p.location.toLowerCase() === cityName.toLowerCase())
+        );
+
+        if (cityProfiles.length === 0) {
+            console.log(`❌ No profiles found for city: ${cityName}`);
+            // Still render the page, but with empty results
+        }
+
+        // ─── Load the city template ──────────────────────────────────
+        const templatePath = path.join(__dirname, 'templates', 'city-template.html');
+        let template = fs.readFileSync(templatePath, 'utf8');
+
+        // ─── Build city page context ────────────────────────────────
+        const profilesHtml = cityProfiles.map(p => {
+            const image = (p.photos && p.photos.length > 0)
+                ? p.photos[0]
+                : (p.images && p.images.length > 0)
+                    ? p.images[0]
+                    : '';
+
+            const displayName = p.displayName || p.name || 'Unknown';
+
+            return `
+                <div class="escort-card">
+                    <img class="escort-card-image" src="${image}" alt="${escapeHtml(displayName)} verified escort in ${escapeHtml(cityName)}" loading="lazy">
+                    <div class="escort-card-content">
+                        <div class="escort-card-name">${escapeHtml(displayName)}</div>
+                        <div class="escort-card-location">${escapeHtml(cityName)}</div>
+                        <a href="profiles/${p.slug}.html" class="view-profile-btn">View Profile</a>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // ─── Get all cities for the dropdown ────────────────────────
+        const allCities = [...new Set(approved.map(p => p.city || p.location).filter(Boolean))];
+        const cityLinks = allCities.map(city => {
+            const slug = city.toLowerCase().replace(/ /g, '-');
+            return `<a href="${slug}-escorts.html">${escapeHtml(city)} Escorts</a>`;
+        }).join('\n');
+
+        const context = {
+            baseUrl: 'https://fine-2zxp.onrender.com',
+            city: cityName,
+            citySlug: citySlug,
+            profileCount: cityProfiles.length,
+            profiles: profilesHtml,
+            topCityLinks: cityLinks,
+            relatedProfiles: '',
+            jsonld: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "ItemList",
+                "name": `${cityName} Escorts`,
+                "description": `List of premium escort companions available in ${cityName}, Kenya.`,
+                "url": `https://fine-2zxp.onrender.com/${citySlug}-escorts.html`,
+                "numberOfItems": cityProfiles.length,
+                "itemListElement": cityProfiles.map((p, idx) => ({
+                    "@type": "ListItem",
+                    "position": idx + 1,
+                    "url": `https://fine-2zxp.onrender.com/profiles/${p.slug}.html`,
+                    "name": p.displayName || p.name
+                }))
+            }, null, 2)
+        };
+
+        const html = render(template, context);
+        res.send(html);
+
+    } catch (error) {
+        console.error('❌ Error serving city page:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
         const html = render(template, context);
         res.send(html);
 
