@@ -95,7 +95,7 @@ LOAD PROFILES
 ================================ */
 async function loadProfiles() {
     try {
-        const res = await fetch('https://fine-2zxp.onrender.com/api/profiles');
+        const res = await fetch('/api/profiles');
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
         allProfiles = await res.json();
         filteredProfiles = [...allProfiles];

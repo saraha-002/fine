@@ -797,6 +797,7 @@ app.get('/api/transaction/:id', async (req, res) => {
 });
 
 // ─── Serve Pages ──────────────────────────────────────────────────
+// ─── Serve Pages ──────────────────────────────────────────────────
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -849,8 +850,7 @@ app.get('/profiles/:slug.html', async (req, res) => {
         const city = profile.city || profile.location || 'Unknown';
 
         // ─── Gallery with thumbnails ─────────────────────────────────
-       // ─── Gallery with thumbnails ─────────────────────────────────
-const images = profile.photos || profile.images || [];
+        const images = profile.photos || profile.images || [];
         let galleryHtml = '<div class="gallery">No images</div>';
         if (images.length > 0) {
             galleryHtml = `
@@ -894,104 +894,115 @@ const images = profile.photos || profile.images || [];
             `).join('');
         }
 
-      const context = {
-    // Basic profile info
-    name: displayName,
-    displayName: displayName,
-    city: city,
-    location: city,
-    age: profile.age || 'N/A',
-    fullNumber: fullNumber,
-    maskedNumber: profile.maskedNumber || '07XX XXX XXX',
-    slug: profile.slug || slug,
+        const context = {
+            // Basic profile info
+            name: displayName,
+            displayName: displayName,
+            city: city,
+            location: city,
+            age: profile.age || 'N/A',
+            fullNumber: fullNumber,
+            maskedNumber: profile.maskedNumber || '07XX XXX XXX',
+            slug: profile.slug || slug,
 
-    // Trust signals
-    lastUpdated: Math.floor(Math.random() * 7) + 1,
-    profileViews: profile.profileViews || 0,
-    memberSince: profile.createdAt ? new Date(profile.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' }) : 'Recently',
+            // Trust signals
+            lastUpdated: Math.floor(Math.random() * 7) + 1,
+            profileViews: profile.profileViews || 0,
+            memberSince: profile.createdAt ? new Date(profile.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' }) : 'Recently',
 
-    // Gallery
-    gallery: galleryHtml,
+            // Gallery
+            gallery: galleryHtml,
 
-    // Bio
-    bioHtml: profile.description ?
-        `<p>${escapeHtml(profile.description)}</p>` :
-        '<p>No description available.</p>',
+            // Bio
+            bioHtml: profile.description ?
+                `<p>${escapeHtml(profile.description)}</p>` :
+                '<p>No description available.</p>',
 
-    // Services
-    services: profile.services && profile.services.length > 0 ?
-        profile.services.map(s => `<span class="service">${escapeHtml(s)}</span>`).join('') :
-        getServiceCluster(profile),
+            // Services
+            services: profile.services && profile.services.length > 0 ?
+                profile.services.map(s => `<span class="service">${escapeHtml(s)}</span>`).join('') :
+                getServiceCluster(profile),
 
-    // Reviews
-    reviews: reviewsHtml,
-    topReviewsHtml: topReviewsHtml,
+            // Reviews
+            reviews: reviewsHtml,
+            topReviewsHtml: topReviewsHtml,
 
-    // FAQ
-    faqHtml: getRandomFaqs(profile, 4),
+            // FAQ
+            faqHtml: getRandomFaqs(profile, 4),
 
-    // City links (async)
-    topCityLinks: await getTopCityLinks(),
+            // City links (async)
+            topCityLinks: await getTopCityLinks(),
 
-    // Related profiles (async)
-    relatedProfiles: await getRelatedProfiles(profile),
+            // Related profiles (async)
+            relatedProfiles: await getRelatedProfiles(profile),
 
-    // Escort ID for JavaScript
-    escortId: profile.slug ? profile.slug.replace(/-/g, '_').toUpperCase() : 'UNKNOWN',
+            // Escort ID for JavaScript
+            escortId: profile.slug ? profile.slug.replace(/-/g, '_').toUpperCase() : 'UNKNOWN',
 
-    // Badges
-    verifiedBadge: profile.verified ?
-        '<span class="verified-badge" title="ID &amp; Photo Verified"><i class="fas fa-check-circle"></i> Verified</span>' :
-        '',
-    vipBadge: '',
-    ethnicityPart: profile.ethnicity ? ` · ${profile.ethnicity}` : '',
+            // Badges
+            verifiedBadge: profile.verified ?
+                '<span class="verified-badge" title="ID &amp; Photo Verified"><i class="fas fa-check-circle"></i> Verified</span>' :
+                '',
+            vipBadge: '',
+            ethnicityPart: profile.ethnicity ? ` · ${profile.ethnicity}` : '',
 
-    // WhatsApp number
-    waNumber: formatWhatsAppNumber(fullNumber),
+            // WhatsApp number
+            waNumber: formatWhatsAppNumber(fullNumber),
 
-    // Trust badges
-    trustBadgesHtml: '',
-    localTipHtml: '',
+            // Trust badges
+            trustBadgesHtml: '',
+            localTipHtml: '',
 
-    // Meta data
-    title: `${displayName} – Verified Escort in ${city}`,
-    metaDescription: profile.description ? profile.description.substring(0, 160) : 'Verified escort profile.',
+            // Meta data
+            title: `${displayName} – Verified Escort in ${city}`,
+            metaDescription: profile.description ? profile.description.substring(0, 160) : 'Verified escort profile.',
 
-    // URLs
-    heroImage: images.length > 0 ? images[0] : '',
-    ogImage: images.length > 0 ? images[0] : '',
-    baseUrl: 'https://fine-2zxp.onrender.com',
-    citySlug: city.toLowerCase().replace(/ /g, '-'),
+            // URLs
+            heroImage: images.length > 0 ? images[0] : '',
+            ogImage: images.length > 0 ? images[0] : '',
+            baseUrl: 'https://fineescorts.co.ke',
+            citySlug: city.toLowerCase().replace(/ /g, '-'),
 
-    // JSON-LD (placeholder)
-    jsonLd: '{}',
+            // JSON-LD
+            jsonLd: '{}',
 
-    // Today's date
-    today: new Date().toISOString().split('T')[0],
+            // Today's date
+            today: new Date().toISOString().split('T')[0],
 
-    // Published date
-    publishedDate: profile.createdAt || new Date().toISOString(),
+            // Published date
+            publishedDate: profile.createdAt || new Date().toISOString(),
 
-    // Social media (empty)
-    socialMedia: [],
+            // Social media (empty)
+            socialMedia: [],
 
-    // First/last name
-    firstName: displayName.split(' ')[0] || displayName,
-    lastName: displayName.split(' ').slice(1).join(' ') || '',
+            // First/last name
+            firstName: displayName.split(' ')[0] || displayName,
+            lastName: displayName.split(' ').slice(1).join(' ') || '',
 
-    // ⬇️⬇️⬇️ ADD THIS LINE ⬇️⬇️⬇️
-    viewCounterScript: `<script>
-        (async function() {
-            try {
-                const slug = window.location.pathname.split('/').pop().replace('.html', '');
-                await fetch('/api/profiles/' + slug + '/view', { method: 'POST' });
-            } catch (e) {
-                // Silently fail
-            }
-        })();
-    </script>`,
-    // ⬆️⬆️⬆️ END OF ADDITION ⬆️⬆️⬆️
-};
+            // View counter script
+            viewCounterScript: `<script>
+                (async function() {
+                    try {
+                        const slug = window.location.pathname.split('/').pop().replace('.html', '');
+                        await fetch('/api/profiles/' + slug + '/view', { method: 'POST' });
+                    } catch (e) {
+                        // Silently fail
+                    }
+                })();
+            </script>`,
+        };
+
+        const html = render(template, context);
+        res.send(html);
+
+    } catch (error) {
+        console.error('❌ Error serving profile:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// ─── DYNAMIC CITY PAGE ──────────────────────────────────────────────
+
 
 // ─── DYNAMIC CITY PAGE ──────────────────────────────────────────────
 app.get('/:citySlug-escorts.html', async (req, res) => {
@@ -1017,7 +1028,6 @@ app.get('/:citySlug-escorts.html', async (req, res) => {
 
         if (cityProfiles.length === 0) {
             console.log(`❌ No profiles found for city: ${cityName}`);
-            // Still render the page, but with empty results
         }
 
         // ─── Load the city template ──────────────────────────────────
@@ -1046,50 +1056,41 @@ app.get('/:citySlug-escorts.html', async (req, res) => {
             `;
         }).join('');
 
-        // ─── Get all cities for the dropdown ────────────────────────
+        // ─── Get all cities for the footer ──────────────────────────
         const allCities = [...new Set(approved.map(p => p.city || p.location).filter(Boolean))];
         const cityLinks = allCities.map(city => {
             const slug = city.toLowerCase().replace(/ /g, '-');
             return `<a href="${slug}-escorts.html">${escapeHtml(city)} Escorts</a>`;
         }).join('\n');
 
-        const context = {
-            baseUrl: 'https://fine-2zxp.onrender.com',
-            city: cityName,
-            citySlug: citySlug,
-            profileCount: cityProfiles.length,
-            profiles: profilesHtml,
-            topCityLinks: cityLinks,
-            relatedProfiles: '',
-            jsonld: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "ItemList",
-                "name": `${cityName} Escorts`,
-                "description": `List of premium escort companions available in ${cityName}, Kenya.`,
-                "url": `https://fine-2zxp.onrender.com/${citySlug}-escorts.html`,
-                "numberOfItems": cityProfiles.length,
-                "itemListElement": cityProfiles.map((p, idx) => ({
-                    "@type": "ListItem",
-                    "position": idx + 1,
-                    "url": `https://fine-2zxp.onrender.com/profiles/${p.slug}.html`,
-                    "name": p.displayName || p.name
-                }))
-            }, null, 2)
-        };
-
+      const context = {
+    baseUrl: 'https://fineescorts.co.ke',
+    city: cityName,
+    citySlug: citySlug,
+    profileCount: cityProfiles.length,
+    profiles: profilesHtml,
+    topCityLinks: cityLinks,
+    relatedProfiles: '',
+    jsonld: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": `${cityName} Escorts`,
+        "description": `List of premium escort companions available in ${cityName}, Kenya.`,
+        "url": `https://fineescorts.co.ke/${citySlug}-escorts.html`,
+        "numberOfItems": cityProfiles.length,
+        "itemListElement": cityProfiles.map((p, idx) => ({
+            "@type": "ListItem",
+            "position": idx + 1,
+            "url": `https://fineescorts.co.ke/profiles/${p.slug}.html`,
+            "name": p.displayName || p.name
+        }))
+    }, null, 2)
+};
         const html = render(template, context);
         res.send(html);
 
     } catch (error) {
         console.error('❌ Error serving city page:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
-        const html = render(template, context);
-        res.send(html);
-
-    } catch (error) {
-        console.error('❌ Error serving profile:', error);
         res.status(500).send('Internal Server Error');
     }
 });
