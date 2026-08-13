@@ -256,13 +256,13 @@ const faqPools = [
         { q: "Is {{name}} a verified escort in {{city}}?", a: "Yes, {{name}} has completed our identity verification process and is a verified companion in {{city}}." },
         { q: "Where in {{city}} is {{name}} available?", a: "{{name}} is available for incalls in secure, upscale locations within {{city}} and nearby areas. Outcalls to reputable hotels in {{city}} are also welcome." },
         { q: "Does {{name}} offer overnight or travel companionship?", a: "{{name}} offers overnight stays and can accompany you on weekend getaways around {{city}} or Nairobi." },
-        { q: "How does the verification and payment work?", a: "You pay a small verification fee of 50 KES via M-Pesa. Once confirmed, you instantly receive {{name}}'s full phone number." }
+        { q: "How do I book {{name}}?", a: "Simply visit {{name}}'s profile, view her contact details, and reach out directly via call or WhatsApp. All profiles are verified and ready to connect." }
     ],
     [
         { q: "Is my privacy guaranteed when booking {{name}}?", a: "Absolutely. Discretion is {{name}}'s top priority. All communications are confidential." },
         { q: "Can I request a specific meetup location in {{city}}?", a: "Yes, outcalls to reputable hotels in {{city}} are welcome." },
         { q: "What is {{name}}'s cancellation policy?", a: "Please give at least 2 hours' notice if you need to cancel or reschedule." },
-        { q: "Do I need to pay a deposit?", a: "No, only the one-time 50 KES verification fee via M-Pesa is required." }
+        { q: "How do I know the photos are real?", a: "All images are verified by our team. You can also request a live verification call." }
     ],
     [
         { q: "Is {{name}} available for upscale events in {{city}}?", a: "Yes, {{name}} is well-suited for luxury dinners, social events, and weekend retreats." },
@@ -274,10 +274,9 @@ const faqPools = [
         { q: "Is {{name}} available for travel outside {{city}}?", a: "Yes, {{name}} can accompany you on weekend getaways to Nairobi or other nearby destinations." },
         { q: "What are the travel conditions?", a: "All travel expenses (transport, accommodation) are covered by the client." },
         { q: "Does {{name}} offer overnight stays?", a: "Absolutely, overnight and extended dates are available upon request." },
-        { q: "How to book a multi-day trip?", a: "Contact {{name}} directly after unlocking the number to discuss the details." }
+        { q: "How to book a multi-day trip?", a: "Contact {{name}} directly using the WhatsApp or Call buttons on her profile." }
     ]
 ];
-
 function getRandomFaqs(profile, poolCount = 4) {
     const hash = seededHash(profile.slug || 'default');
     const poolIndex = hash % faqPools.length;
