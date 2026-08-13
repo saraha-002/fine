@@ -104,11 +104,9 @@ async function loadProfiles() {
         renderPagination();
     } catch (err) {
         console.error("Failed to load profiles:", err);
-        // Fallback to static file if API fails
-        fallbackToStatic();
+        profileGrid.innerHTML = '<div class="error-message">Failed to load profiles. Please refresh the page.</div>';
     }
 }
-
 async function fallbackToStatic() {
     try {
         const res = await fetch("data/profiles.json");
@@ -138,9 +136,12 @@ function renderProfiles() {
     const card = document.createElement("div");
     card.className = "profile-card";
 
-    const profileImage = profile.images && profile.images.length > 0
-      ? profile.images[0]
-      : "https://via.placeholder.com/400x500?text=No+Image";
+   // ─── Check photos FIRST (new profiles), THEN images (old profiles) ──
+const profileImage = (profile.photos && profile.photos.length > 0)
+    ? profile.photos[0]
+    : (profile.images && profile.images.length > 0)
+        ? profile.images[0]
+        : "https://via.placeholder.com/400x500?text=No+Image";
 
     const verifiedBadge = profile.verified
       ? '<div class="verified-badge" title="ID &amp; Photo Verified"><i class="fas fa-check-circle"></i> Verified</div>'
