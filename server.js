@@ -24,6 +24,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('.'));
 
 // ─── Render Helper ──────────────────────────────────────────────────
+// ─── Render Helper ──────────────────────────────────────────────────
 function render(template, context) {
     let result = template;
     for (const [key, value] of Object.entries(context)) {
@@ -688,6 +689,7 @@ app.get('/payment.html', (req, res) => {
 });
 
 // ─── DYNAMIC PROFILE PAGE ──────────────────────────────────────────
+// ─── DYNAMIC PROFILE PAGE ──────────────────────────────────────────
 app.get('/profiles/:slug.html', async (req, res) => {
     try {
         const slug = req.params.slug;
@@ -706,13 +708,99 @@ app.get('/profiles/:slug.html', async (req, res) => {
         const templatePath = path.join(__dirname, 'templates', 'profile-template.html');
         let template = fs.readFileSync(templatePath, 'utf8');
         
-        // Build context for the template
+        // ─── Build complete context for the template ────────────────
         const context = {
-            ...profile,
-            name: profile.displayName || profile.name,
-            city: profile.city || profile.location,
-            fullNumber: profile.fullNumber || profile.phone,
-            // Add any other fields your template expects
+            // Basic profile info
+            name: profile.displayName || profile.name || 'Unknown',
+            city: profile.city || profile.location || 'Unknown',
+            age: profile.age || 'N/A',
+            fullNumber: profile.fullNumber || profile.phone || '',
+            maskedNumber: profile.maskedNumber || '07XX XXX XXX',
+            slug: profile.slug || slug,
+            
+            // Trust signals
+            lastUpdated: Math.floor(Math.random() * 7) + 1,
+            profileViews: profile.profileViews || 0,
+            memberSince: profile.createdAt ? new Date(profile.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' }) : 'Recently',
+            
+            // Gallery – simple version
+            gallery: profile.images && profile.images.length > 0 
+                ? `<div class="gallery"><img src="${profile.images[0]}" alt="${profile.displayName}" style="max-width:100%;"></div>`
+                : '<div class="gallery">No images</div>',
+            
+            // Bio – simplified
+            bioHtml: profile.description 
+                ? `<p>${profile.description}</p>` 
+                : '<p>No description available.</p>',
+            
+            // Services
+            services: profile.services && profile.services.length > 0
+                ? profile.services.map(s => `<span class="service">${s}</span>`).join('')
+                : '<span class="service">No services listed</span>',
+            
+            // Reviews
+            topReviewsHtml: profile.reviews && profile.reviews.length > 0
+                ? profile.reviews.slice(0, 3).map(r => `
+                    <div class="review-item">
+                        <div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+                        <p>"${r.comment}"</p>
+                        <small>— ${r.author}</small>
+                    </div>
+                `).join('')
+                : '<p>No reviews yet.</p>',
+            
+            // FAQ
+            faqHtml: '<p>FAQ content here</p>',
+            
+            // City links (placeholder)
+            topCityLinks: '<a href="#">Kitengela Escorts</a>',
+            
+            // Related profiles (placeholder)
+            relatedProfiles: '<a href="#">Related profiles</a>',
+            
+            // Escort ID for JavaScript
+            escortId: profile.slug ? profile.slug.replace(/-/g, '_').toUpperCase() : 'UNKNOWN',
+            
+            // Badges
+            verifiedBadge: profile.verified 
+                ? '<span class="verified-badge">✅ Verified</span>' 
+                : '',
+            
+            vipBadge: '',
+            ethnicityPart: profile.ethnicity ? ` · ${profile.ethnicity}` : '',
+            
+            // WhatsApp number
+            waNumber: profile.fullNumber ? formatWhatsAppNumber(profile.fullNumber) : '',
+            
+            // Trust badges
+            trustBadgesHtml: '',
+            localTipHtml: '',
+            
+            // Meta data
+            title: `${profile.displayName} – Verified Escort in ${profile.city}`,
+            metaDescription: profile.description ? profile.description.substring(0, 160) : 'Verified escort profile.',
+            
+            // URLs
+            heroImage: profile.images && profile.images.length > 0 ? profile.images[0] : '',
+            ogImage: profile.images && profile.images.length > 0 ? profile.images[0] : '',
+            baseUrl: 'https://fine-2zxp.onrender.com',
+            citySlug: profile.city ? profile.city.toLowerCase().replace(/ /g, '-') : 'unknown',
+            
+            // JSON-LD (placeholder)
+            jsonLd: '{}',
+            
+            // Today's date
+            today: new Date().toISOString().split('T')[0],
+            
+            // Published date
+            publishedDate: profile.createdAt || new Date().toISOString(),
+            
+            // Social media (empty)
+            socialMedia: [],
+            
+            // First/last name
+            firstName: profile.displayName ? profile.displayName.split(' ')[0] : '',
+            lastName: profile.displayName ? profile.displayName.split(' ').slice(1).join(' ') : '',
         };
         
         // Render the template
