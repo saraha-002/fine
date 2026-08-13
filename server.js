@@ -23,15 +23,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('.'));
 
-// ─── Render Helper ──────────────────────────────────────────────────
-// ─── Render Helper ──────────────────────────────────────────────────
-function render(template, context) {
-    let result = template;
-    for (const [key, value] of Object.entries(context)) {
-        result = result.replace(new RegExp(`{{${key}}}`, 'g'), value !== undefined ? value : '');
-    }
-    return result;
-}
+
 
 // ─── MongoDB Connection ──────────────────────────────────────────
 const MONGO_URL = process.env.MONGO_URL;
@@ -176,6 +168,20 @@ function generateToken() {
 
 // ⬇️⬇️⬇️ ADD THE RENDER FUNCTION HERE ⬇️⬇️⬇️
 
+// ─── Format phone for WhatsApp ────────────────────────────────────
+function formatWhatsAppNumber(phone) {
+    if (!phone) return '';
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) {
+        cleaned = '254' + cleaned.substring(1);
+    }
+    if (!cleaned.startsWith('254')) {
+        cleaned = '254' + cleaned;
+    }
+    return cleaned;
+}
+
+// ─── Render Helper ──────────────────────────────────────────────────
 function render(template, context) {
     let result = template;
     for (const [key, value] of Object.entries(context)) {
@@ -183,6 +189,7 @@ function render(template, context) {
     }
     return result;
 }
+
 
 async function findUserByEmail(email) {
     const usersCol = getCollection('users');
