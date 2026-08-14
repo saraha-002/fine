@@ -14,7 +14,8 @@ const bcrypt = require('bcrypt');
 
 // ─── Load Environment Variables ──────────────────────────────────
 require('dotenv').config();
-
+// ─── Email Service ──────────────────────────────────────────────
+const { sendWelcomeEmail, sendApprovalEmail, sendPaymentConfirmation, sendSubscriptionExpiredEmail } = require('./utils/emailService');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -679,20 +680,45 @@ app.get('/api/profiles', async (req, res) => {
 });
 
 // ─── ACTIVATE PROFILE AFTER PAYMENT ──────────────────────────────
+// ─── ACTIVATE PROFILE AFTER PAYMENT ──────────────────────────────
 app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
     try {
-        const { tier, duration } = req.body;
+        const { tier, duration, amount, transactionId } = req.body;
         const profile = await findProfileByUserId(req.userId);
         if (!profile) {
             return res.status(404).json({ message: 'Profile not found' });
         }
+
+        // ─── Calculate expiry date ──────────────────────────────────
+        const expiryDate = new Date();
+        const durationMonths = duration === 'yearly' ? 12 : 1;
+        expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
+
         const updated = await updateProfile(profile.slug, {
             isApproved: true,
             status: 'approved',
             approvedAt: new Date().toISOString(),
             subscriptionTier: tier || 'premium',
-            subscriptionDuration: duration || 'monthly'
+            subscriptionDuration: duration || 'monthly',
+            subscriptionExpiry: expiryDate.toISOString() // ✅ New field
         });
+
+        // ─── Send payment confirmation email ──────────────────────
+        try {
+            const userEmail = await findUserById(profile.userId);
+            const email = userEmail ? userEmail.email : 'escort@example.com';
+            await sendPaymentConfirmation(
+                email,
+                updated.displayName || updated.name,
+                amount || 500,
+                tier || 'Premium',
+                transactionId || 'N/A'
+            );
+            console.log('✅ Payment confirmation email sent to', email);
+        } catch (err) {
+            console.error('❌ Payment email failed:', err.message);
+        }
+
         res.json({
             success: true,
             message: '✅ Profile activated and live!',
@@ -1190,6 +1216,47 @@ app.delete('/api/profiles/me/photos', authenticate, async (req, res) => {
     }
 });
 
+// ─── Check expired subscriptions daily ────────────────────────────
+const checkExpiredSubscriptions = async () => {
+  try {
+    const profilesCol = getCollection('profiles');
+    if (!profilesCol) return;
+
+    const now = new Date();
+    const expired = await profilesCol.find({
+      isApproved: true,
+      subscriptionExpiry: { $lt: now }
+    }).toArray();
+
+    for (const profile of expired) {
+      // Fetch user email
+      const user = await findUserById(profile.userId);
+      if (!user) continue;
+
+      // Send expiry email
+      await sendSubscriptionExpiredEmail(
+        user.email,
+        profile.displayName || profile.name,
+        profile.subscriptionTier || 'Premium',
+        profile.subscriptionExpiry,
+        'https://fineescorts.co.ke/payment.html'
+      );
+
+      // Optionally auto-hide profile
+      await updateProfile(profile.slug, {
+        isApproved: false,
+        status: 'expired'
+      });
+    }
+    console.log(`✅ Processed ${expired.length} expired subscriptions`);
+  } catch (error) {
+    console.error('❌ Subscription expiry check failed:', error);
+  }
+};
+
+// ─── Run the check once daily ──────────────────────────────────────
+setInterval(checkExpiredSubscriptions, 24 * 60 * 60 * 1000); // 24 hours
+
 // ─── Start Server ──────────────────────────────────────────────────
 async function startServer() {
     await connectDB();
@@ -1201,3 +1268,4 @@ async function startServer() {
 }
 
 startServer();
+
