@@ -15,7 +15,7 @@ const bcrypt = require('bcrypt');
 // ─── Load Environment Variables ──────────────────────────────────
 require('dotenv').config();
 // ─── Email Service ──────────────────────────────────────────────
-const { sendWelcomeEmail, sendApprovalEmail, sendPaymentConfirmation, sendSubscriptionExpiredEmail } = require('./utils/emailService');
+const { sendWelcomeEmail, sendApprovalEmail, sendPaymentConfirmation, sendSubscriptionExpiredEmail, sendEmail } = require('./utils/emailService');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
