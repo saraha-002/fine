@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 3000;
 // ─── Middleware ──────────────────────────────────────────────────
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static('.'));
+
 
 // ─── MongoDB Connection ──────────────────────────────────────────
 const MONGO_URL = process.env.MONGO_URL;
@@ -933,7 +933,10 @@ app.get('/api/transaction/:id', async (req, res) => {
     }
 });
 
+// ─── Serve Static Files ──────────────────────────────────────────
+app.use(express.static('.'));
 // ─── Serve Pages ──────────────────────────────────────────────────
+
 // ─── Serve Pages ──────────────────────────────────────────────────
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
