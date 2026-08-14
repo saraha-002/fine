@@ -1,17 +1,12 @@
 // ─── Admin Dashboard Script ──────────────────────────────────────
 
-const API_BASE = 'https://fineescorts.co.ke';
+const API_BASE = window.location.origin; // Use current domain dynamically
 let currentSection = 'dashboard';
 let allProfiles = [];
 
 // ─── Authentication ──────────────────────────────────────────────
 function getToken() {
     return localStorage.getItem('token');
-}
-
-function isAdmin() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    return user.role === 'admin';
 }
 
 function redirectToLogin() {
@@ -57,15 +52,12 @@ document.querySelectorAll('.sidebar-nav a').forEach(link => {
 function switchSection(section) {
     currentSection = section;
 
-    // Update sidebar
     document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
     document.querySelector(`.sidebar-nav a[data-section="${section}"]`)?.classList.add('active');
 
-    // Update content
     document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
     document.getElementById(`section-${section}`)?.classList.add('active');
 
-    // Update title
     const titles = {
         dashboard: 'Dashboard',
         profiles: 'Manage Profiles',
@@ -76,10 +68,9 @@ function switchSection(section) {
     };
     document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
 
-    // Load data
     switch(section) {
         case 'dashboard': loadDashboard(); break;
-        case 'profiles': loadProfiles(); break;
+        case 'profiles': loadProfiles(document.getElementById('profileFilter')?.value || 'all'); break;
         case 'users': loadUsers(); break;
         case 'subscriptions': loadSubscriptions(); break;
     }
@@ -97,14 +88,12 @@ async function loadDashboard() {
             document.getElementById('statRejected').textContent = stats.rejected || 0;
         }
 
-        // Load expired count
         const expiredRes = await apiFetch('/api/admin/expired');
         if (expiredRes?.ok) {
             const expired = await expiredRes.json();
             document.getElementById('statExpired').textContent = expired.length || 0;
         }
 
-        // Load total views
         const profilesRes = await apiFetch('/api/admin/profiles');
         if (profilesRes?.ok) {
             const profiles = await profilesRes.json();
@@ -112,9 +101,7 @@ async function loadDashboard() {
             document.getElementById('statViews').textContent = totalViews || 0;
         }
 
-        // Recent activity
-        const activity = document.getElementById('recentActivity');
-        activity.innerHTML = `
+        document.getElementById('recentActivity').innerHTML = `
             <p>✅ Site is running</p>
             <p>📧 Email system: ${await testEmail() ? '✅ Working' : '❌ Check logs'}</p>
         `;
@@ -296,7 +283,7 @@ async function loadSubscriptions() {
                     <td>${new Date(p.subscriptionExpiry).toLocaleDateString()}</td>
                     <td><span class="status-badge ${isExpired ? 'expired' : 'approved'}">${isExpired ? 'Expired' : 'Active'}</span></td>
                     <td>
-                        ${isExpired ? '<button class="btn-approve" onclick="renewSubscription()">Renew</button>' : '—'}
+                        ${isExpired ? `<button class="btn-approve" onclick="renewSubscription('${p.slug}')">Renew</button>` : '—'}
                     </td>
                 </tr>
             `;
@@ -311,8 +298,20 @@ async function loadSubscriptions() {
     }
 }
 
-window.renewSubscription = function() {
-    alert('⚠️ Renewal feature coming soon — manually approve the profile to reactivate');
+window.renewSubscription = async function(slug) {
+    if (!confirm('Renew this subscription for 1 month?')) return;
+    try {
+        const res = await apiFetch(`/api/admin/profiles/${slug}/renew`, { method: 'POST' });
+        if (res?.ok) {
+            alert('✅ Subscription renewed!');
+            loadSubscriptions();
+        } else {
+            alert('❌ Renewal failed');
+        }
+    } catch (error) {
+        console.error('Renew error:', error);
+        alert('❌ Renewal failed');
+    }
 };
 
 // ─── Bulk Email ───────────────────────────────────────────────────
@@ -349,7 +348,7 @@ document.getElementById('sendBulkEmail')?.addEventListener('click', async functi
     this.innerHTML = '<i class="fas fa-paper-plane"></i> Send Bulk Email';
 });
 
-// ─── Profile Filter ──────────────────────────────────────────────
+// ─── Profile Filter & Search ──────────────────────────────────────
 document.getElementById('profileFilter')?.addEventListener('change', function() {
     loadProfiles(this.value);
 });
@@ -364,6 +363,45 @@ document.getElementById('profileSearch')?.addEventListener('input', function() {
 
 document.getElementById('refreshProfiles')?.addEventListener('click', function() {
     loadProfiles(document.getElementById('profileFilter').value);
+});
+
+// ─── Export Data ────────────────────────────────────────────────────
+document.getElementById('exportData')?.addEventListener('click', async function() {
+    try {
+        const res = await apiFetch('/api/admin/profiles');
+        if (!res?.ok) return;
+        const data = await res.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `fineescorts-export-${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('✅ Data exported successfully!');
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('❌ Export failed');
+    }
+});
+
+// ─── Change Password (basic) ──────────────────────────────────────
+document.getElementById('changePasswordForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const current = document.getElementById('currentPassword').value.trim();
+    const newPass = document.getElementById('newPassword').value.trim();
+    const confirm = document.getElementById('confirmPassword').value.trim();
+
+    if (!current || !newPass || !confirm) {
+        alert('⚠️ Please fill all fields.');
+        return;
+    }
+    if (newPass !== confirm) {
+        alert('⚠️ New passwords do not match.');
+        return;
+    }
+    // Implement actual change password endpoint if available
+    alert('⚠️ Password change endpoint not yet implemented.');
 });
 
 // ─── Logout ───────────────────────────────────────────────────────
@@ -384,14 +422,12 @@ function escapeHtml(str) {
 
 // ─── Init ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if logged in
     const token = getToken();
     if (!token) {
         redirectToLogin();
         return;
     }
 
-    // Check if admin
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.role !== 'admin') {
         alert('⚠️ Admin access required');
@@ -400,8 +436,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     document.getElementById('adminEmail').textContent = user.email || 'Admin';
-
-    // Load default section
     switchSection('dashboard');
 });
 
