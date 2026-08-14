@@ -307,18 +307,18 @@ function buildEnhancedDescription(profile) {
 
 // ---------- FAQ pools (10 pools) ----------
 const faqPools = [
-  [ // Pool 0: standard
+ [ // Pool 0: standard
     { q: "Is {{name}} a verified escort in {{city}}?", a: "Yes, {{name}} has completed our identity verification process and is a verified companion in {{city}}." },
     { q: "Where in {{city}} is {{name}} available?", a: "{{name}} is available for incalls in secure, upscale locations within {{city}} and nearby areas. Outcalls to reputable hotels in {{city}} are also welcome." },
     { q: "Does {{name}} offer overnight or travel companionship?", a: "{{name}} offers overnight stays and can accompany you on weekend getaways around {{city}} or Nairobi. Please discuss during booking." },
-    { q: "How does the verification and payment work?", a: "You pay a small verification fee of 50 KES via M-Pesa. Once confirmed, you instantly receive {{name}}'s full phone number." }
-  ],
-  [ // Pool 1: privacy & discretion
+    { q: "How do I book {{name}}?", a: "Simply visit {{name}}'s profile, view her contact details, and reach out directly via call or WhatsApp. All profiles are verified and ready to connect." } // ✅ NEW
+],
+ [ // Pool 1: privacy & discretion
     { q: "Is my privacy guaranteed when booking {{name}}?", a: "Absolutely. Discretion is {{name}}'s top priority. All communications are confidential." },
     { q: "Can I request a specific meetup location in {{city}}?", a: "Yes, outcalls to reputable hotels in {{city}} are welcome. Please discuss preferences during booking." },
     { q: "What is {{name}}’s cancellation policy?", a: "Please give at least 2 hours' notice if you need to cancel or reschedule." },
-    { q: "Do I need to pay a deposit?", a: "No, only the one‑time 50 KES verification fee via M-Pesa is required to unlock the number." }
-  ],
+    { q: "How do I contact {{name}}?", a: "Simply visit {{name}}'s profile and use the Call or WhatsApp buttons to reach her directly." } // ✅ NEW
+],
   [ // Pool 2: luxury/high-end
     { q: "Is {{name}} available for upscale events in {{city}}?", a: "Yes, {{name}} is well‑suited for luxury dinners, social events, and weekend retreats." },
     { q: "What kind of experiences does {{name}} specialise in?", a: "Luxury companionship, fine dining, travel, and private evenings." },
@@ -331,12 +331,12 @@ const faqPools = [
     { q: "Does {{name}} offer overnight stays?", a: "Absolutely, overnight and extended dates are available upon request." },
     { q: "How to book a multi‑day trip?", a: "Contact {{name}} directly after unlocking the number to discuss the details." }
   ],
-  [ // Pool 4: first‑time client
+ [ // Pool 4: first‑time client
     { q: "I’ve never booked an escort before. What should I expect?", a: "{{name}} is very friendly and will guide you through the process. Just be polite and clear about your preferences." },
     { q: "Is it safe to meet {{name}} in {{city}}?", a: "Yes, {{name}} only accepts meetings in safe, public, or reputable private locations." },
     { q: "How do I know the photos are real?", a: "All images are verified by our team. You can also request a live verification call." },
-    { q: "What forms of payment are accepted?", a: "Only M-Pesa for the 50 KES verification fee. No other payments are required on this site." }
-  ],
+    { q: "How do I book {{name}}?", a: "Simply visit {{name}}'s profile, view her contact details, and reach out directly via call or WhatsApp." } // ✅ NEW
+],
   [ // Pool 5: nightlife/party
     { q: "Is {{name}} comfortable with nightlife outings in {{city}}?", a: "Yes, {{name}} enjoys exploring clubs, lounges, and bars in {{city}}." },
     { q: "Can {{name}} accompany me to a private party?", a: "Absolutely, {{name}} is sociable and discreet in group settings." },

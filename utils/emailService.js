@@ -61,7 +61,8 @@ const sendEmail = async (to, subject, templateName, data = {}) => {
   }
 };
 
-// Specific email functions
+// ─── Specific Email Functions ────────────────────────────────────
+
 const sendWelcomeEmail = async (email, name) => {
   return await sendEmail(email, 'Welcome to FineEscorts Kenya!', 'welcome', { name });
 };
@@ -83,6 +84,7 @@ const sendPaymentConfirmation = async (email, name, amount, plan, transactionId)
     transactionId,
   });
 };
+
 const sendSubscriptionExpiredEmail = async (email, name, plan, expiryDate, renewalLink) => {
   return await sendEmail(
     email,
@@ -92,18 +94,22 @@ const sendSubscriptionExpiredEmail = async (email, name, plan, expiryDate, renew
   );
 };
 
-// Don't forget to export it at the bottom
-module.exports = {
-  sendWelcomeEmail,
-  sendApprovalEmail,
-  sendPaymentConfirmation,
-  sendSubscriptionExpiredEmail,  // ← Add this
-  sendEmail,
+// ─── Admin Bulk Email ─────────────────────────────────────────────
+const sendAdminBulkEmail = async (email, name, subject, message) => {
+  return await sendEmail(
+    email,
+    subject || 'Message from FineEscorts Admin',
+    'admin-bulk',
+    { name, message }
+  );
 };
 
+// ─── Single Export ─────────────────────────────────────────────────
 module.exports = {
   sendWelcomeEmail,
   sendApprovalEmail,
   sendPaymentConfirmation,
-  sendEmail,
+  sendSubscriptionExpiredEmail,
+  sendAdminBulkEmail,   // ← New for bulk admin emails
+  sendEmail,            // ← Exposed for custom emails
 };

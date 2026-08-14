@@ -481,6 +481,15 @@ app.post('/api/auth/register', async (req, res) => {
         users[userId] = newUser;
         writeJSON('users.json', users);
     }
+
+    // ─── Send welcome email ────────────────────────────────────
+    try {
+        await sendWelcomeEmail(email, email.split('@')[0]);
+        console.log('✅ Welcome email sent to', email);
+    } catch (err) {
+        console.error('❌ Welcome email failed:', err.message);
+    }
+
     res.status(201).json({
         message: 'Registration successful',
         token,
@@ -640,6 +649,17 @@ app.put('/api/admin/profiles/:slug/approve', authenticate, async (req, res) => {
     if (!updated) {
         return res.status(404).json({ message: 'Profile not found' });
     }
+
+    // ─── Send approval email ────────────────────────────────────
+    try {
+        const user = await findUserById(updated.userId);
+        const email = user ? user.email : 'escort@example.com';
+        await sendApprovalEmail(email, updated.displayName || updated.name, 'approved', updated.slug);
+        console.log('✅ Approval email sent to', email);
+    } catch (err) {
+        console.error('❌ Approval email failed:', err.message);
+    }
+
     res.json({ message: '✅ Profile approved successfully', profile: updated });
 });
 
@@ -649,6 +669,24 @@ app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
         return res.status(403).json({ message: 'Admin access required' });
     }
     const slug = req.params.slug;
+
+    // ─── Fetch profile before deletion ────────────────────────────
+    const profile = await findProfileBySlug(slug);
+    if (!profile) {
+        return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    // ─── Send rejection email ──────────────────────────────────────
+    try {
+        const user = await findUserById(profile.userId);
+        const email = user ? user.email : 'escort@example.com';
+        await sendApprovalEmail(email, profile.displayName || profile.name, 'rejected', profile.slug, 'Content did not meet our quality standards.');
+        console.log('✅ Rejection email sent to', email);
+    } catch (err) {
+        console.error('❌ Rejection email failed:', err.message);
+    }
+
+    // ─── Now delete the profile ────────────────────────────────────
     const profilesCol = getCollection('profiles');
     if (profilesCol) {
         const result = await profilesCol.deleteOne({ slug });
@@ -665,6 +703,79 @@ app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
         writeJSON('profiles.json', profiles);
     }
     res.json({ message: '❌ Profile rejected and deleted successfully' });
+});
+// ─── GET EXPIRED PROFILES (Admin) ──────────────────────────────
+app.get('/api/admin/expired', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
+    if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+    }
+    const profilesCol = getCollection('profiles');
+    if (!profilesCol) return res.json([]);
+    const now = new Date();
+    const expired = await profilesCol.find({
+        isApproved: true,
+        subscriptionExpiry: { $lt: now }
+    }).toArray();
+    res.json(expired);
+});
+
+// ─── RENEW SUBSCRIPTION (Admin) ──────────────────────────────────
+app.post('/api/admin/profiles/:slug/renew', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
+    if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+    }
+    const slug = req.params.slug;
+    const profile = await findProfileBySlug(slug);
+    if (!profile) {
+        return res.status(404).json({ message: 'Profile not found' });
+    }
+    const expiryDate = new Date();
+    expiryDate.setMonth(expiryDate.getMonth() + 1);
+    const updated = await updateProfile(slug, {
+        isApproved: true,
+        status: 'approved',
+        subscriptionExpiry: expiryDate.toISOString()
+    });
+    res.json({ message: '✅ Subscription renewed', profile: updated });
+});
+
+// ─── SEND BULK EMAIL (Admin) ─────────────────────────────────────
+app.post('/api/admin/send-bulk-email', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
+    if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+    }
+    const { subject, message, filter } = req.body;
+    if (!subject || !message) {
+        return res.status(400).json({ message: 'Subject and message required' });
+    }
+    const profilesCol = getCollection('profiles');
+    if (!profilesCol) {
+        return res.status(500).json({ message: 'Database error' });
+    }
+
+    let query = {};
+    if (filter === 'approved') query.isApproved = true;
+    else if (filter === 'pending') query.isApproved = false;
+    else if (filter === 'expired') {
+        query.isApproved = true;
+        query.subscriptionExpiry = { $lt: new Date() };
+    }
+
+    const profiles = await profilesCol.find(query).toArray();
+    let sent = 0;
+    for (const profile of profiles) {
+        try {
+            const user = await findUserById(profile.userId);
+            if (user?.email) {
+                await sendEmail(user.email, subject, 'admin-bulk', { name: profile.displayName || profile.name, message });
+                sent++;
+            }
+        } catch (err) { console.error('Bulk email failed:', err.message); }
+    }
+    res.json({ message: `✅ Emails sent to ${sent} escorts`, sent, total: profiles.length });
 });
 
 // ─── GET ALL APPROVED PROFILES ────────────────────────────────────
