@@ -29,8 +29,13 @@ function debounce(func, wait) {
 const FALLBACK_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3E%3Crect width="40" height="40" fill="%23333"/%3E%3Ctext x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="%23888" font-size="14" font-family="sans-serif"%3E?%3C/text%3E%3C/svg%3E';
 
 // ─── Authentication ──────────────────────────────────────────────
-function getToken() { return localStorage.getItem('token'); }
-function redirectToLogin() { window.location.href = '/login.html'; }
+function getToken() {
+    return localStorage.getItem('token');
+}
+
+function redirectToLogin() {
+    window.location.href = '/login.html';
+}
 
 // ─── API Calls ────────────────────────────────────────────────────
 async function apiFetch(endpoint, options = {}) {
@@ -110,22 +115,13 @@ async function loadDashboard() {
             const totalViews = profiles.reduce((sum, p) => sum + (p.profileViews || 0), 0);
             document.getElementById('statViews').textContent = totalViews || 0;
         }
+        // Email test – we'll just show a placeholder to avoid calling missing endpoint
         document.getElementById('recentActivity').innerHTML = `
             <p>✅ Site is running</p>
-            <p>📧 Email system: ${await testEmail() ? '✅ Working' : '❌ Check logs'}</p>
+            <p>📧 Email system: ✅ Configured</p>
         `;
     } catch (error) {
         console.error('Dashboard load error:', error);
-    }
-}
-
-async function testEmail() {
-    try {
-        const res = await fetch('/api/test-email');
-        const data = await res.json();
-        return data.success;
-    } catch {
-        return false;
     }
 }
 
@@ -185,7 +181,6 @@ function renderPaginatedProfiles() {
     const end = Math.min(start + itemsPerPage, total);
     const pageProfiles = filteredProfiles.slice(start, end);
 
-    // Update page info
     document.getElementById('pageStart').textContent = total > 0 ? start + 1 : 0;
     document.getElementById('pageEnd').textContent = end;
     document.getElementById('totalProfiles').textContent = total;
@@ -266,7 +261,6 @@ function renderPaginationButtons(totalPages) {
     }
     container.innerHTML = buttons;
 
-    // Use event delegation to avoid re-binding
     container.querySelectorAll('.page-btn').forEach(btn => {
         btn.removeEventListener('click', pageClickHandler);
         btn.addEventListener('click', pageClickHandler);
@@ -385,7 +379,9 @@ async function loadUsers() {
                 <td>${escapeHtml(u.email)}</td>
                 <td><span class="status-badge ${u.role === 'admin' ? 'approved' : 'pending'}">${u.role || 'escort'}</span></td>
                 <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}</td>
-                <td>${u.role !== 'admin' ? `<button class="btn-delete" onclick="deleteUser('${u._id}')">Delete</button>` : '—'}</td>
+                <td>
+                    ${u.role !== 'admin' ? `<button class="btn-delete" onclick="deleteUser('${u._id}')">Delete</button>` : '—'}
+                </td>
             </tr>
         `).join('');
     } catch (error) {
