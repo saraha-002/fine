@@ -94,6 +94,7 @@ function switchSection(section) {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────
+// ─── Dashboard ────────────────────────────────────────────────────
 async function loadDashboard() {
     try {
         const statsRes = await apiFetch('/api/admin/stats');
@@ -112,9 +113,9 @@ async function loadDashboard() {
         const profilesRes = await apiFetch('/api/admin/profiles');
         if (profilesRes?.ok) {
             const profiles = await profilesRes.json();
+            allProfiles = profiles; // ✅ FIX: Store in global variable
             const totalViews = profiles.reduce((sum, p) => sum + (p.profileViews || 0), 0);
             document.getElementById('statViews').textContent = totalViews || 0;
-            // Also load top viewed profiles
             loadTopViewedProfiles(profiles);
         }
         document.getElementById('recentActivity').innerHTML = `
