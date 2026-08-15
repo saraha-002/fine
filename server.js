@@ -7,6 +7,7 @@ if (!global.fetch) {
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
+const fsPromises = fs.promises; // ← Add this line
 const path = require('path');
 const crypto = require('crypto');
 const { MongoClient, ObjectId } = require('mongodb');
@@ -112,8 +113,9 @@ async function migrateProfiles() {
         if (count === 0) {
             console.log('📁 Seeding profiles from profiles.json...');
             const jsonPath = path.join(__dirname, 'data', 'profiles.json');
-            if (fs.existsSync(jsonPath)) {
-                const profiles = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+            if (fs.existsSync(jsonPath)) { // Keep existsSync for checking
+                const profileData = await fsPromises.readFile(jsonPath, 'utf8');
+                const profiles = JSON.parse(profileData);
                 if (profiles.length > 0) {
                     const result = await profilesCollection.insertMany(profiles);
                     console.log(`✅ Seeded ${result.insertedCount} profiles from profiles.json`);
@@ -1207,7 +1209,26 @@ app.get('/api/test-email', async (req, res) => {
 });
 
 // ─── Serve Static Files ──────────────────────────────────────────
-app.use(express.static('.'));
+// ─── Serve Static Files with Caching ─────────────────────────────
+app.use(express.static('.', {
+    maxAge: '1d', // Cache most assets for 1 day (86400 seconds)
+    setHeaders: (res, filePath) => {
+        // For HTML files, don't cache them (so users always get fresh content)
+        if (filePath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+        // For images and fonts, cache longer (1 year)
+        if (filePath.match(/\.(png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot)$/i)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
+        }
+        // For CSS and JS, cache moderately (1 day)
+        if (filePath.match(/\.(css|js)$/i)) {
+            res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day
+        }
+    }
+}));
 // ─── Serve Pages ──────────────────────────────────────────────────
 
 // ─── Serve Pages ──────────────────────────────────────────────────
@@ -1240,6 +1261,7 @@ app.get('/payment.html', (req, res) => {
 });
 
 // ─── DYNAMIC PROFILE PAGE ──────────────────────────────────────────
+// ─── DYNAMIC PROFILE PAGE ──────────────────────────────────────────
 app.get('/profiles/:slug.html', async (req, res) => {
     try {
         const slug = req.params.slug;
@@ -1255,7 +1277,15 @@ app.get('/profiles/:slug.html', async (req, res) => {
         console.log(`✅ Found profile: ${profile.displayName}`);
 
         const templatePath = path.join(__dirname, 'templates', 'profile-template.html');
-        let template = fs.readFileSync(templatePath, 'utf8');
+
+        // ─── ASYNC FILE READ (NON-BLOCKING) ─────────────────────────
+        let template;
+        try {
+            template = await fsPromises.readFile(templatePath, 'utf8');
+        } catch (err) {
+            console.error('❌ Failed to read profile template:', err.message);
+            return res.status(500).send('Template not found');
+        }
 
         // ─── Build full context ──────────────────────────────────────
         const fullNumber = profile.fullNumber || profile.phone || '';
