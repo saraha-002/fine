@@ -114,8 +114,9 @@ async function loadDashboard() {
             const profiles = await profilesRes.json();
             const totalViews = profiles.reduce((sum, p) => sum + (p.profileViews || 0), 0);
             document.getElementById('statViews').textContent = totalViews || 0;
+            // Also load top viewed profiles
+            loadTopViewedProfiles(profiles);
         }
-        // Email test – we'll just show a placeholder to avoid calling missing endpoint
         document.getElementById('recentActivity').innerHTML = `
             <p>✅ Site is running</p>
             <p>📧 Email system: ✅ Configured</p>
@@ -125,12 +126,35 @@ async function loadDashboard() {
     }
 }
 
+// ─── Top Viewed Profiles ──────────────────────────────────────────
+function loadTopViewedProfiles(profiles) {
+    const container = document.getElementById('topViewedProfiles');
+    if (!container) return; // if element doesn't exist, skip
+
+    const top = profiles
+        .filter(p => p.isApproved)
+        .sort((a, b) => (b.profileViews || 0) - (a.profileViews || 0))
+        .slice(0, 5);
+
+    if (top.length === 0) {
+        container.innerHTML = '<p style="color:#888;">No profile views yet.</p>';
+        return;
+    }
+
+    container.innerHTML = top.map((p, i) => `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #2c2c2c;">
+            <span>${i+1}. ${escapeHtml(p.displayName || p.name)}</span>
+            <span style="color:#c7a76c; font-weight:600;">${p.profileViews || 0} views</span>
+        </div>
+    `).join('');
+}
+
 // ─── Profiles (Paginated & Sorted) ──────────────────────────────
 async function loadProfiles(filter = 'all') {
     if (isLoadingProfiles) return;
     isLoadingProfiles = true;
     const tbody = document.getElementById('profilesBody');
-    tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading profiles...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading profiles...</td></tr>';
     try {
         const res = await apiFetch('/api/admin/profiles');
         if (!res?.ok) {
@@ -149,7 +173,7 @@ async function loadProfiles(filter = 'all') {
         renderPaginatedProfiles();
     } catch (error) {
         console.error('Profiles load error:', error);
-        tbody.innerHTML = '<tr><td colspan="7" class="loading">Error loading profiles</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="loading">Error loading profiles</td></tr>';
     } finally {
         isLoadingProfiles = false;
     }
@@ -187,7 +211,7 @@ function renderPaginatedProfiles() {
     document.getElementById('profileCount').textContent = `${total} profiles`;
 
     if (pageProfiles.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading">No profiles found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="loading">No profiles found</td></tr>';
     } else {
         tbody.innerHTML = pageProfiles.map(p => renderProfileRow(p)).join('');
     }
@@ -204,6 +228,7 @@ function renderProfileRow(p) {
 
     const photo = p.photos?.[0] || p.images?.[0] || '';
     const joinedDate = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : 'N/A';
+    const views = p.profileViews || 0;
 
     return `
         <tr>
@@ -217,6 +242,7 @@ function renderProfileRow(p) {
             <td>${escapeHtml(p.email || 'N/A')}</td>
             <td>${escapeHtml(p.city || p.location || 'N/A')}</td>
             <td><span class="status-badge ${displayStatus}">${statusLabel}</span></td>
+            <td style="text-align:center;">${views}</td>
             <td>${joinedDate}</td>
             <td>
                 ${!p.isApproved && p.status !== 'rejected' ? `
@@ -490,6 +516,48 @@ document.getElementById('exportData')?.addEventListener('click', async function(
     } catch (error) {
         console.error('Export error:', error);
         alert('❌ Export failed');
+    }
+});
+
+// ─── Export Revenue CSV ────────────────────────────────────────────
+document.getElementById('exportRevenue')?.addEventListener('click', async function() {
+    try {
+        const res = await apiFetch('/api/admin/profiles');
+        if (!res?.ok) return;
+        const profiles = await res.json();
+
+        const revenueData = profiles
+            .filter(p => p.isApproved && p.subscriptionTier)
+            .map(p => ({
+                name: p.displayName || p.name,
+                plan: p.subscriptionTier,
+                amount: { standard: 1500, premium: 2500, vip: 4000 }[p.subscriptionTier] || 0,
+                expiry: p.subscriptionExpiry ? new Date(p.subscriptionExpiry).toLocaleDateString() : 'N/A',
+                status: p.subscriptionExpiry && new Date(p.subscriptionExpiry) < new Date() ? 'Expired' : 'Active'
+            }));
+
+        if (revenueData.length === 0) {
+            alert('No subscription data to export.');
+            return;
+        }
+
+        // Build CSV
+        let csv = 'Name,Plan,Amount (KES),Expiry,Status\n';
+        revenueData.forEach(r => {
+            csv += `"${r.name}","${r.plan}",${r.amount},"${r.expiry}","${r.status}"\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `revenue-${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert(`✅ Revenue data exported (${revenueData.length} subscriptions).`);
+    } catch (error) {
+        console.error('Revenue export error:', error);
+        alert('❌ Failed to export revenue.');
     }
 });
 
