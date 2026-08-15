@@ -56,9 +56,10 @@ const paymentLimiter = rateLimit({
 });
 
 // 4. Stricter limit for sensitive admin endpoints
+// ─── Admin Limiter ──────────────────────────────────────────────────
 const adminLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 50,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 300, // Allow 300 admin requests per 15 minutes (for testing/development)
     message: { message: 'Too many admin requests, please slow down.' },
     standardHeaders: true,
     legacyHeaders: false,
