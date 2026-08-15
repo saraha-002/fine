@@ -72,11 +72,31 @@
                     <div id="recentActivity"><p>Loading activity...</p></div>
                 </div>
 
-                <!-- Top Viewed Profiles (NEW) -->
+                <!-- Top Viewed Profiles (Paginated) -->
                 <div style="margin-top:25px; padding-top:20px; border-top:1px solid #2c2c2c;">
                     <h3>🔥 Top Viewed Profiles</h3>
                     <div id="topViewedProfiles" style="background:#1a1a1a; padding:15px; border-radius:8px;">
-                        <p style="color:#888;">Loading...</p>
+                        <p style="color:aliceblue;">Loading...</p>
+                    </div>
+                    <!-- Pagination Controls for Top Viewed -->
+                    <div id="topViewedPagination" style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:10px;">
+                        <div class="pagination-info">
+                            Showing <span id="topPageStart">0</span> - <span id="topPageEnd">0</span> of <span id="topTotalProfiles">0</span>
+                        </div>
+                        <div class="pagination-buttons">
+                            <button id="topPrevPage" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                            <span id="topPageNumbers"></span>
+                            <button id="topNextPage">Next <i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <div class="pagination-per-page">
+                            <label>Per page:</label>
+                            <select id="topPerPageSelect">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </section>
