@@ -20,6 +20,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── Middleware ──────────────────────────────────────────────────
+// ─── Middleware ──────────────────────────────────────────────────
+const compression = require('compression');  // ← ADD THIS LINE AT THE TOP
+
+app.use(compression());                     // ← ADD THIS LINE (AFTER BODY-PARSER)
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
