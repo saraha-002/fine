@@ -46,6 +46,7 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <!-- Header -->
             <header class="admin-header">
                 <div class="header-left">
                     <h1 id="pageTitle">Dashboard</h1>
@@ -72,7 +73,7 @@
                 </div>
             </section>
 
-            <!-- Profiles Section -->
+            <!-- Profiles Section (Enhanced) -->
             <section id="section-profiles" class="admin-section">
                 <div class="section-header">
                     <h2>Manage Profiles</h2>
@@ -84,15 +85,49 @@
                             <option value="rejected">Rejected</option>
                             <option value="expired">Expired</option>
                         </select>
-                        <input type="text" id="profileSearch" placeholder="Search by name..." />
-                        <button id="refreshProfiles"><i class="fas fa-sync"></i></button>
+                        <input type="text" id="profileSearch" placeholder="Search by name, city, or email..." />
+                        <button id="refreshProfiles" title="Refresh"><i class="fas fa-sync"></i></button>
+                        <span style="color:#888;font-size:13px;" id="profileCount">0 profiles</span>
                     </div>
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive" id="profilesTable">
                     <table>
-                        <thead><tr><th>Name</th><th>Email</th><th>City</th><th>Status</th><th>Expiry</th><th>Actions</th></tr></thead>
-                        <tbody id="profilesBody"><tr><td colspan="6" class="loading">Loading profiles...</td></tr></tbody>
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">Photo</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>City</th>
+                                <th>Status</th>
+                                <th style="width:100px;">Joined</th>
+                                <th style="width:120px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="profilesBody">
+                            <tr><td colspan="7" class="loading">Loading profiles...</td></tr>
+                        </tbody>
                     </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container" id="paginationContainer">
+                    <div class="pagination-info">
+                        Showing <span id="pageStart">0</span> - <span id="pageEnd">0</span> of <span id="totalProfiles">0</span> profiles
+                    </div>
+                    <div class="pagination-buttons">
+                        <button id="prevPage" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                        <span id="pageNumbers"></span>
+                        <button id="nextPage">Next <i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="pagination-per-page">
+                        <label>Per page:</label>
+                        <select id="perPageSelect">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
                 </div>
             </section>
 

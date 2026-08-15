@@ -4,6 +4,12 @@ const API_BASE = window.location.origin; // Use current domain dynamically
 let currentSection = 'dashboard';
 let allProfiles = [];
 
+// ─── Pagination Variables ──────────────────────────────────────
+let currentPage = 1;
+let itemsPerPage = 20;
+let filteredProfiles = [];
+let currentFilter = 'all';
+
 // ─── Authentication ──────────────────────────────────────────────
 function getToken() {
     return localStorage.getItem('token');
@@ -120,10 +126,10 @@ async function testEmail() {
     }
 }
 
-// ─── Profiles ─────────────────────────────────────────────────────
+// ─── Profiles (Paginated & Sorted) ──────────────────────────────
 async function loadProfiles(filter = 'all') {
     const tbody = document.getElementById('profilesBody');
-    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading profiles...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading profiles...</td></tr>';
 
     try {
         const res = await apiFetch('/api/admin/profiles');
@@ -131,55 +137,190 @@ async function loadProfiles(filter = 'all') {
 
         allProfiles = await res.json();
 
-        let filtered = [...allProfiles];
-        if (filter === 'pending') filtered = filtered.filter(p => !p.isApproved && p.status !== 'rejected');
-        else if (filter === 'approved') filtered = filtered.filter(p => p.isApproved);
-        else if (filter === 'rejected') filtered = filtered.filter(p => p.status === 'rejected');
-        else if (filter === 'expired') {
-            const now = new Date();
-            filtered = filtered.filter(p => p.isApproved && p.subscriptionExpiry && new Date(p.subscriptionExpiry) < now);
-        }
+        // Sort by createdAt (newest first)
+        allProfiles.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a._id?.timestamp || 0);
+            const dateB = new Date(b.createdAt || b._id?.timestamp || 0);
+            return dateB - dateA;
+        });
 
-        renderProfiles(filtered);
+        // Apply filter
+        filteredProfiles = applyFilter(allProfiles, filter);
+        currentFilter = filter;
+
+        // Reset to first page
+        currentPage = 1;
+        renderPaginatedProfiles();
     } catch (error) {
         console.error('Profiles load error:', error);
-        tbody.innerHTML = '<tr><td colspan="6" class="loading">Error loading profiles</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">Error loading profiles</td></tr>';
     }
 }
 
-function renderProfiles(profiles) {
+function applyFilter(profiles, filter) {
+    if (filter === 'pending') return profiles.filter(p => !p.isApproved && p.status !== 'rejected');
+    if (filter === 'approved') return profiles.filter(p => p.isApproved);
+    if (filter === 'rejected') return profiles.filter(p => p.status === 'rejected');
+    if (filter === 'expired') {
+        const now = new Date();
+        return profiles.filter(p => p.isApproved && p.subscriptionExpiry && new Date(p.subscriptionExpiry) < now);
+    }
+    return profiles;
+}
+
+function renderPaginatedProfiles() {
     const tbody = document.getElementById('profilesBody');
+    const total = filteredProfiles.length;
+    const totalPages = Math.ceil(total / itemsPerPage) || 1;
 
-    if (profiles.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="loading">No profiles found</td></tr>';
-        return;
+    // Ensure current page is valid
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = Math.min(start + itemsPerPage, total);
+    const pageProfiles = filteredProfiles.slice(start, end);
+
+    // Update page info
+    const startDisplay = total > 0 ? start + 1 : 0;
+    document.getElementById('pageStart').textContent = startDisplay;
+    document.getElementById('pageEnd').textContent = end;
+    document.getElementById('totalProfiles').textContent = total;
+    document.getElementById('profileCount').textContent = `${total} profiles`;
+
+    // Render table rows
+    if (pageProfiles.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">No profiles found</td></tr>';
+    } else {
+        tbody.innerHTML = pageProfiles.map(p => renderProfileRow(p)).join('');
     }
 
-    tbody.innerHTML = profiles.map(p => {
-        const status = p.isApproved ? 'approved' : (p.status === 'rejected' ? 'rejected' : 'pending');
-        const expiry = p.subscriptionExpiry ? new Date(p.subscriptionExpiry).toLocaleDateString() : 'N/A';
-        const isExpired = p.subscriptionExpiry && new Date(p.subscriptionExpiry) < new Date();
-
-        return `
-            <tr>
-                <td><strong>${escapeHtml(p.displayName || p.name)}</strong></td>
-                <td>${escapeHtml(p.email || 'N/A')}</td>
-                <td>${escapeHtml(p.city || p.location || 'N/A')}</td>
-                <td><span class="status-badge ${isExpired ? 'expired' : status}">${isExpired ? 'Expired' : status}</span></td>
-                <td>${isExpired ? '⚠️ Expired' : expiry}</td>
-                <td>
-                    ${!p.isApproved && p.status !== 'rejected' ? `
-                        <button class="btn-approve" onclick="approveProfile('${p.slug}')">Approve</button>
-                        <button class="btn-reject" onclick="rejectProfile('${p.slug}')">Reject</button>
-                    ` : ''}
-                    ${p.isApproved ? `
-                        <button class="btn-delete" onclick="deleteProfile('${p.slug}')">Delete</button>
-                    ` : ''}
-                </td>
-            </tr>
-        `;
-    }).join('');
+    // Render pagination buttons
+    renderPaginationButtons(totalPages);
 }
+
+function renderProfileRow(p) {
+    const status = p.isApproved ? 'approved' : (p.status === 'rejected' ? 'rejected' : 'pending');
+    const isExpired = p.subscriptionExpiry && new Date(p.subscriptionExpiry) < new Date();
+    const displayStatus = isExpired ? 'expired' : status;
+    const statusLabel = isExpired ? 'Expired' : status;
+
+    const photo = p.photos?.[0] || p.images?.[0] || '';
+    const joinedDate = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : 'N/A';
+
+    return `
+        <tr>
+            <td>
+                <img src="${photo}" alt="${escapeHtml(p.displayName || p.name)}" 
+                     style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #2c2c2c;"
+                     onerror="this.src='https://via.placeholder.com/40/333/888?text=?'">
+            </td>
+            <td><strong>${escapeHtml(p.displayName || p.name)}</strong></td>
+            <td>${escapeHtml(p.email || 'N/A')}</td>
+            <td>${escapeHtml(p.city || p.location || 'N/A')}</td>
+            <td><span class="status-badge ${displayStatus}">${statusLabel}</span></td>
+            <td>${joinedDate}</td>
+            <td>
+                ${!p.isApproved && p.status !== 'rejected' ? `
+                    <button class="btn-approve" onclick="approveProfile('${p.slug}')">Approve</button>
+                    <button class="btn-reject" onclick="rejectProfile('${p.slug}')">Reject</button>
+                ` : ''}
+                ${p.isApproved ? `
+                    <button class="btn-delete" onclick="deleteProfile('${p.slug}')">Delete</button>
+                ` : ''}
+            </td>
+        </tr>
+    `;
+}
+
+function renderPaginationButtons(totalPages) {
+    const container = document.getElementById('pageNumbers');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    if (!container) return; // Pagination container not found
+
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+
+    let buttons = '';
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        buttons += `<button class="page-btn" data-page="1">1</button>`;
+        if (startPage > 2) buttons += `<span class="page-ellipsis">…</span>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        buttons += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) buttons += `<span class="page-ellipsis">…</span>`;
+        buttons += `<button class="page-btn" data-page="${totalPages}">${totalPages}</button>`;
+    }
+
+    container.innerHTML = buttons;
+
+    // Add click listeners to page buttons
+    container.querySelectorAll('.page-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentPage = parseInt(btn.dataset.page);
+            renderPaginatedProfiles();
+        });
+    });
+}
+
+// ─── Pagination Controls ──────────────────────────────────────────
+document.getElementById('prevPage')?.addEventListener('click', () => {
+    if (currentPage > 1) {
+        currentPage--;
+        renderPaginatedProfiles();
+    }
+});
+
+document.getElementById('nextPage')?.addEventListener('click', () => {
+    const totalPages = Math.ceil(filteredProfiles.length / itemsPerPage) || 1;
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderPaginatedProfiles();
+    }
+});
+
+document.getElementById('perPageSelect')?.addEventListener('change', function() {
+    itemsPerPage = parseInt(this.value);
+    currentPage = 1;
+    renderPaginatedProfiles();
+});
+
+// ─── Profile Filter & Search ──────────────────────────────────────
+document.getElementById('profileFilter')?.addEventListener('change', function() {
+    loadProfiles(this.value);
+});
+
+document.getElementById('profileSearch')?.addEventListener('input', function() {
+    const query = this.value.toLowerCase().trim();
+    if (!query) {
+        filteredProfiles = applyFilter(allProfiles, currentFilter);
+    } else {
+        filteredProfiles = applyFilter(allProfiles, currentFilter).filter(p => 
+            (p.displayName || p.name || '').toLowerCase().includes(query) ||
+            (p.city || p.location || '').toLowerCase().includes(query) ||
+            (p.email || '').toLowerCase().includes(query)
+        );
+    }
+    currentPage = 1;
+    renderPaginatedProfiles();
+});
+
+document.getElementById('refreshProfiles')?.addEventListener('click', function() {
+    loadProfiles(document.getElementById('profileFilter').value);
+});
 
 // ─── Profile Actions ─────────────────────────────────────────────
 window.approveProfile = async function(slug) {
@@ -346,23 +487,6 @@ document.getElementById('sendBulkEmail')?.addEventListener('click', async functi
 
     this.disabled = false;
     this.innerHTML = '<i class="fas fa-paper-plane"></i> Send Bulk Email';
-});
-
-// ─── Profile Filter & Search ──────────────────────────────────────
-document.getElementById('profileFilter')?.addEventListener('change', function() {
-    loadProfiles(this.value);
-});
-
-document.getElementById('profileSearch')?.addEventListener('input', function() {
-    const query = this.value.toLowerCase();
-    const filtered = allProfiles.filter(p => 
-        (p.displayName || p.name || '').toLowerCase().includes(query)
-    );
-    renderProfiles(filtered);
-});
-
-document.getElementById('refreshProfiles')?.addEventListener('click', function() {
-    loadProfiles(document.getElementById('profileFilter').value);
 });
 
 // ─── Export Data ────────────────────────────────────────────────────
