@@ -94,7 +94,6 @@ function switchSection(section) {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────
-// ─── Dashboard ────────────────────────────────────────────────────
 async function loadDashboard() {
     try {
         const statsRes = await apiFetch('/api/admin/stats');
@@ -113,7 +112,7 @@ async function loadDashboard() {
         const profilesRes = await apiFetch('/api/admin/profiles');
         if (profilesRes?.ok) {
             const profiles = await profilesRes.json();
-            allProfiles = profiles; // ✅ FIX: Store in global variable
+            allProfiles = profiles;
             const totalViews = profiles.reduce((sum, p) => sum + (p.profileViews || 0), 0);
             document.getElementById('statViews').textContent = totalViews || 0;
             loadTopViewedProfiles(profiles);
@@ -132,12 +131,10 @@ function loadTopViewedProfiles(profiles) {
     const container = document.getElementById('topViewedProfiles');
     if (!container) return;
 
-    // Sort by views (highest first)
     const sorted = profiles
         .filter(p => p.isApproved)
         .sort((a, b) => (b.profileViews || 0) - (a.profileViews || 0));
 
-    // Pagination for top viewed
     const total = sorted.length;
     const perPage = parseInt(document.getElementById('topPerPageSelect')?.value) || 10;
     const totalPages = Math.ceil(total / perPage) || 1;
@@ -148,12 +145,10 @@ function loadTopViewedProfiles(profiles) {
     const end = Math.min(start + perPage, total);
     const pageItems = sorted.slice(start, end);
 
-    // Update pagination info
     document.getElementById('topPageStart').textContent = total > 0 ? start + 1 : 0;
     document.getElementById('topPageEnd').textContent = end;
     document.getElementById('topTotalProfiles').textContent = total;
 
-    // Render the list
     if (pageItems.length === 0) {
         container.innerHTML = '<p style="color:#888;">No profile views yet.</p>';
     } else {
@@ -165,7 +160,6 @@ function loadTopViewedProfiles(profiles) {
         `).join('');
     }
 
-    // Update pagination buttons
     renderTopPaginationButtons(totalPages);
 }
 
@@ -272,6 +266,7 @@ function renderProfileRow(p) {
                 ${p.isApproved ? `
                     <button class="btn-delete" onclick="deleteProfile('${p.slug}')">Delete</button>
                 ` : ''}
+                <button class="btn-edit" onclick="openEditModal('${p.slug}')">Edit</button>
             </td>
         </tr>
     `;
@@ -478,6 +473,109 @@ window.deleteProfile = async function(slug) {
     }
 };
 
+// ─── Edit Profile Modal ──────────────────────────────────────────
+function openEditModal(slug) {
+    const profile = allProfiles.find(p => p.slug === slug);
+    if (!profile) {
+        alert('Profile not found.');
+        return;
+    }
+
+    // Populate form fields
+    document.getElementById('editProfileSlug').value = profile.slug;
+    document.getElementById('editDisplayName').value = profile.displayName || profile.name || '';
+    document.getElementById('editAge').value = profile.age || '';
+    document.getElementById('editLocation').value = profile.city || profile.location || 'Kitengela';
+    document.getElementById('editEthnicity').value = profile.ethnicity || '';
+    document.getElementById('editDescription').value = profile.description || '';
+    document.getElementById('editPhone').value = profile.phone || '';
+
+    // Services: select matching options
+    const servicesSelect = document.getElementById('editServices');
+    const profileServices = profile.services || [];
+    Array.from(servicesSelect.options).forEach(opt => {
+        opt.selected = profileServices.includes(opt.value);
+    });
+
+    document.getElementById('editSubscriptionTier').value = profile.subscriptionTier || 'free';
+    if (profile.subscriptionExpiry) {
+        const date = new Date(profile.subscriptionExpiry);
+        document.getElementById('editSubscriptionExpiry').value = date.toISOString().split('T')[0];
+    } else {
+        document.getElementById('editSubscriptionExpiry').value = '';
+    }
+    document.getElementById('editIsApproved').value = profile.isApproved ? 'true' : 'false';
+
+    document.getElementById('editProfileResult').textContent = '';
+    document.getElementById('editProfileModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editProfileModal').style.display = 'none';
+}
+
+document.getElementById('editProfileForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const slug = document.getElementById('editProfileSlug').value;
+    const data = {
+        displayName: document.getElementById('editDisplayName').value.trim(),
+        age: parseInt(document.getElementById('editAge').value),
+        location: document.getElementById('editLocation').value,
+        ethnicity: document.getElementById('editEthnicity').value.trim(),
+        description: document.getElementById('editDescription').value.trim(),
+        phone: document.getElementById('editPhone').value.trim(),
+        services: Array.from(document.getElementById('editServices').selectedOptions).map(opt => opt.value),
+        subscriptionTier: document.getElementById('editSubscriptionTier').value,
+        isApproved: document.getElementById('editIsApproved').value === 'true',
+    };
+
+    // Add expiry if provided
+    const expiry = document.getElementById('editSubscriptionExpiry').value;
+    if (expiry) {
+        data.subscriptionExpiry = new Date(expiry).toISOString();
+    } else {
+        data.subscriptionExpiry = null;
+    }
+
+    const resultDiv = document.getElementById('editProfileResult');
+    resultDiv.textContent = 'Updating...';
+    resultDiv.style.color = '#c7a76c';
+
+    try {
+        const res = await apiFetch(`/api/admin/profiles/${slug}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+
+        if (!res?.ok) {
+            const err = await res.json();
+            resultDiv.textContent = '❌ ' + (err.message || 'Update failed');
+            resultDiv.style.color = '#ff6b6b';
+            return;
+        }
+
+        const result = await res.json();
+        resultDiv.textContent = '✅ Profile updated successfully!';
+        resultDiv.style.color = '#4CAF50';
+
+        // Refresh profiles list
+        loadProfiles(document.getElementById('profileFilter').value);
+        // Also refresh dashboard stats
+        loadDashboard();
+
+        // Close modal after 1.5 seconds
+        setTimeout(closeEditModal, 1500);
+    } catch (error) {
+        resultDiv.textContent = '❌ Error: ' + error.message;
+        resultDiv.style.color = '#ff6b6b';
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('editProfileModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+
 // ─── Users ────────────────────────────────────────────────────────
 async function loadUsers() {
     const tbody = document.getElementById('usersBody');
@@ -627,7 +725,6 @@ document.getElementById('exportRevenue')?.addEventListener('click', async functi
             return;
         }
 
-        // Build CSV
         let csv = 'Name,Plan,Amount (KES),Expiry,Status\n';
         revenueData.forEach(r => {
             csv += `"${r.name}","${r.plan}",${r.amount},"${r.expiry}","${r.status}"\n`;

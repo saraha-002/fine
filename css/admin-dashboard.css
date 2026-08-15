@@ -567,3 +567,95 @@ table tr:hover {
     padding: 4px 8px;
     cursor: pointer;
 }
+/* ─── Modal Overlay ────────────────────────────────────────────── */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid #2c2c2c;
+}
+
+.modal h2 {
+    color: #c7a76c;
+    margin-bottom: 20px;
+}
+
+.modal .form-group {
+    margin-bottom: 15px;
+}
+
+.modal .form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #eaeaea;
+}
+
+.modal .form-group input,
+.modal .form-group select,
+.modal .form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #2c2c2c;
+    border-radius: 6px;
+    background: #0d0d0d;
+    color: #eaeaea;
+    font-family: inherit;
+}
+
+.modal .form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.modal .btn-primary {
+    background: #c7a76c;
+    color: #0d0d0d;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.modal .btn-secondary {
+    background: #2a2a2a;
+    color: #a0a0a0;
+    border: 1px solid #444;
+    padding: 10px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.modal .btn-primary:hover { background: #dbb87a; }
+.modal .btn-secondary:hover { background: #3a3a3a; }
+
+.btn-edit {
+    background: #2196F3;
+    color: #0d0d0d;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn-edit:hover { background: #1976D2; }

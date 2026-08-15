@@ -56,6 +56,96 @@
     .duration-btn { padding: 8px 20px; border: 2px solid #2c2c2c; border-radius: 8px; background: #1a1a1a; cursor: pointer; font-weight: 600; transition: all 0.3s; color: #a0a0a0; }
     .duration-btn.active { border-color: #c7a76c; background: #2a2a2a; color: #c7a76c; }
     .duration-btn:hover { border-color: #c7a76c; }
+
+    /* ─── Danger Zone ────────────────────────────────────────────── */
+    .danger-zone {
+      background: #2a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #ff6b6b;
+      margin-top: 30px;
+    }
+    .danger-zone h4 {
+      color: #ff6b6b;
+      margin-top: 0;
+    }
+    .danger-zone p {
+      color: #a0a0a0;
+    }
+    .btn-danger {
+      background: #ff6b6b;
+      color: #0d0d0d;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    .btn-danger:hover {
+      background: #e05555;
+    }
+
+    /* ─── Delete Modal ───────────────────────────────────────────── */
+    .delete-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .delete-modal-overlay.active {
+      display: flex;
+    }
+    .delete-modal {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 450px;
+      width: 100%;
+      border: 1px solid #2c2c2c;
+    }
+    .delete-modal h2 {
+      color: #ff6b6b;
+      margin-top: 0;
+    }
+    .delete-modal .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .delete-modal .modal-actions button {
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      border: none;
+      transition: background 0.3s;
+    }
+    .delete-modal .modal-actions .btn-cancel {
+      background: #2a2a2a;
+      color: #a0a0a0;
+    }
+    .delete-modal .modal-actions .btn-cancel:hover {
+      background: #3a3a3a;
+    }
+    .delete-modal .modal-actions .btn-confirm-delete {
+      background: #ff6b6b;
+      color: #0d0d0d;
+    }
+    .delete-modal .modal-actions .btn-confirm-delete:hover {
+      background: #e05555;
+    }
+    .delete-modal #deleteResult {
+      margin-top: 15px;
+    }
+
     @media (max-width: 700px) { .sub-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 450px) { .sub-grid { grid-template-columns: 1fr; } }
   </style>
@@ -97,22 +187,30 @@
         <div class="form-group"><label>Ethnicity</label><input type="text" id="editEthnicity"></div>
         <div class="form-group"><label>Description</label><textarea id="editDescription" required></textarea></div>
         
-      <div class="form-group">
-    <label for="editServices">Services Offered</label>
-    <select id="editServices" multiple style="height: 120px; width: 100%; padding: 12px; border: 1px solid #2c2c2c; border-radius: 8px; font-size: 16px; background: #1a1a1a; color: #eaeaea;">
-        <option value="Escorts">Escorts</option>
-        <option value="Affairs">Affairs</option>
-        <option value="Intimate Companionship">Intimate Companionship</option>
-        <option value="Luxury Erotic Massage">Luxury Erotic Massage</option>
-        <option value="Sensual Bodywork">Sensual Bodywork</option>
-        <option value="Private Sessions">Private Sessions</option>
-    </select>
-    <small style="color: #888;">Hold Ctrl (or Cmd) to select multiple</small>
-</div>
+        <div class="form-group">
+          <label for="editServices">Services Offered</label>
+          <select id="editServices" multiple style="height: 120px; width: 100%; padding: 12px; border: 1px solid #2c2c2c; border-radius: 8px; font-size: 16px; background: #1a1a1a; color: #eaeaea;">
+            <option value="Escorts">Escorts</option>
+            <option value="Affairs">Affairs</option>
+            <option value="Intimate Companionship">Intimate Companionship</option>
+            <option value="Luxury Erotic Massage">Luxury Erotic Massage</option>
+            <option value="Sensual Bodywork">Sensual Bodywork</option>
+            <option value="Private Sessions">Private Sessions</option>
+          </select>
+          <small style="color: #888;">Hold Ctrl (or Cmd) to select multiple</small>
+        </div>
         <div class="form-group"><label>Phone</label><input type="tel" id="editPhone" required></div>
         <button type="submit" class="btn-save">Save Changes</button>
       </form>
 
+      <!-- ─── Danger Zone ────────────────────────────────────────── -->
+      <div class="danger-zone">
+        <h4><i class="fas fa-exclamation-triangle"></i> Danger Zone</h4>
+        <p>Permanently delete your profile and all associated data. This action cannot be undone.</p>
+        <button type="button" class="btn-danger" onclick="confirmDeleteProfile()">
+          <i class="fas fa-trash"></i> Delete My Profile
+        </button>
+      </div>
     </div>
 
     <div class="tab" id="tab-photos">
@@ -136,6 +234,20 @@
       </div>
     </div>
   </main>
+
+  <!-- ─── Delete Profile Modal ──────────────────────────────────── -->
+  <div class="delete-modal-overlay" id="deleteModal">
+    <div class="delete-modal">
+      <h2><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h2>
+      <p>Are you sure you want to delete your profile? This will remove your listing, photos, and all data from the site.</p>
+      <p style="font-weight:600;">This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn-confirm-delete" id="confirmDeleteBtn">Yes, Delete My Profile</button>
+      </div>
+      <div id="deleteResult"></div>
+    </div>
+  </div>
 
   <footer style="background: #1a1a1a; border-top: 1px solid #2c2c2c; padding: 20px 0; text-align: center; color: #555; font-size: 13px;">
     <p>&copy; 2026 FineEscorts Kenya. All rights reserved.</p>
@@ -472,6 +584,55 @@
       window.location.href = `/payment.html?package=${tier}&duration=${selectedDuration}&email=${encodeURIComponent(email)}`;
     }
 
+    // ─── DELETE PROFILE ────────────────────────────────────────────
+    function confirmDeleteProfile() {
+      document.getElementById('deleteModal').classList.add('active');
+      document.getElementById('deleteResult').textContent = '';
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').classList.remove('active');
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+      const resultDiv = document.getElementById('deleteResult');
+      resultDiv.textContent = 'Deleting...';
+      resultDiv.style.color = '#ff9800';
+
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/profiles/me`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          resultDiv.textContent = '❌ ' + (data.message || 'Failed to delete profile.');
+          resultDiv.style.color = '#ff6b6b';
+          return;
+        }
+
+        resultDiv.textContent = '✅ ' + data.message;
+        resultDiv.style.color = '#4CAF50';
+
+        // Redirect after a moment
+        setTimeout(() => {
+          window.location.href = '/dashboard.html?deleted=true';
+        }, 2000);
+      } catch (err) {
+        resultDiv.textContent = '❌ Network error: ' + err.message;
+        resultDiv.style.color = '#ff6b6b';
+      }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+      if (e.target === this) closeDeleteModal();
+    });
+
     // ─── UTILITY ────────────────────────────────────────────────────
     function escapeHtml(str) { if (!str) return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
@@ -489,6 +650,8 @@
     window.setDuration = setDuration; 
     window.selectSubscription = selectSubscription;
     window.dismissOnboarding = dismissOnboarding;
+    window.confirmDeleteProfile = confirmDeleteProfile;
+    window.closeDeleteModal = closeDeleteModal;
   </script>
 </body>
 </html>

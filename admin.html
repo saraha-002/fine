@@ -238,7 +238,93 @@
             </section>
         </main>
     </div>
+<!-- Edit Profile Modal -->
+<div id="editProfileModal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+        <h2><i class="fas fa-user-edit"></i> Edit Profile</h2>
+        <form id="editProfileForm">
+            <input type="hidden" id="editProfileSlug" />
 
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" id="editDisplayName" required />
+            </div>
+
+            <div class="form-group">
+                <label>Age</label>
+                <input type="number" id="editAge" min="18" max="99" required />
+            </div>
+
+            <div class="form-group">
+                <label>Location</label>
+                <select id="editLocation">
+                    <option value="Kitengela">Kitengela</option>
+                    <option value="Syokimau">Syokimau</option>
+                    <option value="Mlolongo">Mlolongo</option>
+                    <option value="Athiriver">Athiriver</option>
+                    <option value="Imara Daima">Imara Daima</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Ethnicity</label>
+                <input type="text" id="editEthnicity" />
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="editDescription" rows="4"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="tel" id="editPhone" required />
+            </div>
+
+            <div class="form-group">
+                <label>Services Offered</label>
+                <select id="editServices" multiple style="height:120px;">
+                    <option value="Escorts">Escorts</option>
+                    <option value="Affairs">Affairs</option>
+                    <option value="Intimate Companionship">Intimate Companionship</option>
+                    <option value="Luxury Erotic Massage">Luxury Erotic Massage</option>
+                    <option value="Sensual Bodywork">Sensual Bodywork</option>
+                    <option value="Private Sessions">Private Sessions</option>
+                </select>
+                <small>Hold Ctrl/Cmd to select multiple</small>
+            </div>
+
+            <div class="form-group">
+                <label>Subscription Tier</label>
+                <select id="editSubscriptionTier">
+                    <option value="free">Free</option>
+                    <option value="standard">Standard</option>
+                    <option value="premium">Premium</option>
+                    <option value="vip">VIP</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Subscription Expiry</label>
+                <input type="date" id="editSubscriptionExpiry" />
+            </div>
+
+            <div class="form-group">
+                <label>Approved Status</label>
+                <select id="editIsApproved">
+                    <option value="true">Approved</option>
+                    <option value="false">Pending / Not Approved</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Update Profile</button>
+                <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </form>
+        <div id="editProfileResult"></div>
+    </div>
+</div>
     <script src="js/admin-dashboard.js"></script>
 </body>
 </html>

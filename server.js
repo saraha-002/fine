@@ -15,7 +15,7 @@ const bcrypt = require('bcrypt');
 // ─── Load Environment Variables ──────────────────────────────────
 require('dotenv').config();
 // ─── Email Service ──────────────────────────────────────────────
-const { sendWelcomeEmail, sendApprovalEmail, sendPaymentConfirmation, sendSubscriptionExpiredEmail, sendEmail } = require('./utils/emailService');
+const { sendWelcomeEmail, sendApprovalEmail, sendPaymentConfirmation, sendSubscriptionExpiredEmail, sendEmail, sendAdminNewSignupNotification } = require('./utils/emailService');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -60,6 +60,36 @@ async function connectDB() {
             await db.createCollection('reviews');
             console.log('📁 Created "reviews" collection');
         }
+
+        // ─── 👇 ADD DATABASE INDEXES HERE ──────────────────────────
+        try {
+            const profilesCol = db.collection('profiles');
+            
+            // Create indexes for faster queries
+            await profilesCol.createIndex({ slug: 1 });
+            console.log('✅ Index created: slug');
+            
+            await profilesCol.createIndex({ isApproved: 1 });
+            console.log('✅ Index created: isApproved');
+            
+            await profilesCol.createIndex({ city: 1 });
+            console.log('✅ Index created: city');
+            
+            await profilesCol.createIndex({ createdAt: -1 });
+            console.log('✅ Index created: createdAt (descending)');
+            
+            await profilesCol.createIndex({ userId: 1 });
+            console.log('✅ Index created: userId');
+            
+            // Optional: Compound index for common queries
+            await profilesCol.createIndex({ isApproved: 1, createdAt: -1 });
+            console.log('✅ Index created: isApproved + createdAt (compound)');
+            
+        } catch (indexErr) {
+            // Indexes might already exist, which is fine
+            console.log('ℹ️ Indexes may already exist:', indexErr.message);
+        }
+        // ─── 👆 END OF INDEXES ──────────────────────────────────────
 
         await migrateProfiles();
         return true;
@@ -531,7 +561,119 @@ app.post('/api/auth/login', async (req, res) => {
         subscription: subStatus
     });
 });
+// ─── Forgot Password ──────────────────────────────────────────────
+// ─── Forgot Password ──────────────────────────────────────────────
+app.post('/api/auth/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
 
+    const user = await findUserByEmail(email);
+    if (!user) {
+        return res.status(200).json({ message: 'If that email is registered, you will receive a reset link.' });
+    }
+
+    // ─── 👇 GENERATE AND STORE TOKEN HERE ──────────────────────────
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000); // 1 hour
+
+    const usersCol = getCollection('users');
+    if (usersCol) {
+        await usersCol.updateOne(
+            { _id: user._id },
+            {
+                $set: {
+                    resetPasswordToken: token,        // ← NEW FIELD
+                    resetPasswordExpires: expires     // ← NEW FIELD
+                }
+            }
+        );
+    } else {
+        // File-based fallback
+        const users = readJSON('users.json', {});
+        if (users[user.id]) {
+            users[user.id].resetPasswordToken = token;
+            users[user.id].resetPasswordExpires = expires;
+            writeJSON('users.json', users);
+        }
+    }
+
+    // ─── SEND EMAIL ────────────────────────────────────────────────
+    const resetLink = `https://fineescorts.co.ke/reset-password.html?token=${token}`;
+    try {
+        await sendEmail(
+            email,
+            'Reset Your Password – FineEscorts Kenya',
+            'reset-password',
+            { resetLink }
+        );
+        console.log('✅ Reset email sent to', email);
+    } catch (err) {
+        console.error('❌ Reset email failed:', err.message);
+    }
+
+    res.status(200).json({ message: 'If that email is registered, you will receive a reset link.' });
+});
+
+// ─── Verify Reset Token (optional) ──────────────────────────────
+app.get('/api/auth/reset-password/:token', async (req, res) => {
+    const { token } = req.params;
+    const usersCol = getCollection('users');
+    if (!usersCol) {
+        return res.status(500).json({ message: 'Database error' });
+    }
+
+    const user = await usersCol.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+        return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    res.json({ valid: true, email: user.email });
+});
+
+// ─── Reset Password ──────────────────────────────────────────────
+app.post('/api/auth/reset-password', async (req, res) => {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+        return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    const usersCol = getCollection('users');
+    if (!usersCol) {
+        return res.status(500).json({ message: 'Database error' });
+    }
+
+    const user = await usersCol.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+        return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user's password and remove reset fields
+    await usersCol.updateOne(
+        { _id: user._id },
+        {
+            $set: { password: hashedPassword },
+            $unset: { resetPasswordToken: '', resetPasswordExpires: '' }
+        }
+    );
+
+    // Optionally send confirmation email
+    // await sendEmail(user.email, 'Password Reset Successful', 'password-reset-confirm', { name: user.email });
+
+    res.json({ message: 'Password reset successfully. You can now log in with your new password.' });
+});
 // ─── Profile Routes ──────────────────────────────────────────────
 app.get('/api/profiles/me', authenticate, async (req, res) => {
     const profile = await findProfileByUserId(req.userId);
@@ -541,6 +683,10 @@ app.get('/api/profiles/me', authenticate, async (req, res) => {
     res.json(profile);
 });
 
+// ─── Also add this import at the top of server.js (if not already):
+// const { sendWelcomeEmail, sendApprovalEmail, sendPaymentConfirmation, sendSubscriptionExpiredEmail, sendEmail, sendAdminNewSignupNotification } = require('./utils/emailService');
+
+// ─── Then the route:
 app.post('/api/profiles', authenticate, async (req, res) => {
     const { displayName, age, location, ethnicity, description, services, phone } = req.body;
     if (!displayName || !age || !location || !description || !phone) {
@@ -573,6 +719,22 @@ app.post('/api/profiles', authenticate, async (req, res) => {
         verified: false
     };
     const saved = await saveProfile(newProfile);
+
+    // ─── Send admin notification ──────────────────────────────────
+    try {
+        const user = await findUserById(req.userId);
+        if (user && user.email) {
+            // Attach email to saved profile for the template
+            saved.email = user.email;
+            await sendAdminNewSignupNotification(saved);
+            console.log('✅ Admin notification sent for new signup:', user.email);
+        } else {
+            console.log('⚠️ User email not found for admin notification');
+        }
+    } catch (err) {
+        console.error('❌ Admin notification failed:', err.message);
+    }
+
     res.status(201).json({
         message: 'Profile created successfully. Awaiting admin approval.',
         profile: saved
@@ -610,6 +772,47 @@ app.put('/api/profiles/me', authenticate, async (req, res) => {
             error: error.message
         });
     }
+});
+
+// ─── DELETE PROFILE (Escort) ──────────────────────────────────────
+app.delete('/api/profiles/me', authenticate, async (req, res) => {
+    const profile = await findProfileByUserId(req.userId);
+    if (!profile) {
+        return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    // ─── Hard delete the profile ──────────────────────────────────
+    const profilesCol = getCollection('profiles');
+    if (profilesCol) {
+        const result = await profilesCol.deleteOne({ userId: req.userId });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+    } else {
+        // File-based fallback
+        const profiles = readJSON('profiles.json', []);
+        const index = profiles.findIndex(p => p.userId === req.userId);
+        if (index === -1) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+        profiles.splice(index, 1);
+        writeJSON('profiles.json', profiles);
+    }
+
+    // ─── Optionally send confirmation email ──────────────────────
+    try {
+        await sendEmail(
+            req.user.email,
+            'Profile Deleted – FineEscorts Kenya',
+            'profile-deleted',
+            { name: profile.displayName }
+        );
+        console.log('✅ Profile deletion confirmation sent to', req.user.email);
+    } catch (err) {
+        console.error('❌ Deletion confirmation email failed:', err.message);
+    }
+
+    res.json({ message: 'Profile deleted successfully.' });
 });
 
 // ─── Admin Routes ──────────────────────────────────────────────────
@@ -706,6 +909,36 @@ app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
         writeJSON('profiles.json', profiles);
     }
     res.json({ message: '❌ Profile rejected and deleted successfully' });
+});
+
+// ─── UPDATE PROFILE (Admin) ──────────────────────────────────────
+app.put('/api/admin/profiles/:slug', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
+    if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+    }
+    const slug = req.params.slug;
+    const updates = req.body;
+
+    // Remove fields that shouldn't be updated via admin edit
+    delete updates._id;
+    delete updates.userId;
+    delete updates.slug;
+    delete updates.createdAt;
+    delete updates.profileViews; // Don't allow manual view count editing
+
+    // Validate some fields if needed
+    if (updates.age !== undefined && (isNaN(updates.age) || updates.age < 18)) {
+        return res.status(400).json({ message: 'Age must be a number >= 18' });
+    }
+
+    const updated = await updateProfile(slug, updates);
+    if (!updated) {
+        return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    // Optionally send email notification about profile update? Not needed for now.
+    res.json({ message: '✅ Profile updated successfully', profile: updated });
 });
 
 // ─── GET ALL USERS (Admin Only) ──────────────────────────────────

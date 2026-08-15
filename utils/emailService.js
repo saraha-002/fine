@@ -104,12 +104,31 @@ const sendAdminBulkEmail = async (email, name, subject, message) => {
   );
 };
 
+// ─── Admin Notification ──────────────────────────────────────────
+const sendAdminNewSignupNotification = async (profile) => {
+    const adminEmail = process.env.ADMIN_EMAIL || 'info@fineescorts.co.ke';
+    return await sendEmail(
+        adminEmail,
+        '🆕 New Escort Signup – Pending Approval',
+        'admin-new-signup',
+        {
+            displayName: profile.displayName || profile.name,
+            email: profile.email || 'N/A',
+            location: profile.city || profile.location || 'N/A',
+            age: profile.age || 'N/A',
+            phone: profile.phone || 'N/A',
+            services: profile.services ? profile.services.join(', ') : 'Not specified'
+        }
+    );
+};
+
 // ─── Single Export ─────────────────────────────────────────────────
 module.exports = {
   sendWelcomeEmail,
   sendApprovalEmail,
   sendPaymentConfirmation,
   sendSubscriptionExpiredEmail,
-  sendAdminBulkEmail,   // ← New for bulk admin emails
-  sendEmail,            // ← Exposed for custom emails
+  sendAdminBulkEmail,
+  sendAdminNewSignupNotification,  // ← ADDED
+  sendEmail,
 };
