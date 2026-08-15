@@ -797,4 +797,4 @@ document.addEventListener('DOMContentLoaded', function() {
 // ─── Auto-refresh every 60 seconds ──────────────────────────────
 setInterval(() => {
     if (currentSection === 'dashboard') loadDashboard();
-}, 60000);
+}, 300000);
