@@ -4,6 +4,7 @@ const API_BASE = window.location.origin;
 let currentSection = 'dashboard';
 let allProfiles = [];
 let isLoadingProfiles = false;
+let isRendering = false;
 
 // ─── Pagination Variables ──────────────────────────────────────
 let currentPage = 1;
@@ -24,14 +25,12 @@ function debounce(func, wait) {
     };
 }
 
-// ─── Authentication ──────────────────────────────────────────────
-function getToken() {
-    return localStorage.getItem('token');
-}
+// ─── Fallback Image Data URI ──────────────────────────────────────
+const FALLBACK_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3E%3Crect width="40" height="40" fill="%23333"/%3E%3Ctext x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="%23888" font-size="14" font-family="sans-serif"%3E?%3C/text%3E%3C/svg%3E';
 
-function redirectToLogin() {
-    window.location.href = '/login.html';
-}
+// ─── Authentication ──────────────────────────────────────────────
+function getToken() { return localStorage.getItem('token'); }
+function redirectToLogin() { window.location.href = '/login.html'; }
 
 // ─── API Calls ────────────────────────────────────────────────────
 async function apiFetch(endpoint, options = {}) {
@@ -40,7 +39,6 @@ async function apiFetch(endpoint, options = {}) {
         redirectToLogin();
         return;
     }
-
     const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
         headers: {
@@ -49,14 +47,12 @@ async function apiFetch(endpoint, options = {}) {
             ...options.headers,
         },
     });
-
     if (response.status === 401) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         redirectToLogin();
         return;
     }
-
     return response;
 }
 
@@ -71,13 +67,10 @@ document.querySelectorAll('.sidebar-nav a').forEach(link => {
 
 function switchSection(section) {
     currentSection = section;
-
     document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
     document.querySelector(`.sidebar-nav a[data-section="${section}"]`)?.classList.add('active');
-
     document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
     document.getElementById(`section-${section}`)?.classList.add('active');
-
     const titles = {
         dashboard: 'Dashboard',
         profiles: 'Manage Profiles',
@@ -87,7 +80,6 @@ function switchSection(section) {
         settings: 'Settings'
     };
     document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
-
     switch(section) {
         case 'dashboard': loadDashboard(); break;
         case 'profiles': loadProfiles(document.getElementById('profileFilter')?.value || 'all'); break;
@@ -107,20 +99,17 @@ async function loadDashboard() {
             document.getElementById('statApproved').textContent = stats.approved || 0;
             document.getElementById('statRejected').textContent = stats.rejected || 0;
         }
-
         const expiredRes = await apiFetch('/api/admin/expired');
         if (expiredRes?.ok) {
             const expired = await expiredRes.json();
             document.getElementById('statExpired').textContent = expired.length || 0;
         }
-
         const profilesRes = await apiFetch('/api/admin/profiles');
         if (profilesRes?.ok) {
             const profiles = await profilesRes.json();
             const totalViews = profiles.reduce((sum, p) => sum + (p.profileViews || 0), 0);
             document.getElementById('statViews').textContent = totalViews || 0;
         }
-
         document.getElementById('recentActivity').innerHTML = `
             <p>✅ Site is running</p>
             <p>📧 Email system: ${await testEmail() ? '✅ Working' : '❌ Check logs'}</p>
@@ -144,31 +133,22 @@ async function testEmail() {
 async function loadProfiles(filter = 'all') {
     if (isLoadingProfiles) return;
     isLoadingProfiles = true;
-
     const tbody = document.getElementById('profilesBody');
     tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading profiles...</td></tr>';
-
     try {
         const res = await apiFetch('/api/admin/profiles');
         if (!res?.ok) {
             isLoadingProfiles = false;
             return;
         }
-
         allProfiles = await res.json();
-
-        // Sort by createdAt (newest first)
         allProfiles.sort((a, b) => {
             const dateA = new Date(a.createdAt || a._id?.timestamp || 0);
             const dateB = new Date(b.createdAt || b._id?.timestamp || 0);
             return dateB - dateA;
         });
-
-        // Apply filter
         filteredProfiles = applyFilter(allProfiles, filter);
         currentFilter = filter;
-
-        // Reset to first page
         currentPage = 1;
         renderPaginatedProfiles();
     } catch (error) {
@@ -191,6 +171,9 @@ function applyFilter(profiles, filter) {
 }
 
 function renderPaginatedProfiles() {
+    if (isRendering) return;
+    isRendering = true;
+
     const tbody = document.getElementById('profilesBody');
     const total = filteredProfiles.length;
     const totalPages = Math.ceil(total / itemsPerPage) || 1;
@@ -202,6 +185,7 @@ function renderPaginatedProfiles() {
     const end = Math.min(start + itemsPerPage, total);
     const pageProfiles = filteredProfiles.slice(start, end);
 
+    // Update page info
     document.getElementById('pageStart').textContent = total > 0 ? start + 1 : 0;
     document.getElementById('pageEnd').textContent = end;
     document.getElementById('totalProfiles').textContent = total;
@@ -214,6 +198,7 @@ function renderPaginatedProfiles() {
     }
 
     renderPaginationButtons(totalPages);
+    isRendering = false;
 }
 
 function renderProfileRow(p) {
@@ -228,9 +213,10 @@ function renderProfileRow(p) {
     return `
         <tr>
             <td>
-                <img src="${photo}" alt="${escapeHtml(p.displayName || p.name)}" 
+                <img src="${photo || FALLBACK_IMAGE}" 
+                     alt="${escapeHtml(p.displayName || p.name)}" 
                      style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #2c2c2c;"
-                     onerror="this.src='https://via.placeholder.com/40/333/888?text=?'">
+                     onerror="this.onerror=null; this.src='${FALLBACK_IMAGE}';">
             </td>
             <td><strong>${escapeHtml(p.displayName || p.name)}</strong></td>
             <td>${escapeHtml(p.email || 'N/A')}</td>
@@ -254,7 +240,6 @@ function renderPaginationButtons(totalPages) {
     const container = document.getElementById('pageNumbers');
     const prevBtn = document.getElementById('prevPage');
     const nextBtn = document.getElementById('nextPage');
-
     if (!container) return;
 
     prevBtn.disabled = currentPage <= 1;
@@ -272,24 +257,28 @@ function renderPaginationButtons(totalPages) {
         buttons += `<button class="page-btn" data-page="1">1</button>`;
         if (startPage > 2) buttons += `<span class="page-ellipsis">…</span>`;
     }
-
     for (let i = startPage; i <= endPage; i++) {
         buttons += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
     }
-
     if (endPage < totalPages) {
         if (endPage < totalPages - 1) buttons += `<span class="page-ellipsis">…</span>`;
         buttons += `<button class="page-btn" data-page="${totalPages}">${totalPages}</button>`;
     }
-
     container.innerHTML = buttons;
 
+    // Use event delegation to avoid re-binding
     container.querySelectorAll('.page-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            currentPage = parseInt(btn.dataset.page);
-            renderPaginatedProfiles();
-        });
+        btn.removeEventListener('click', pageClickHandler);
+        btn.addEventListener('click', pageClickHandler);
     });
+}
+
+function pageClickHandler(e) {
+    const page = parseInt(e.currentTarget.dataset.page);
+    if (!isNaN(page) && page !== currentPage) {
+        currentPage = page;
+        renderPaginatedProfiles();
+    }
 }
 
 // ─── Pagination Controls ──────────────────────────────────────────
@@ -387,20 +376,16 @@ window.deleteProfile = async function(slug) {
 async function loadUsers() {
     const tbody = document.getElementById('usersBody');
     tbody.innerHTML = '<tr><td colspan="4" class="loading">Loading users...</td></tr>';
-
     try {
         const res = await apiFetch('/api/admin/users');
         if (!res?.ok) return;
-
         const users = await res.json();
         tbody.innerHTML = users.map(u => `
             <tr>
                 <td>${escapeHtml(u.email)}</td>
                 <td><span class="status-badge ${u.role === 'admin' ? 'approved' : 'pending'}">${u.role || 'escort'}</span></td>
                 <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}</td>
-                <td>
-                    ${u.role !== 'admin' ? `<button class="btn-delete" onclick="deleteUser('${u._id}')">Delete</button>` : '—'}
-                </td>
+                <td>${u.role !== 'admin' ? `<button class="btn-delete" onclick="deleteUser('${u._id}')">Delete</button>` : '—'}</td>
             </tr>
         `).join('');
     } catch (error) {
@@ -418,13 +403,10 @@ window.deleteUser = async function(userId) {
 async function loadSubscriptions() {
     const tbody = document.getElementById('subscriptionsBody');
     tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading subscriptions...</td></tr>';
-
     try {
         const profilesRes = await apiFetch('/api/admin/profiles');
         const expiredRes = await apiFetch('/api/admin/expired');
-
         if (!profilesRes?.ok || !expiredRes?.ok) return;
-
         const profiles = await profilesRes.json();
         const expired = await expiredRes.json();
 
@@ -440,13 +422,10 @@ async function loadSubscriptions() {
                     <td>${p.subscriptionTier || 'Free'}</td>
                     <td>${new Date(p.subscriptionExpiry).toLocaleDateString()}</td>
                     <td><span class="status-badge ${isExpired ? 'expired' : 'approved'}">${isExpired ? 'Expired' : 'Active'}</span></td>
-                    <td>
-                        ${isExpired ? `<button class="btn-approve" onclick="renewSubscription('${p.slug}')">Renew</button>` : '—'}
-                    </td>
+                    <td>${isExpired ? `<button class="btn-approve" onclick="renewSubscription('${p.slug}')">Renew</button>` : '—'}</td>
                 </tr>
             `;
         }).join('');
-
         if (allWithExpiry.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="loading">No subscription data available</td></tr>';
         }
@@ -477,23 +456,16 @@ document.getElementById('sendBulkEmail')?.addEventListener('click', async functi
     const subject = document.getElementById('bulkSubject').value.trim();
     const message = document.getElementById('bulkMessage').value.trim();
     const filter = document.getElementById('bulkFilter').value;
-
     if (!subject || !message) {
         document.getElementById('bulkResult').textContent = '⚠️ Please fill in both subject and message.';
         document.getElementById('bulkResult').className = 'error';
         return;
     }
-
     this.disabled = true;
     this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
     document.getElementById('bulkResult').textContent = '';
-
     try {
-        const res = await apiFetch('/api/admin/send-bulk-email', {
-            method: 'POST',
-            body: JSON.stringify({ subject, message, filter })
-        });
-
+        const res = await apiFetch('/api/admin/send-bulk-email', { method: 'POST', body: JSON.stringify({ subject, message, filter }) });
         const data = await res.json();
         document.getElementById('bulkResult').textContent = data.message || '✅ Email sent!';
         document.getElementById('bulkResult').className = res.ok ? 'success' : 'error';
@@ -501,7 +473,6 @@ document.getElementById('sendBulkEmail')?.addEventListener('click', async functi
         document.getElementById('bulkResult').textContent = '❌ Failed to send emails';
         document.getElementById('bulkResult').className = 'error';
     }
-
     this.disabled = false;
     this.innerHTML = '<i class="fas fa-paper-plane"></i> Send Bulk Email';
 });
@@ -532,7 +503,6 @@ document.getElementById('changePasswordForm')?.addEventListener('submit', async 
     const current = document.getElementById('currentPassword').value.trim();
     const newPass = document.getElementById('newPassword').value.trim();
     const confirm = document.getElementById('confirmPassword').value.trim();
-
     if (!current || !newPass || !confirm) {
         alert('⚠️ Please fill all fields.');
         return;
@@ -567,14 +537,12 @@ document.addEventListener('DOMContentLoaded', function() {
         redirectToLogin();
         return;
     }
-
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.role !== 'admin') {
         alert('⚠️ Admin access required');
         window.location.href = '/dashboard.html';
         return;
     }
-
     document.getElementById('adminEmail').textContent = user.email || 'Admin';
     switchSection('dashboard');
 });
