@@ -110,15 +110,27 @@
           return;
         }
 
+        // ─── Store authentication data ────────────────────────────
         localStorage.setItem('token', data.token);
-        localStorage.setItem('userEmail', email);
+
+        // Store the FULL user object (contains email, role, etc.)
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        // Optional: keep email and role for backward compatibility
+        localStorage.setItem('userEmail', data.user?.email || email);
         localStorage.setItem('userRole', data.user?.role || 'escort');
 
         if (data.subscription?.expired) {
           alert(data.subscription.message);
         }
 
-        window.location.href = '/dashboard.html';
+        // ─── Redirect based on role ──────────────────────────────
+        if (data.user?.role === 'admin') {
+          window.location.href = '/admin.html';
+        } else {
+          window.location.href = '/dashboard.html';
+        }
+
       } catch (err) {
         errorDiv.textContent = 'An error occurred. Please try again later.';
         errorDiv.style.display = 'block';
