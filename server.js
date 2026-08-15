@@ -20,11 +20,63 @@ const { sendWelcomeEmail, sendApprovalEmail, sendPaymentConfirmation, sendSubscr
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── Middleware ──────────────────────────────────────────────────
+
 // ─── Middleware ──────────────────────────────────────────────────
 const compression = require('compression');  // ← ADD THIS LINE AT THE TOP
 
-app.use(compression());                     // ← ADD THIS LINE (AFTER BODY-PARSER)
+// ─── 👇 ADD RATE LIMITING HERE ──────────────────────────────────────
+const rateLimit = require('express-rate-limit');
+
+// 1. General API limit (100 requests per 15 minutes)
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,
+    message: { message: 'Too many requests from this IP, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// 2. Strict limit for authentication (login, register, forgot password)
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5,
+    message: { message: 'Too many login attempts, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+});
+
+// 3. Strict limit for payment endpoints
+const paymentLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10,
+    message: { message: 'Too many payment attempts, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// 4. Stricter limit for sensitive admin endpoints
+const adminLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 50,
+    message: { message: 'Too many admin requests, please slow down.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.use(compression());
+// ─── Apply rate limiting to all API routes ────────────────────────
+app.use('/api/', generalLimiter);
+
+// ─── Apply stricter limits to sensitive routes ────────────────────
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/pay', paymentLimiter);
+app.use('/api/admin/', adminLimiter);
+// ─── 👆 END OF RATE LIMITING ──────────────────────────────────────
+
+                     // ← ADD THIS LINE (AFTER BODY-PARSER)
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -1475,7 +1527,13 @@ app.get('/:citySlug-escorts.html', async (req, res) => {
 
         // ─── Load the city template ──────────────────────────────────
         const templatePath = path.join(__dirname, 'templates', 'city-template.html');
-        let template = fs.readFileSync(templatePath, 'utf8');
+        let template;
+try {
+    template = await fsPromises.readFile(templatePath, 'utf8');
+} catch (err) {
+    console.error('❌ Failed to read city template:', err.message);
+    return res.status(500).send('City template not found');
+}
 
         // ─── Build city page context ────────────────────────────────
         const profilesHtml = cityProfiles.map(p => {
