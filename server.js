@@ -707,6 +707,23 @@ app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
     }
     res.json({ message: '❌ Profile rejected and deleted successfully' });
 });
+
+// ─── GET ALL USERS (Admin Only) ──────────────────────────────────
+app.get('/api/admin/users', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
+    if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+    }
+    const usersCol = getCollection('users');
+    if (usersCol) {
+        const users = await usersCol.find({}).toArray();
+        return res.json(users);
+    }
+    // Fallback to file-based storage
+    const users = readJSON('users.json', {});
+    res.json(Object.values(users));
+});
+
 // ─── GET EXPIRED PROFILES (Admin) ──────────────────────────────
 app.get('/api/admin/expired', authenticate, async (req, res) => {
     const user = await findUserById(req.userId);
