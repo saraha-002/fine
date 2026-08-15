@@ -1,14 +1,28 @@
 // ─── Admin Dashboard Script ──────────────────────────────────────
 
-const API_BASE = window.location.origin; // Use current domain dynamically
+const API_BASE = window.location.origin;
 let currentSection = 'dashboard';
 let allProfiles = [];
+let isLoadingProfiles = false;
 
 // ─── Pagination Variables ──────────────────────────────────────
 let currentPage = 1;
 let itemsPerPage = 20;
 let filteredProfiles = [];
 let currentFilter = 'all';
+
+// ─── Debounce Helper ──────────────────────────────────────────────
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
 // ─── Authentication ──────────────────────────────────────────────
 function getToken() {
@@ -128,12 +142,18 @@ async function testEmail() {
 
 // ─── Profiles (Paginated & Sorted) ──────────────────────────────
 async function loadProfiles(filter = 'all') {
+    if (isLoadingProfiles) return;
+    isLoadingProfiles = true;
+
     const tbody = document.getElementById('profilesBody');
     tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading profiles...</td></tr>';
 
     try {
         const res = await apiFetch('/api/admin/profiles');
-        if (!res?.ok) return;
+        if (!res?.ok) {
+            isLoadingProfiles = false;
+            return;
+        }
 
         allProfiles = await res.json();
 
@@ -154,6 +174,8 @@ async function loadProfiles(filter = 'all') {
     } catch (error) {
         console.error('Profiles load error:', error);
         tbody.innerHTML = '<tr><td colspan="7" class="loading">Error loading profiles</td></tr>';
+    } finally {
+        isLoadingProfiles = false;
     }
 }
 
@@ -173,7 +195,6 @@ function renderPaginatedProfiles() {
     const total = filteredProfiles.length;
     const totalPages = Math.ceil(total / itemsPerPage) || 1;
 
-    // Ensure current page is valid
     if (currentPage > totalPages) currentPage = totalPages;
     if (currentPage < 1) currentPage = 1;
 
@@ -181,21 +202,17 @@ function renderPaginatedProfiles() {
     const end = Math.min(start + itemsPerPage, total);
     const pageProfiles = filteredProfiles.slice(start, end);
 
-    // Update page info
-    const startDisplay = total > 0 ? start + 1 : 0;
-    document.getElementById('pageStart').textContent = startDisplay;
+    document.getElementById('pageStart').textContent = total > 0 ? start + 1 : 0;
     document.getElementById('pageEnd').textContent = end;
     document.getElementById('totalProfiles').textContent = total;
     document.getElementById('profileCount').textContent = `${total} profiles`;
 
-    // Render table rows
     if (pageProfiles.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="loading">No profiles found</td></tr>';
     } else {
         tbody.innerHTML = pageProfiles.map(p => renderProfileRow(p)).join('');
     }
 
-    // Render pagination buttons
     renderPaginationButtons(totalPages);
 }
 
@@ -238,7 +255,7 @@ function renderPaginationButtons(totalPages) {
     const prevBtn = document.getElementById('prevPage');
     const nextBtn = document.getElementById('nextPage');
 
-    if (!container) return; // Pagination container not found
+    if (!container) return;
 
     prevBtn.disabled = currentPage <= 1;
     nextBtn.disabled = currentPage >= totalPages;
@@ -267,7 +284,6 @@ function renderPaginationButtons(totalPages) {
 
     container.innerHTML = buttons;
 
-    // Add click listeners to page buttons
     container.querySelectorAll('.page-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             currentPage = parseInt(btn.dataset.page);
@@ -303,8 +319,8 @@ document.getElementById('profileFilter')?.addEventListener('change', function() 
     loadProfiles(this.value);
 });
 
-document.getElementById('profileSearch')?.addEventListener('input', function() {
-    const query = this.value.toLowerCase().trim();
+const debouncedSearch = debounce(function() {
+    const query = document.getElementById('profileSearch').value.toLowerCase().trim();
     if (!query) {
         filteredProfiles = applyFilter(allProfiles, currentFilter);
     } else {
@@ -316,7 +332,9 @@ document.getElementById('profileSearch')?.addEventListener('input', function() {
     }
     currentPage = 1;
     renderPaginatedProfiles();
-});
+}, 300);
+
+document.getElementById('profileSearch')?.addEventListener('input', debouncedSearch);
 
 document.getElementById('refreshProfiles')?.addEventListener('click', function() {
     loadProfiles(document.getElementById('profileFilter').value);
@@ -393,7 +411,6 @@ async function loadUsers() {
 
 window.deleteUser = async function(userId) {
     if (!confirm('Delete this user?')) return;
-    // Implement delete user endpoint if needed
     alert('⚠️ Delete user endpoint not yet implemented');
 };
 
@@ -509,7 +526,7 @@ document.getElementById('exportData')?.addEventListener('click', async function(
     }
 });
 
-// ─── Change Password (basic) ──────────────────────────────────────
+// ─── Change Password ──────────────────────────────────────────────
 document.getElementById('changePasswordForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const current = document.getElementById('currentPassword').value.trim();
@@ -524,7 +541,6 @@ document.getElementById('changePasswordForm')?.addEventListener('submit', async 
         alert('⚠️ New passwords do not match.');
         return;
     }
-    // Implement actual change password endpoint if available
     alert('⚠️ Password change endpoint not yet implemented.');
 });
 
