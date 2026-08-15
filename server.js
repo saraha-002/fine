@@ -593,7 +593,10 @@ app.put('/api/profiles/me', authenticate, async (req, res) => {
         if (ethnicity !== undefined) updates.ethnicity = ethnicity;
         if (description !== undefined) updates.description = description;
         if (services !== undefined) updates.services = services;
-        if (phone !== undefined) updates.phone = phone;
+       if (phone !== undefined) {
+    updates.phone = phone;
+    updates.fullNumber = phone; // keep fullNumber in sync
+}
         if (photos !== undefined) updates.photos = photos;
         const updated = await updateProfile(profile.slug, updates);
         res.json({
