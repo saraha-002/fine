@@ -1476,16 +1476,16 @@ app.get('/profiles/:slug.html', async (req, res) => {
             lastName: displayName.split(' ').slice(1).join(' ') || '',
 
             // View counter script
-            viewCounterScript: `<script>
-                (async function() {
-                    try {
-                        const slug = window.location.pathname.split('/').pop().replace('.html', '');
-                        await fetch('/api/profiles/' + slug + '/view', { method: 'POST' });
-                    } catch (e) {
-                        // Silently fail
-                    }
-                })();
-            </script>`,
+          viewCounterScript: `<script>
+    (async function() {
+        try {
+            const slug = window.location.pathname.split('/').pop().replace('.html', '');
+            await fetch('/api/profiles/' + slug + '/view', { method: 'POST' });
+        } catch (e) {
+            // Silently fail
+        }
+    })();
+</script>`,
         };
 
         const html = render(template, context);
