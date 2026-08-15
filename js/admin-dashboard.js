@@ -129,24 +129,43 @@ async function loadDashboard() {
 // ─── Top Viewed Profiles ──────────────────────────────────────────
 function loadTopViewedProfiles(profiles) {
     const container = document.getElementById('topViewedProfiles');
-    if (!container) return; // if element doesn't exist, skip
+    if (!container) return;
 
-    const top = profiles
+    // Sort by views (highest first)
+    const sorted = profiles
         .filter(p => p.isApproved)
-        .sort((a, b) => (b.profileViews || 0) - (a.profileViews || 0))
-        .slice(0, 5);
+        .sort((a, b) => (b.profileViews || 0) - (a.profileViews || 0));
 
-    if (top.length === 0) {
+    // Pagination for top viewed
+    const total = sorted.length;
+    const perPage = parseInt(document.getElementById('topPerPageSelect')?.value) || 10;
+    const totalPages = Math.ceil(total / perPage) || 1;
+    let currentPage = parseInt(document.getElementById('topCurrentPage')?.value) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start = (currentPage - 1) * perPage;
+    const end = Math.min(start + perPage, total);
+    const pageItems = sorted.slice(start, end);
+
+    // Update pagination info
+    document.getElementById('topPageStart').textContent = total > 0 ? start + 1 : 0;
+    document.getElementById('topPageEnd').textContent = end;
+    document.getElementById('topTotalProfiles').textContent = total;
+
+    // Render the list
+    if (pageItems.length === 0) {
         container.innerHTML = '<p style="color:#888;">No profile views yet.</p>';
-        return;
+    } else {
+        container.innerHTML = pageItems.map((p, i) => `
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #2c2c2c;">
+                <span>${start + i + 1}. ${escapeHtml(p.displayName || p.name)}</span>
+                <span style="color:#c7a76c; font-weight:600;">${p.profileViews || 0} views</span>
+            </div>
+        `).join('');
     }
 
-    container.innerHTML = top.map((p, i) => `
-        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #2c2c2c;">
-            <span>${i+1}. ${escapeHtml(p.displayName || p.name)}</span>
-            <span style="color:#c7a76c; font-weight:600;">${p.profileViews || 0} views</span>
-        </div>
-    `).join('');
+    // Update pagination buttons
+    renderTopPaginationButtons(totalPages);
 }
 
 // ─── Profiles (Paginated & Sorted) ──────────────────────────────
@@ -293,6 +312,47 @@ function renderPaginationButtons(totalPages) {
     });
 }
 
+function renderTopPaginationButtons(totalPages) {
+    const container = document.getElementById('topPageNumbers');
+    const prevBtn = document.getElementById('topPrevPage');
+    const nextBtn = document.getElementById('topNextPage');
+    if (!container) return;
+
+    let currentPage = parseInt(document.getElementById('topCurrentPage')?.value) || 1;
+
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+
+    let buttons = '';
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        buttons += `<button class="page-btn" data-top-page="1">1</button>`;
+        if (startPage > 2) buttons += `<span class="page-ellipsis">…</span>`;
+    }
+    for (let i = startPage; i <= endPage; i++) {
+        buttons += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-top-page="${i}">${i}</button>`;
+    }
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) buttons += `<span class="page-ellipsis">…</span>`;
+        buttons += `<button class="page-btn" data-top-page="${totalPages}">${totalPages}</button>`;
+    }
+    container.innerHTML = buttons;
+
+    container.querySelectorAll('.page-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const page = parseInt(this.dataset.topPage);
+            document.getElementById('topCurrentPage').value = page;
+            loadTopViewedProfiles(allProfiles);
+        });
+    });
+}
+
 function pageClickHandler(e) {
     const page = parseInt(e.currentTarget.dataset.page);
     if (!isNaN(page) && page !== currentPage) {
@@ -321,6 +381,31 @@ document.getElementById('perPageSelect')?.addEventListener('change', function() 
     itemsPerPage = parseInt(this.value);
     currentPage = 1;
     renderPaginatedProfiles();
+});
+
+// ─── Top Viewed Pagination Controls ──────────────────────────────
+document.getElementById('topPrevPage')?.addEventListener('click', () => {
+    let currentPage = parseInt(document.getElementById('topCurrentPage')?.value) || 1;
+    if (currentPage > 1) {
+        document.getElementById('topCurrentPage').value = currentPage - 1;
+        loadTopViewedProfiles(allProfiles);
+    }
+});
+
+document.getElementById('topNextPage')?.addEventListener('click', () => {
+    let currentPage = parseInt(document.getElementById('topCurrentPage')?.value) || 1;
+    const total = allProfiles.filter(p => p.isApproved).length;
+    const perPage = parseInt(document.getElementById('topPerPageSelect')?.value) || 10;
+    const totalPages = Math.ceil(total / perPage) || 1;
+    if (currentPage < totalPages) {
+        document.getElementById('topCurrentPage').value = currentPage + 1;
+        loadTopViewedProfiles(allProfiles);
+    }
+});
+
+document.getElementById('topPerPageSelect')?.addEventListener('change', function() {
+    document.getElementById('topCurrentPage').value = 1;
+    loadTopViewedProfiles(allProfiles);
 });
 
 // ─── Profile Filter & Search ──────────────────────────────────────
