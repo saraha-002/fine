@@ -183,7 +183,7 @@
       <form id="editForm">
         <div class="form-group"><label>Display Name</label><input type="text" id="editDisplayName" required></div>
         <div class="form-group"><label>Age</label><input type="number" id="editAge" min="18" max="99" required></div>
-        <div class="form-group"><label>Location</label><select id="editLocation"><option value="Kitengela">Kitengela</option><option value="Syokimau">Syokimau</option><option value="Mlolongo">Mlolongo</option><option value="Athiriver">Athiriver</option><option value="Imara Daima">Imara Daima</option></select></div>
+        <div class="form-group"><label>Location</label><select id="editLocation"></select></div>
         <div class="form-group"><label>Ethnicity</label><input type="text" id="editEthnicity"></div>
         <div class="form-group"><label>Description</label><textarea id="editDescription" required></textarea></div>
         
@@ -343,31 +343,29 @@
     }
 
     // ─── LOAD PROFILE ──────────────────────────────────────────────
-    async function loadProfile() {
-      if (!requireAuth()) return;
-      try {
+   async function loadProfile() {
+    if (!requireAuth()) return;
+    try {
         const { res, data } = await apiFetch('/profiles/me');
         if (!res.ok) { 
-          if (res.status === 404) { 
-            alert('You don\'t have a profile yet. Please create one first.'); 
-            window.location.href = '/signup.html'; 
-            return; 
-          } 
-          throw new Error(data.message || 'Failed to load profile'); 
+            if (res.status === 404) { 
+                alert('You don\'t have a profile yet. Please create one first.'); 
+                window.location.href = '/signup.html'; 
+                return; 
+            } 
+            throw new Error(data.message || 'Failed to load profile'); 
         }
         currentProfile = data;
         renderProfile(currentProfile);
         renderPhotos(currentProfile);
         renderSubscription(currentProfile);
         populateEditForm(currentProfile);
-        
-        // Show onboarding banner if this is a new user
+        await loadCities(); // ← ADD HERE
         showOnboardingBanner();
-      } catch (err) { 
+    } catch (err) { 
         document.getElementById('profileDisplay').innerHTML = `<div style="color:#ff6b6b; padding:20px; background:#2a1a1a; border-radius:8px;"><i class="fas fa-exclamation-circle"></i> ${err.message}</div>`; 
-      }
     }
-
+}
     // ─── RENDER PROFILE ─────────────────────────────────────────────
     function renderProfile(profile) {
       const hasDescription = profile.description && profile.description.trim().length > 0;
@@ -465,6 +463,27 @@
         });
       }
     }
+
+    // ─── LOAD CITIES ────────────────────────────────────────────────
+async function loadCities() {
+    try {
+        const res = await fetch('/api/cities');
+        const cities = await res.json();
+        const select = document.getElementById('editLocation');
+        select.innerHTML = '';
+        cities.forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city.name;
+            opt.textContent = city.name;
+            select.appendChild(opt);
+        });
+        if (currentProfile?.city) {
+            select.value = currentProfile.city;
+        }
+    } catch (err) {
+        console.error('Error loading cities:', err);
+    }
+}
 
     // ─── EDIT PROFILE ──────────────────────────────────────────────
     document.getElementById('editForm').addEventListener('submit', async (e) => {
