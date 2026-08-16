@@ -418,13 +418,23 @@ async function getTopCityLinks() {
 async function getRelatedProfiles(profile) {
     const profilesCol = getCollection('profiles');
     if (!profilesCol) return '';
-    const city = profile.city || profile.location;
+    const city = (profile.city || profile.location || '').trim();
     const slug = profile.slug;
+    // If city is empty, return empty
+    if (!city) return '';
+
+    // Case-insensitive matching using regex
+    const cityRegex = new RegExp('^' + city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+
     const sameCity = await profilesCol.find({
-        $or: [{ city: city }, { location: city }],
+        $or: [
+            { city: { $regex: cityRegex } },
+            { location: { $regex: cityRegex } }
+        ],
         slug: { $ne: slug },
         isApproved: true
     }).toArray();
+
     const hash = seededHash(slug || 'default');
     const shuffled = [...sameCity];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -755,6 +765,10 @@ app.post('/api/profiles', authenticate, async (req, res) => {
     if (existing) {
         return res.status(409).json({ message: 'You already have a profile' });
     }
+
+    // ─── Trim location ──────────────────────────────────────────
+    const trimmedLocation = location ? location.trim() : '';
+
     const slug = displayName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
     const newProfile = {
         slug,
@@ -762,8 +776,8 @@ app.post('/api/profiles', authenticate, async (req, res) => {
         name: displayName,
         displayName,
         age: parseInt(age),
-        city: location,
-        location,
+        city: trimmedLocation,    // ← Changed
+        location: trimmedLocation, // ← Changed
         ethnicity: ethnicity || '',
         description,
         services: services || [],
@@ -783,7 +797,6 @@ app.post('/api/profiles', authenticate, async (req, res) => {
     try {
         const user = await findUserById(req.userId);
         if (user && user.email) {
-            // Attach email to saved profile for the template
             saved.email = user.email;
             await sendAdminNewSignupNotification(saved);
             console.log('✅ Admin notification sent for new signup:', user.email);
@@ -810,14 +823,14 @@ app.put('/api/profiles/me', authenticate, async (req, res) => {
         const updates = {};
         if (displayName !== undefined) updates.displayName = displayName;
         if (age !== undefined) updates.age = parseInt(age);
-        if (location !== undefined) updates.location = location;
+        if (location !== undefined) updates.location = location.trim(); // ✅ ADD .trim()
         if (ethnicity !== undefined) updates.ethnicity = ethnicity;
         if (description !== undefined) updates.description = description;
         if (services !== undefined) updates.services = services;
-       if (phone !== undefined) {
-    updates.phone = phone;
-    updates.fullNumber = phone; // keep fullNumber in sync
-}
+        if (phone !== undefined) {
+            updates.phone = phone;
+            updates.fullNumber = phone;
+        }
         if (photos !== undefined) updates.photos = photos;
         const updated = await updateProfile(profile.slug, updates);
         res.json({
