@@ -8,157 +8,53 @@
   <link rel="stylesheet" href="css/profile.css">
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
+ <script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0d0d0d; font-family: 'Jost', sans-serif; min-height: 100vh; }
     .payment-container { max-width: 600px; margin: 40px auto; padding: 30px; background: #1a1a1a; border-radius: 12px; border: 1px solid #2c2c2c; }
     .payment-container h1 { text-align: center; color: #eaeaea; margin-bottom: 5px; }
     .payment-container .subtitle { text-align: center; color: #888; margin-bottom: 25px; font-size: 14px; }
-    
-    /* Duration & Package (same as before) */
     .duration-selector { display: flex; gap: 10px; margin-bottom: 25px; justify-content: center; }
     .duration-btn { padding: 10px 16px; border: 2px solid #2c2c2c; border-radius: 8px; background: #1a1a1a; cursor: pointer; font-weight: 600; transition: all 0.3s; flex: 1; text-align: center; font-size: 14px; color: #a0a0a0; }
     .duration-btn:hover { border-color: #c7a76c; }
     .duration-btn.active { border-color: #c7a76c; background: #2a2a2a; color: #c7a76c; }
     .duration-btn .duration-price { display: block; font-size: 11px; font-weight: 400; color: #888; margin-top: 2px; }
     .duration-btn.active .duration-price { color: #c7a76c; }
-    
     .package-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 25px; }
     .package-card { border: 2px solid #2c2c2c; border-radius: 10px; padding: 15px 12px; text-align: center; cursor: pointer; transition: all 0.3s; background: #1a1a1a; }
     .package-card:hover { border-color: #c7a76c; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(199,167,108,0.15); }
     .package-card.selected { border-color: #c7a76c; background: #2a2a2a; }
     .package-card .tier-name { font-weight: 700; font-size: 16px; color: #eaeaea; }
     .package-card .tier-price { font-size: 22px; font-weight: 700; color: #c7a76c; margin: 5px 0; }
+    .package-card .tier-price small { font-size: 12px; font-weight: 400; color: #888; }
     .package-card .tier-features { font-size: 12px; color: #a0a0a0; margin: 8px 0 0 0; padding: 0; list-style: none; text-align: left; }
     .package-card .tier-features li { padding: 3px 0; display: flex; align-items: center; gap: 6px; }
     .package-card .tier-features li i { width: 14px; text-align: center; font-size: 10px; }
     .package-card .tier-features li .fa-check { color: #4CAF50; }
     .package-card .tier-features li .fa-times { color: #555; }
     .package-card .popular-badge { background: #c7a76c; color: #0d0d0d; font-size: 10px; padding: 2px 12px; border-radius: 12px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; font-weight: 700; }
-    
     .form-group { margin-bottom: 20px; }
     .form-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #eaeaea; }
     .form-group input { width: 100%; padding: 12px; border: 2px solid #2c2c2c; border-radius: 8px; font-size: 16px; background: #0d0d0d; color: #eaeaea; transition: border 0.3s; }
     .form-group input:focus { border-color: #c7a76c; outline: none; }
     .form-group small { color: #888; display: block; margin-top: 5px; }
-    
     .btn-pay { width: 100%; padding: 14px; background: #25D366; color: #0d0d0d; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
     .btn-pay:hover { background: #128C7E; }
     .btn-pay i { margin-right: 10px; }
     .btn-pay:disabled { opacity: 0.7; cursor: not-allowed; }
-    
-    /* ─── New: Payment Progress ──────────────────────────────────── */
-    #paymentProgress {
-        display: none;
-        margin: 20px 0 10px 0;
-        padding: 15px;
-        background: #0d0d0d;
-        border-radius: 8px;
-        border: 1px solid #2c2c2c;
-    }
-    #paymentProgress .step {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 8px 0;
-        opacity: 0.4;
-        transition: opacity 0.4s ease;
-    }
-    #paymentProgress .step.active {
-        opacity: 1;
-    }
-    #paymentProgress .step .icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: #2c2c2c;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        color: #888;
-        flex-shrink: 0;
-    }
-    #paymentProgress .step.active .icon {
-        background: #c7a76c;
-        color: #0d0d0d;
-    }
-    #paymentProgress .step .label {
-        font-size: 14px;
-        color: #a0a0a0;
-    }
-    #paymentProgress .step.active .label {
-        color: #eaeaea;
-    }
-    .step-message {
-        font-size: 14px;
-        color: #888;
-        margin-top: 8px;
-        padding: 10px;
-        background: #1a1a1a;
-        border-radius: 6px;
-        text-align: center;
-        border-left: 3px solid #c7a76c;
-    }
-    .step-message .highlight {
-        color: #c7a76c;
-        font-weight: 600;
-    }
-    .step-message .retry-link {
-        display: inline-block;
-        margin-top: 8px;
-        color: #c7a76c;
-        text-decoration: underline;
-        cursor: pointer;
-        font-weight: 500;
-    }
-    .step-message .retry-link:hover {
-        color: #dbb87a;
-    }
-    
-    .btn-retry {
-        background: #c7a76c;
-        color: #0d0d0d;
-        border: none;
-        padding: 8px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: background 0.3s;
-        margin-top: 10px;
-    }
-    .btn-retry:hover {
-        background: #dbb87a;
-    }
-    .btn-retry i {
-        margin-right: 6px;
-    }
-    
-    .payment-status { padding: 12px; border-radius: 8px; margin: 10px 0; display: none; font-weight: 500; }
+    .payment-status { padding: 12px; border-radius: 8px; margin: 15px 0; display: none; font-weight: 500; }
     .payment-status.success { display: block; background: #1a3a2a; color: #4CAF50; border-left: 4px solid #4CAF50; }
     .payment-status.error { display: block; background: #3a1a1a; color: #ff6b6b; border-left: 4px solid #ff6b6b; }
     .payment-status.info { display: block; background: #1a2a3a; color: #4a9aff; border-left: 4px solid #4a9aff; }
-    
-    #successMessage { display: none; text-align: center; padding: 20px; }
-    #successMessage .success-icon { font-size: 60px; color: #4CAF50; margin-bottom: 10px; }
-    #successMessage h2 { color: #4CAF50; margin-bottom: 10px; }
-    #successMessage p { color: #a0a0a0; margin-bottom: 5px; }
-    #successMessage .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 15px; }
-    #successMessage .btn-group a { padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.3s; }
-    #successMessage .btn-group .btn-dashboard { background: #c7a76c; color: #0d0d0d; }
-    #successMessage .btn-group .btn-dashboard:hover { background: #dbb87a; }
-    #successMessage .btn-group .btn-home { border: 2px solid #c7a76c; color: #c7a76c; }
-    #successMessage .btn-group .btn-home:hover { background: #c7a76c; color: #0d0d0d; }
-    
+    .payment-status.waiting { display: block; background: #3a2a1a; color: #ff9800; border-left: 4px solid #ff9800; }
     .back-links { text-align: center; margin-top: 20px; }
     .back-links a { color: #c7a76c; text-decoration: none; font-weight: 500; }
     .back-links a:hover { text-decoration: underline; }
-    
-    @media (max-width: 600px) { 
-        .package-grid { grid-template-columns: 1fr; } 
-        .duration-selector { flex-direction: column; gap: 6px; } 
-    }
+    .success-icon { text-align: center; font-size: 60px; color: #4CAF50; margin-bottom: 10px; }
+    #successMessage { display: none; text-align: center; padding: 20px; }
+    #successMessage h2 { color: #4CAF50; }
+    #successMessage p { color: #a0a0a0; }
+    @media (max-width: 600px) { .package-grid { grid-template-columns: 1fr; } .duration-selector { flex-direction: column; gap: 6px; } }
   </style>
 </head>
 <body>
@@ -179,7 +75,6 @@
       <h1>💰 Subscription Payment</h1>
       <p class="subtitle">Choose your package and duration. Pay with M-Pesa.</p>
 
-      <!-- Duration & Package (same) -->
       <div class="duration-selector">
         <button class="duration-btn active" data-duration="daily" onclick="selectDuration('daily')">Daily<span class="duration-price">24 hours</span></button>
         <button class="duration-btn" data-duration="weekly" onclick="selectDuration('weekly')">Weekly<span class="duration-price">7 days • Save 15%</span></button>
@@ -190,60 +85,59 @@
         <div class="package-card" data-tier="standard" onclick="selectPackage('standard')">
           <div class="tier-name">Standard</div>
           <div class="tier-price" id="price-standard">KES 100</div>
-          <ul class="tier-features">...</ul>
+          <ul class="tier-features">
+            <li><i class="fas fa-check"></i> Profile Listing</li>
+            <li><i class="fas fa-check"></i> 3 Photos</li>
+            <li><i class="fas fa-check"></i> Verified Badge</li>
+            <li><i class="fas fa-times"></i> Featured</li>
+            <li><i class="fas fa-times"></i> VIP Badge</li>
+          </ul>
         </div>
         <div class="package-card selected" data-tier="premium" onclick="selectPackage('premium')">
           <div class="popular-badge">⭐ Popular</div>
           <div class="tier-name">Premium</div>
           <div class="tier-price" id="price-premium">KES 150</div>
-          <ul class="tier-features">...</ul>
+          <ul class="tier-features">
+            <li><i class="fas fa-check"></i> Profile Listing</li>
+            <li><i class="fas fa-check"></i> 5 Photos</li>
+            <li><i class="fas fa-check"></i> Verified Badge</li>
+            <li><i class="fas fa-check"></i> Featured Placement</li>
+            <li><i class="fas fa-check"></i> Analytics Dashboard</li>
+            <li><i class="fas fa-times"></i> VIP Badge</li>
+          </ul>
         </div>
         <div class="package-card" data-tier="vip" onclick="selectPackage('vip')">
           <div class="tier-name">VIP</div>
           <div class="tier-price" id="price-vip">KES 200</div>
-          <ul class="tier-features">...</ul>
+          <ul class="tier-features">
+            <li><i class="fas fa-check"></i> Profile Listing</li>
+            <li><i class="fas fa-check"></i> 10 Photos</li>
+            <li><i class="fas fa-check"></i> Verified Badge</li>
+            <li><i class="fas fa-check"></i> Featured Placement</li>
+            <li><i class="fas fa-check"></i> VIP Badge</li>
+            <li><i class="fas fa-check"></i> Homepage Spotlight</li>
+            <li><i class="fas fa-check"></i> Priority Support</li>
+          </ul>
         </div>
       </div>
 
-      <div id="paymentSection">
-        <form id="paymentForm" onsubmit="return false;">
-          <div class="form-group">
-            <label for="phoneNumber">M-Pesa Phone Number</label>
-            <input type="tel" id="phoneNumber" required placeholder="07XX XXX XXX">
-            <small>You'll receive a prompt to confirm payment on your phone.</small>
-          </div>
-          <button type="button" id="payNowBtn" class="btn-pay"><i class="fas fa-mobile-alt"></i> Pay KES 150 with M-Pesa</button>
-        </form>
-      </div>
-
-      <!-- ─── Creative Payment Progress ──────────────────────────── -->
-      <div id="paymentProgress">
-        <div class="step" id="step-sent">
-          <div class="icon"><i class="fas fa-check" id="icon-sent"></i></div>
-          <div class="label" id="label-sent">Sent to your phone</div>
+      <form id="paymentForm" onsubmit="return false;">
+        <div class="form-group">
+          <label for="phoneNumber">M-Pesa Phone Number</label>
+          <input type="tel" id="phoneNumber" required placeholder="07XX XXX XXX">
+          <small>You'll receive a prompt to confirm payment on your phone.</small>
         </div>
-        <div class="step" id="step-pin">
-          <div class="icon"><i class="fas fa-key" id="icon-pin"></i></div>
-          <div class="label" id="label-pin">Awaiting PIN entry</div>
-        </div>
-        <div class="step" id="step-confirm">
-          <div class="icon"><i class="fas fa-hourglass-half" id="icon-confirm"></i></div>
-          <div class="label" id="label-confirm">Confirming payment</div>
-        </div>
-        <div class="step-message" id="stepMessage"></div>
-      </div>
+        <button type="button" id="payNowBtn" class="btn-pay"><i class="fas fa-mobile-alt"></i> Pay KES 150 with M-Pesa</button>
+      </form>
 
       <div id="paymentStatus" class="payment-status"></div>
 
       <div id="successMessage">
         <div class="success-icon"><i class="fas fa-check-circle"></i></div>
-        <h2>✅ Payment Successful!</h2>
+        <h2>✅ Subscription Active!</h2>
         <p id="successText">Your Premium (Daily) subscription is now active.</p>
-        <p style="color: #888; font-size: 13px;">Your profile is now visible to clients.</p>
-        <div class="btn-group">
-          <a href="/dashboard.html" class="btn-dashboard"><i class="fas fa-user"></i> Go to Dashboard</a>
-          <a href="/" class="btn-home"><i class="fas fa-home"></i> View Homepage</a>
-        </div>
+        <a href="/dashboard.html" style="display: inline-block; margin-top: 15px; padding: 12px 30px; background: #c7a76c; color: #0d0d0d; border-radius: 8px; text-decoration: none; font-weight: 600;">Go to Dashboard</a>
+        <a href="/" style="display: inline-block; margin-top: 15px; margin-left: 10px; padding: 12px 30px; border: 2px solid #c7a76c; border-radius: 8px; color: #c7a76c; text-decoration: none; font-weight: 600;">View Homepage</a>
       </div>
 
       <div class="back-links"><a href="/dashboard.html">← Back to Dashboard</a></div>
@@ -255,292 +149,251 @@
   </footer>
 
 <script>
-// ─── Configuration ──────────────────────────────────────────────────
-const API_BASE = window.location.origin;
-const API_SECRET = '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4';
-const RECAPTCHA_SITE_KEY = '6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5';
+    // API Configuration
+    const API_BASE = 'https://fineescorts.co.ke';
+    const API_SECRET = '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4';
+    const RECAPTCHA_SITE_KEY = '6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5';;
 
-const PRICING = {
-    daily: { standard: 100, premium: 150, vip: 200 },
-    weekly: { standard: 600, premium: 900, vip: 1000 },
-    monthly: { standard: 1500, premium: 2500, vip: 4000 }
-};
-const TIER_NAMES = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
-const DURATION_NAMES = { daily: 'Daily (24hrs)', weekly: 'Weekly (7 days)', monthly: 'Monthly (30 days)' };
-
-// ─── State ──────────────────────────────────────────────────────────
-let selectedDuration = 'daily';
-let selectedTier = 'premium';
-let currentAmount = 150;
-let transactionId = null;
-let pollingInterval = null;
-let isPolling = false;
-
-// ─── DOM ────────────────────────────────────────────────────────────
-const payBtn = document.getElementById('payNowBtn');
-const phoneInput = document.getElementById('phoneNumber');
-const statusDiv = document.getElementById('paymentStatus');
-const paymentForm = document.getElementById('paymentForm');
-const paymentSection = document.getElementById('paymentSection');
-const successDiv = document.getElementById('successMessage');
-const successText = document.getElementById('successText');
-
-const progressDiv = document.getElementById('paymentProgress');
-const stepSent = document.getElementById('step-sent');
-const stepPin = document.getElementById('step-pin');
-const stepConfirm = document.getElementById('step-confirm');
-const stepMsg = document.getElementById('stepMessage');
-
-// ─── Helpers ──────────────────────────────────────────────────────
-function getUserEmail() { return localStorage.getItem('userEmail') || ''; }
-function getToken() { return localStorage.getItem('token'); }
-function getParams() {
-    const params = new URLSearchParams(window.location.search);
-    return {
-        package: params.get('package') || 'premium',
-        duration: params.get('duration') || 'daily',
-        email: params.get('email') || ''
+    const PRICING = {
+        daily: { standard: 100, premium: 150, vip: 200 },
+        weekly: { standard: 600, premium: 900, vip: 1000 },
+        monthly: { standard: 1500, premium: 2500, vip: 4000 }
     };
-}
-function showStatus(msg, type) {
-    statusDiv.textContent = msg;
-    statusDiv.className = 'payment-status ' + type;
-    statusDiv.style.display = 'block';
-}
-function hideStatus() { statusDiv.style.display = 'none'; }
-function resetPayButton() {
-    payBtn.disabled = false;
-    payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount + ' for ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')';
-    payBtn.className = 'btn-pay';
-    payBtn.onclick = initiatePayment;
-    isPolling = false;
-}
-function setPayButtonLoading(text) {
-    payBtn.disabled = true;
-    payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + text;
-}
+    const TIER_NAMES = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
+    const DURATION_NAMES = { daily: 'Daily (24hrs)', weekly: 'Weekly (7 days)', monthly: 'Monthly (30 days)' };
 
-// ─── UI ────────────────────────────────────────────────────────────
-function selectDuration(d) {
-    selectedDuration = d;
-    document.querySelectorAll('.duration-btn').forEach(b => b.classList.toggle('active', b.dataset.duration === d));
-    updatePrices();
-    updatePayButton();
-}
-function selectPackage(t) {
-    selectedTier = t;
-    document.querySelectorAll('.package-card').forEach(c => c.classList.toggle('selected', c.dataset.tier === t));
-    updatePayButton();
-}
-function updatePrices() {
-    const p = PRICING[selectedDuration];
-    document.getElementById('price-standard').textContent = 'KES ' + p.standard;
-    document.getElementById('price-premium').textContent = 'KES ' + p.premium;
-    document.getElementById('price-vip').textContent = 'KES ' + p.vip;
-}
-function updatePayButton() {
-    const p = PRICING[selectedDuration];
-    currentAmount = p[selectedTier];
-    payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount + ' for ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')';
-    payBtn.className = 'btn-pay';
-    payBtn.disabled = false;
-    payBtn.onclick = initiatePayment;
-    phoneInput.disabled = false;
-    hideStatus();
-    progressDiv.style.display = 'none';
-}
-
-function setStep(step, message) {
-    // step: 'sent', 'pin', 'confirm'
-    [stepSent, stepPin, stepConfirm].forEach(el => el.classList.remove('active'));
-    if (step === 'sent') stepSent.classList.add('active');
-    else if (step === 'pin') stepPin.classList.add('active');
-    else if (step === 'confirm') stepConfirm.classList.add('active');
-    stepMsg.innerHTML = message;
-}
-
-function showRetryLink(text, action) {
-    const link = document.createElement('span');
-    link.className = 'retry-link';
-    link.textContent = text;
-    link.onclick = action;
-    stepMsg.appendChild(document.createElement('br'));
-    stepMsg.appendChild(link);
-}
-
-// ─── Payment Flow ──────────────────────────────────────────────────
-async function initiatePayment() {
-    if (isPolling) return;
-    const userPhone = phoneInput.value.trim();
-    if (!userPhone) { showStatus('Please enter your M-Pesa phone number.', 'error'); return; }
-    let formattedPhone = userPhone.replace(/\D/g, '');
-    if (formattedPhone.startsWith('0')) formattedPhone = '254' + formattedPhone.substring(1);
-    if (!formattedPhone.startsWith('254')) formattedPhone = '254' + formattedPhone;
-    if (formattedPhone.length !== 12) { showStatus('Enter a valid phone number (e.g., 0712345678).', 'error'); return; }
-
-    setPayButtonLoading('Sending M-Pesa prompt...');
-    progressDiv.style.display = 'block';
-    setStep('sent', '📱 We\'ve sent the payment request to your phone. Please check your M-Pesa and enter your PIN.');
-
-    // reCAPTCHA
-    let recaptchaToken = '';
-    try {
-        if (typeof grecaptcha === 'undefined') throw new Error('reCAPTCHA not loaded');
-        recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' });
-        if (!recaptchaToken) throw new Error('Empty token');
-    } catch (err) {
-        showStatus('Security verification failed. Please refresh and try again.', 'error');
-        resetPayButton();
-        progressDiv.style.display = 'none';
-        return;
+    function getUserEmail() {
+        return localStorage.getItem('userEmail') || '';
     }
 
-    const payload = {
-        name: TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')',
-        phone: formattedPhone,
-        amount: currentAmount,
-        email: getUserEmail()
-    };
+    let selectedDuration = 'daily';
+    let selectedTier = 'premium';
+    let currentAmount = 150;
+    let pollingInterval = null;
+    let pollingAttempts = 0;
+    let waitingTimer = null;
+    const MAX_ATTEMPTS = 20;
+    const POLL_INTERVAL = 1000;
 
-    try {
-        const resp = await fetch(API_BASE + '/api/pay', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Secret': API_SECRET,
-                'X-Recaptcha-Token': recaptchaToken
-            },
-            body: JSON.stringify(payload)
+    function getParams() {
+        var params = new URLSearchParams(window.location.search);
+        return {
+            package: params.get('package') || 'premium',
+            duration: params.get('duration') || 'daily',
+            email: params.get('email') || ''
+        };
+    }
+
+    function selectDuration(duration) {
+        selectedDuration = duration;
+        document.querySelectorAll('.duration-btn').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.duration === duration);
         });
-        const data = await resp.json();
-        if (resp.ok && data.transactionId) {
-            transactionId = data.transactionId;
-            payBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Waiting...';
-            startPolling(transactionId);
-        } else {
-            throw new Error(data.error || data.details || data.message || 'Payment initiation failed.');
-        }
-    } catch (err) {
-        showStatus('❌ ' + err.message, 'error');
-        resetPayButton();
-        progressDiv.style.display = 'none';
+        updatePrices();
+        updatePayButton();
     }
-}
 
-// ─── Polling ──────────────────────────────────────────────────────
-function startPolling(id) {
-    if (pollingInterval) clearInterval(pollingInterval);
-    isPolling = true;
-    let stepTime = Date.now();
+    function selectPackage(tier) {
+        selectedTier = tier;
+        document.querySelectorAll('.package-card').forEach(function(card) {
+            card.classList.toggle('selected', card.dataset.tier === tier);
+        });
+        updatePayButton();
+    }
 
-    const interval = setInterval(async () => {
-        const elapsed = (Date.now() - stepTime) / 1000;
+    function updatePrices() {
+        var prices = PRICING[selectedDuration];
+        document.getElementById('price-standard').textContent = 'KES ' + prices.standard;
+        document.getElementById('price-premium').textContent = 'KES ' + prices.premium;
+        document.getElementById('price-vip').textContent = 'KES ' + prices.vip;
+    }
+
+    function updatePayButton() {
+        var prices = PRICING[selectedDuration];
+        currentAmount = prices[selectedTier];
+        var payBtn = document.getElementById('payNowBtn');
+        payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount + ' for ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')';
+        payBtn.className = 'btn-pay';
+        payBtn.disabled = false;
+        payBtn.onclick = initiatePayment;
+        document.getElementById('phoneNumber').disabled = false;
+    }
+
+    async function initiatePayment() {
+        var userPhone = document.getElementById('phoneNumber').value.trim();
+        if (!userPhone) {
+            showStatus('Please enter your M-Pesa phone number', 'error');
+            return;
+        }
+
+        var formattedPhone = userPhone.replace(/[^0-9]/g, '');
+        if (formattedPhone.startsWith('0')) {
+            formattedPhone = '254' + formattedPhone.substring(1);
+        }
+        if (!formattedPhone.startsWith('254')) {
+            formattedPhone = '254' + formattedPhone;
+        }
+        if (formattedPhone.length !== 12) {
+            showStatus('Enter valid phone number (e.g., 0712345678)', 'error');
+            return;
+        }
+
+        var payBtn = document.getElementById('payNowBtn');
+        var originalText = payBtn.innerHTML;
+        payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending prompt...';
+        payBtn.disabled = true;
+        showStatus('Initiating M-Pesa payment...', 'info');
+
+        // ─── Generate reCAPTCHA token ──────────────────────────────────
+        var recaptchaToken = '';
         try {
-            const resp = await fetch(API_BASE + '/api/transaction/' + id);
-            if (!resp.ok) return;
-            const data = await resp.json();
-
-            if (data.status === 'SUCCESS' || data.status === 'COMPLETED') {
-                clearInterval(interval);
-                isPolling = false;
-                handlePaymentSuccess();
-                return;
+            if (typeof grecaptcha === 'undefined') {
+                throw new Error('reCAPTCHA not loaded');
             }
-            if (data.status === 'FAILED' || data.status === 'CANCELLED' || data.status === 'REVERSED') {
-                clearInterval(interval);
-                isPolling = false;
-                showStatus('❌ Payment was cancelled or failed. You can try again.', 'error');
-                resetPayButton();
-                progressDiv.style.display = 'none';
-                return;
-            }
-
-            // Still pending – update progress based on elapsed time
-            if (elapsed < 8) {
-                // Step: Sent (0-8s)
-                setStep('sent', '📱 Check your phone – we\'ve sent the M-Pesa prompt. Enter your PIN to confirm.');
-            } else if (elapsed < 30) {
-                // Step: PIN awaiting (8-30s)
-                setStep('pin', '⏳ Waiting for you to enter your PIN on your phone. If you\'ve already entered it, we\'re just confirming with M-Pesa.');
-                // Show a helpful hint after 15s
-                if (elapsed > 15 && !document.querySelector('.retry-link')) {
-                    showRetryLink('Didn\'t receive the prompt? Click here to try again.', () => {
-                        clearInterval(interval);
-                        isPolling = false;
-                        resetPayButton();
-                        progressDiv.style.display = 'none';
-                        initiatePayment();
-                    });
-                }
-            } else if (elapsed < 60) {
-                // Step: Confirming (30-60s)
-                setStep('confirm', '⏳ We\'re now confirming your payment with M-Pesa. This should only take a moment. If you haven\'t entered your PIN yet, please do so now.');
-                if (!document.querySelector('.retry-link')) {
-                    showRetryLink('If you\'re having trouble, click here to try again.', () => {
-                        clearInterval(interval);
-                        isPolling = false;
-                        resetPayButton();
-                        progressDiv.style.display = 'none';
-                        initiatePayment();
-                    });
-                }
-            } else {
-                // 60s+ – ask user to check and offer retry
-                setStep('confirm', '⏳ Still waiting? It might be taking longer than usual. Please check your phone for any pending M-Pesa prompts.');
-                if (!document.querySelector('.retry-link')) {
-                    showRetryLink('I\'ve already entered my PIN – check status', () => {
-                        // Just restart polling
-                        clearInterval(interval);
-                        isPolling = false;
-                        startPolling(id);
-                    });
-                    showRetryLink('I didn\'t get the prompt – try again', () => {
-                        clearInterval(interval);
-                        isPolling = false;
-                        resetPayButton();
-                        progressDiv.style.display = 'none';
-                        initiatePayment();
-                    });
-                }
+            recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' });
+            console.log('✅ reCAPTCHA token generated');
+            if (!recaptchaToken || recaptchaToken.length === 0) {
+                throw new Error('Token is empty');
             }
         } catch (err) {
-            // ignore network errors
+            console.error('reCAPTCHA error:', err);
+            showStatus('Security verification failed. Please refresh and try again.', 'error');
+            payBtn.innerHTML = originalText;
+            payBtn.disabled = false;
+            return;
         }
-    }, 3000);
-    pollingInterval = interval;
-}
 
-// ─── Success ──────────────────────────────────────────────────────
-function handlePaymentSuccess() {
-    setStep('confirm', '✅ Payment confirmed! Your subscription is now active.');
-    // Activate profile
-    const token = getToken();
-    if (token) {
-        fetch(API_BASE + '/api/profiles/me/activate', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tier: selectedTier, duration: selectedDuration, amount: currentAmount, transactionId: transactionId })
-        }).catch(console.error);
+        // ─── Build payload ──────────────────────────────────────────────
+        var payload = {
+            name: TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')',
+            phone: formattedPhone,
+            amount: currentAmount,
+            email: getUserEmail()
+        };
+        console.log('📤 Sending payload:', payload);
+
+        // ─── Send payment request ──────────────────────────────────────
+        try {
+            var response = await fetch(API_BASE + '/api/pay', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Secret': API_SECRET,
+                    'X-Recaptcha-Token': recaptchaToken  // ✅ Send token in HEADERS
+                },
+                body: JSON.stringify(payload)
+            });
+            var data = await response.json();
+            console.log('📥 Response:', data);
+
+            if (response.ok && data.transactionId) {
+                showStatus('✅ M-Pesa prompt sent! Check your phone and enter PIN.', 'success');
+                payBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Waiting for PIN...';
+                startPaymentPolling(data.transactionId);
+            } else {
+                throw new Error(data.error || data.details || data.message || 'Payment initiation failed');
+            }
+        } catch (error) {
+            console.error('Payment error:', error);
+            showStatus(error.message || 'Payment failed. Please try again.', 'error');
+            payBtn.innerHTML = originalText;
+            payBtn.disabled = false;
+        }
     }
-    paymentSection.style.display = 'none';
-    successDiv.style.display = 'block';
-    successText.textContent = 'Your ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ') subscription is now active. ✅ Your profile is visible to clients!';
-    localStorage.setItem('subscription_package', JSON.stringify({ tier: selectedTier, duration: selectedDuration, amount: currentAmount }));
+
+    function startPaymentPolling(transactionId) {
+        if (pollingInterval) clearInterval(pollingInterval);
+        if (waitingTimer) clearTimeout(waitingTimer);
+        pollingAttempts = 0;
+        waitingTimer = setTimeout(function() {
+            showStatus('⏳ Still waiting for payment confirmation. If you cancelled the prompt, please try again.', 'info');
+        }, 10000);
+
+        pollingInterval = setInterval(async function() {
+            pollingAttempts++;
+            var result = await checkPaymentStatus(transactionId);
+           if (result.status === 'SUCCESS' || result.status === 'COMPLETED' || result.status === 'Success') {
+    // ─── Payment successful ──────────────────────────────────
+    showStatus('✅ Payment successful! Activating your profile...', 'info');
+    const token = localStorage.getItem('token');
+    
+    if (token) {
+        // ─── Activate profile ──────────────────────────────────
+        const activationRes = await fetch(`${API_BASE}/api/profiles/me/activate`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ tier: selectedTier, duration: selectedDuration })
+        });
+        const activationData = await activationRes.json();
+        console.log('✅ Activation response:', activationData);
+    }
+    
+    // ─── Show success and redirect ────────────────────────────
+    document.getElementById('paymentForm').style.display = 'none';
+    document.getElementById('successMessage').style.display = 'block';
+    document.getElementById('successText').textContent = 
+        `Your ${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]}) subscription is now active. ✅ Your profile is now visible to clients!`;
+    
+    localStorage.setItem('subscription_package', JSON.stringify({
+        tier: selectedTier,
+        duration: selectedDuration,
+        amount: currentAmount
+    }));
 }
+            if (result.status === 'FAILED' || result.status === 'CANCELLED' || result.status === 'REVERSED' || result.status === 'TIMEOUT') {
+                clearInterval(pollingInterval);
+                clearTimeout(waitingTimer);
+                showStatus('❌ Payment failed or was cancelled. Please try again.', 'error');
+                resetPayButton();
+                return;
+            }
+            if (pollingAttempts >= MAX_ATTEMPTS) {
+                clearInterval(pollingInterval);
+                clearTimeout(waitingTimer);
+                showStatus('❌ Payment not completed. You did not enter your M-Pesa PIN or cancelled the prompt. Please try again.', 'error');
+                resetPayButton();
+            }
+        }, POLL_INTERVAL);
+    }
 
-// ─── Init ──────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-    const params = getParams();
-    if (params.email) localStorage.setItem('userEmail', params.email);
-    if (params.duration) selectDuration(params.duration);
-    if (params.package) selectPackage(params.package);
-    updatePrices();
-    updatePayButton();
-});
+    async function checkPaymentStatus(transactionId) {
+        try {
+            var response = await fetch(API_BASE + '/api/transaction/' + transactionId);
+            if (!response.ok) return { status: 'PENDING' };
+            var data = await response.json();
+            return { status: data.status, data: data };
+        } catch (e) {
+            return { status: 'ERROR' };
+        }
+    }
 
-window.selectDuration = selectDuration;
-window.selectPackage = selectPackage;
-window.initiatePayment = initiatePayment;
+    function resetPayButton() {
+        var payBtn = document.getElementById('payNowBtn');
+        payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount + ' for ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')';
+        payBtn.disabled = false;
+    }
+
+    function showStatus(message, type) {
+        var statusDiv = document.getElementById('paymentStatus');
+        statusDiv.textContent = message;
+        statusDiv.className = 'payment-status ' + type;
+        statusDiv.style.display = 'block';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var params = getParams();
+        if (params.email) localStorage.setItem('userEmail', params.email);
+        if (params.duration) selectDuration(params.duration);
+        if (params.package) selectPackage(params.package);
+        updatePrices();
+        updatePayButton();
+    });
+
+    window.selectDuration = selectDuration;
+    window.selectPackage = selectPackage;
 </script>
 </body>
 </html>
