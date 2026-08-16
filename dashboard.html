@@ -183,7 +183,7 @@
       <form id="editForm">
         <div class="form-group"><label>Display Name</label><input type="text" id="editDisplayName" required></div>
         <div class="form-group"><label>Age</label><input type="number" id="editAge" min="18" max="99" required></div>
-        <div class="form-group"><label>Location</label><select id="editLocation"></select></div>
+        <div class="form-group"><label>Location</label><input type="text" id="editLocation" placeholder="e.g., Kitengela, Nairobi, Mombasa..." required></div>
         <div class="form-group"><label>Ethnicity</label><input type="text" id="editEthnicity"></div>
         <div class="form-group"><label>Description</label><textarea id="editDescription" required></textarea></div>
         
@@ -360,7 +360,7 @@
         renderPhotos(currentProfile);
         renderSubscription(currentProfile);
         populateEditForm(currentProfile);
-        await loadCities(); // ← ADD HERE
+        //await loadCities(); // ← ADD HERE
         showOnboardingBanner();
     } catch (err) { 
         document.getElementById('profileDisplay').innerHTML = `<div style="color:#ff6b6b; padding:20px; background:#2a1a1a; border-radius:8px;"><i class="fas fa-exclamation-circle"></i> ${err.message}</div>`; 
@@ -464,7 +464,7 @@
       }
     }
 
-    // ─── LOAD CITIES ────────────────────────────────────────────────
+    /* ─── LOAD CITIES ────────────────────────────────────────────────
 async function loadCities() {
     try {
         const res = await fetch('/api/cities');
@@ -483,7 +483,7 @@ async function loadCities() {
     } catch (err) {
         console.error('Error loading cities:', err);
     }
-}
+}....*/
 
     // ─── EDIT PROFILE ──────────────────────────────────────────────
     document.getElementById('editForm').addEventListener('submit', async (e) => {
