@@ -656,10 +656,27 @@ async function loadCities() {
     function escapeHtml(str) { if (!str) return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
     // ─── INIT ───────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', () => { 
-      loadProfile(); 
-      setDuration('monthly'); 
-    });
+    // ─── INIT ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => { 
+    loadProfile(); 
+    setDuration('monthly'); 
+
+    // ─── Show file count on photo upload ──────────────────────
+    const fileInput = document.getElementById('newPhotos');
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            const count = this.files.length;
+            const uploadBtn = document.querySelector('.btn-save');
+            if (uploadBtn) {
+                if (count > 0) {
+                    uploadBtn.textContent = `⬆ Upload ${count} photo${count > 1 ? 's' : ''}`;
+                } else {
+                    uploadBtn.textContent = 'Upload';
+                }
+            }
+        });
+    }
+});
 
     // ─── GLOBAL EXPOSURE ───────────────────────────────────────────
     window.switchTab = switchTab; 
