@@ -1261,6 +1261,70 @@ app.get('/api/test-email', async (req, res) => {
     }
 });
 
+// ─── Payment Callback from Sarahapay ──────────────────────────────
+app.post('/payment-callback', async (req, res) => {
+    console.log('📥 Received payment callback from Sarahapay:', req.body);
+    
+    try {
+        const { transactionId, status, receipt, phone, amount, name } = req.body;
+        
+        // ─── If payment is successful, activate the profile ──────
+        if (status === 'SUCCESS') {
+            const profilesCol = getCollection('profiles');
+            if (profilesCol) {
+                // Find profile by phone number
+                const profile = await profilesCol.findOne({ 
+                    $or: [
+                        { phone: phone },
+                        { fullNumber: phone }
+                    ]
+                });
+                
+                if (profile) {
+                    // Calculate expiry date (1 month from now)
+                    const expiryDate = new Date();
+                    expiryDate.setMonth(expiryDate.getMonth() + 1);
+                    
+                    await updateProfile(profile.slug, {
+                        isApproved: true,
+                        status: 'approved',
+                        approvedAt: new Date().toISOString(),
+                        subscriptionTier: 'premium',
+                        subscriptionDuration: 'monthly',
+                        subscriptionExpiry: expiryDate.toISOString(),
+                    });
+                    
+                    console.log(`✅ Profile activated for ${phone}`);
+                    
+                    // Send payment confirmation email
+                    try {
+                        const user = await findUserById(profile.userId);
+                        if (user) {
+                            await sendPaymentConfirmation(
+                                user.email,
+                                profile.displayName || profile.name,
+                                amount || 500,
+                                'Premium',
+                                transactionId || 'N/A'
+                            );
+                            console.log(`✅ Payment confirmation email sent to ${user.email}`);
+                        }
+                    } catch (emailErr) {
+                        console.error('❌ Email sending failed:', emailErr.message);
+                    }
+                } else {
+                    console.log(`⚠️ No profile found for phone: ${phone}`);
+                }
+            }
+        }
+        
+        res.sendStatus(200);
+    } catch (error) {
+        console.error('❌ Payment callback processing error:', error);
+        res.sendStatus(200);
+    }
+});
+
 // ─── Serve Static Files ──────────────────────────────────────────
 // ─── Serve Static Files with Caching ─────────────────────────────
 app.use(express.static('.', {
