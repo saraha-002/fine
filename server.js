@@ -1275,67 +1275,117 @@ app.get('/api/test-email', async (req, res) => {
 });
 
 // ─── Payment Callback from Sarahapay ──────────────────────────────
+// ─── Payment Callback from sarahapay-intasend (IntaSend) ──────────
 app.post('/payment-callback', async (req, res) => {
-    console.log('📥 Received payment callback from Sarahapay:', req.body);
+    console.log('📥 Received payment callback from sarahapay-intasend:', req.body);
     
-    try {
-        const { transactionId, status, receipt, phone, amount, name } = req.body;
-        
-        // ─── If payment is successful, activate the profile ──────
-        if (status === 'SUCCESS') {
-            const profilesCol = getCollection('profiles');
-            if (profilesCol) {
-                // Find profile by phone number
-                const profile = await profilesCol.findOne({ 
-                    $or: [
-                        { phone: phone },
-                        { fullNumber: phone }
-                    ]
-                });
-                
-                if (profile) {
-                    // Calculate expiry date (1 month from now)
-                    const expiryDate = new Date();
-                    expiryDate.setMonth(expiryDate.getMonth() + 1);
-                    
-                    await updateProfile(profile.slug, {
-                        isApproved: true,
-                        status: 'approved',
-                        approvedAt: new Date().toISOString(),
-                        subscriptionTier: 'premium',
-                        subscriptionDuration: 'monthly',
-                        subscriptionExpiry: expiryDate.toISOString(),
-                    });
-                    
-                    console.log(`✅ Profile activated for ${phone}`);
-                    
-                    // Send payment confirmation email
-                    try {
-                        const user = await findUserById(profile.userId);
-                        if (user) {
-                            await sendPaymentConfirmation(
-                                user.email,
-                                profile.displayName || profile.name,
-                                amount || 500,
-                                'Premium',
-                                transactionId || 'N/A'
-                            );
-                            console.log(`✅ Payment confirmation email sent to ${user.email}`);
-                        }
-                    } catch (emailErr) {
-                        console.error('❌ Email sending failed:', emailErr.message);
-                    }
-                } else {
-                    console.log(`⚠️ No profile found for phone: ${phone}`);
-                }
+    // Always respond with 200 to acknowledge receipt
+    res.sendStatus(200);
+    
+    // Process asynchronously (don't block the response)
+    (async () => {
+        try {
+            const payload = req.body;
+            
+            // ─── Extract fields from IntaSend payload ──────────────
+            // IntaSend sends: invoice_id, state, mpesa_reference, account (phone), value (amount), api_ref, etc.
+            const invoiceId = payload.invoice_id || payload.checkout_id || payload.id;
+            const state = payload.state || payload.status;
+            const mpesaReceipt = payload.mpesa_reference || payload.mpesa_receipt_number || payload.receipt;
+            const phone = payload.account || payload.phone;
+            const amount = payload.value || payload.amount;
+            const apiRef = payload.api_ref || payload.reference;
+            
+            console.log(`📊 Processing callback: state=${state}, phone=${phone}, amount=${amount}, receipt=${mpesaReceipt}`);
+            
+            // ─── Check if payment was successful ────────────────────
+            const isSuccess = state === 'COMPLETE' || state === 'completed' || state === 'success' || state === 'SUCCESS';
+            
+            if (!isSuccess) {
+                console.log(`⏭️ Payment not successful (state: ${state}), ignoring.`);
+                return;
             }
+            
+            if (!phone) {
+                console.warn('❌ No phone number in callback payload');
+                return;
+            }
+            
+            // ─── Find profile by phone number ──────────────────────
+            const profilesCol = getCollection('profiles');
+            if (!profilesCol) {
+                console.error('❌ Profiles collection not available');
+                return;
+            }
+            
+            // Try multiple phone formats
+            let profile = await profilesCol.findOne({ 
+                $or: [
+                    { phone: phone },
+                    { fullNumber: phone },
+                    { phone: phone.replace(/^254/, '0') },
+                    { fullNumber: phone.replace(/^254/, '0') },
+                    { phone: '254' + phone.replace(/^0/, '') },
+                    { fullNumber: '254' + phone.replace(/^0/, '') }
+                ]
+            });
+            
+            if (!profile) {
+                console.log(`⚠️ No profile found for phone: ${phone}`);
+                return;
+            }
+            
+            console.log(`✅ Found profile: ${profile.displayName || profile.name}`);
+            
+            // ─── Calculate expiry date (1 month from now) ──────────
+            const expiryDate = new Date();
+            expiryDate.setMonth(expiryDate.getMonth() + 1);
+            
+            // ─── Determine subscription tier based on amount ────────
+            let tier = 'premium';
+            const amt = parseFloat(amount);
+            if (amt >= 1000) tier = 'vip';
+            else if (amt >= 500) tier = 'premium';
+            else if (amt >= 200) tier = 'standard';
+            
+            // ─── Update profile with subscription ────────────────────
+            const updates = {
+                isApproved: true,
+                status: 'approved',
+                approvedAt: new Date().toISOString(),
+                subscriptionTier: tier,
+                subscriptionDuration: 'monthly',
+                subscriptionExpiry: expiryDate.toISOString(),
+                mpesaReceipt: mpesaReceipt || apiRef,
+                lastPaymentDate: new Date().toISOString()
+            };
+            
+            const updated = await updateProfile(profile.slug, updates);
+            console.log(`✅ Profile ${profile.slug} activated until ${expiryDate.toISOString()}`);
+            
+            // ─── Send payment confirmation email ────────────────────
+            try {
+                const user = await findUserById(profile.userId);
+                if (user && user.email) {
+                    await sendPaymentConfirmation(
+                        user.email,
+                        profile.displayName || profile.name,
+                        amount || 500,
+                        tier,
+                        mpesaReceipt || apiRef || 'N/A'
+                    );
+                    console.log(`✅ Payment confirmation email sent to ${user.email}`);
+                } else {
+                    console.log(`⚠️ No user found for profile ${profile.slug}`);
+                }
+            } catch (emailErr) {
+                console.error('❌ Email sending failed:', emailErr.message);
+            }
+            
+        } catch (error) {
+            console.error('❌ Payment callback processing error:', error);
         }
-        
-        res.sendStatus(200);
-    } catch (error) {
-        console.error('❌ Payment callback processing error:', error);
-        res.sendStatus(200);
-    }
+    })();
 });
 
 // ─── Serve Static Files ──────────────────────────────────────────
