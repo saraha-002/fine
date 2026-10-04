@@ -1,78 +1,79 @@
-const nodemailer = require('nodemailer');
+// utils/emailService.js — Resend version
+const { Resend } = require('resend');
 const ejs = require('ejs');
 const path = require('path');
 
-// Create transporter (will be configured later)
-let transporter = null;
+let resend = null;
 
-const initTransporter = () => {
-  if (!transporter) {
-    transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST || 'smtp-relay.sendinblue.com',
-      port: process.env.SMTP_PORT || 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+const initResend = () => {
+  if (!resend) {
+    if (!process.env.RESEND_API_KEY) {
+      console.warn('⚠️ RESEND_API_KEY not set — emails will be logged, not sent');
+      return null;
+    }
+    resend = new Resend(process.env.RESEND_API_KEY);
   }
-  return transporter;
+  return resend;
 };
 
-// Helper to render EJS templates
+const FROM = () =>
+  process.env.EMAIL_FROM || 'FineEscorts Kenya <onboarding@resend.dev>';
+
+// Render an EJS template from emailTemplates/<name>.ejs
 const renderTemplate = async (templateName, data) => {
   const templatePath = path.join(__dirname, '..', 'emailTemplates', `${templateName}.ejs`);
   return await ejs.renderFile(templatePath, data);
 };
 
-// Send email function
 const sendEmail = async (to, subject, templateName, data = {}) => {
   try {
-    const transporter = initTransporter();
-    
-    // Render the email body
-    const html = await renderTemplate(templateName, data);
-    
-    const mailOptions = {
-      from: process.env.SMTP_FROM || 'info@fineescorts.co.ke',
-      to,
-      subject,
-      html,
-    };
+    const client = initResend();
 
-    // For testing: log instead of sending
-    if (process.env.NODE_ENV === 'development' || !process.env.SMTP_USER) {
-      console.log('📧 Email would be sent:');
-      console.log('To:', to);
-      console.log('Subject:', subject);
-      console.log('Template:', templateName);
-      console.log('Data:', data);
-      console.log('---');
+    // Dev fallback: log instead of sending
+    if (!client) {
+      console.log('📧 [DEV] Email would be sent:');
+      console.log('  To:', to);
+      console.log('  From:', FROM());
+      console.log('  Subject:', subject);
+      console.log('  Template:', templateName);
+      console.log('  Data:', data);
       return { success: true, test: true };
     }
 
-    // Actually send email
-    const info = await transporter.sendMail(mailOptions);
-    return { success: true, info };
+    const html = await renderTemplate(templateName, data);
+
+    const result = await client.emails.send({
+      from: FROM(),
+      to,
+      subject,
+      html,
+    });
+
+    if (result.error) {
+      console.error(`❌ Resend error (${templateName} → ${to}):`, result.error);
+      return { success: false, error: result.error };
+    }
+
+    console.log(`✅ Email sent (${templateName} → ${to}):`, result.data?.id);
+    return { success: true, id: result.data?.id };
   } catch (error) {
     console.error('Email sending failed:', error);
     return { success: false, error: error.message };
   }
 };
 
-// ─── Specific Email Functions ────────────────────────────────────
+// ─── Specific Email Functions (same signatures as before) ─────────
 
 const sendWelcomeEmail = async (email, name) => {
   return await sendEmail(email, 'Welcome to FineEscorts Kenya!', 'welcome', { name });
 };
 
 const sendApprovalEmail = async (email, name, status, slug, reason = '') => {
-  return await sendEmail(email, `Profile ${status}`, 'approval', { 
-    name, 
-    status, 
+  return await sendEmail(email, `Profile ${status}`, 'approval', {
+    name,
+    status,
     slug,
-    reason 
+    reason,
   });
 };
 
@@ -94,7 +95,6 @@ const sendSubscriptionExpiredEmail = async (email, name, plan, expiryDate, renew
   );
 };
 
-// ─── Admin Bulk Email ─────────────────────────────────────────────
 const sendAdminBulkEmail = async (email, name, subject, message) => {
   return await sendEmail(
     email,
@@ -104,31 +104,29 @@ const sendAdminBulkEmail = async (email, name, subject, message) => {
   );
 };
 
-// ─── Admin Notification ──────────────────────────────────────────
 const sendAdminNewSignupNotification = async (profile) => {
-    const adminEmail = process.env.ADMIN_EMAIL || 'info@fineescorts.co.ke';
-    return await sendEmail(
-        adminEmail,
-        '🆕 New Escort Signup – Pending Approval',
-        'admin-new-signup',
-        {
-            displayName: profile.displayName || profile.name,
-            email: profile.email || 'N/A',
-            location: profile.city || profile.location || 'N/A',
-            age: profile.age || 'N/A',
-            phone: profile.phone || 'N/A',
-            services: profile.services ? profile.services.join(', ') : 'Not specified'
-        }
-    );
+  const adminEmail = process.env.ADMIN_EMAIL || 'info@fineescorts.co.ke';
+  return await sendEmail(
+    adminEmail,
+    '🆕 New Escort Signup – Pending Approval',
+    'admin-new-signup',
+    {
+      displayName: profile.displayName || profile.name,
+      email: profile.email || 'N/A',
+      location: profile.city || profile.location || 'N/A',
+      age: profile.age || 'N/A',
+      phone: profile.phone || 'N/A',
+      services: profile.services ? profile.services.join(', ') : 'Not specified',
+    }
+  );
 };
 
-// ─── Single Export ─────────────────────────────────────────────────
 module.exports = {
   sendWelcomeEmail,
   sendApprovalEmail,
   sendPaymentConfirmation,
   sendSubscriptionExpiredEmail,
   sendAdminBulkEmail,
-  sendAdminNewSignupNotification,  // ← ADDED
+  sendAdminNewSignupNotification,
   sendEmail,
 };
