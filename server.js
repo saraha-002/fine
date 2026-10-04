@@ -1263,12 +1263,12 @@ app.get('/api/transaction/:id', async (req, res) => {
 app.get('/api/test-email', async (req, res) => {
     try {
         const { sendEmail } = require('./utils/emailService');
-        const result = await sendEmail(
-            'test@example.com',
-            'Test Email',
-            'admin-bulk',
-            { name: 'Test User', message: 'This is a test email.' }
-        );
+       const result = await sendEmail(
+    'johnrwandanembassy@gmail.com',          // ← your inbox
+    'Test Email',
+    'admin-bulk',
+    { name: 'Test User', message: 'This is a test email.' }
+);
         res.json(result);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
