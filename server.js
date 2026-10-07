@@ -1300,7 +1300,7 @@ app.post('/payment-callback', async (req, res) => {
             // IntaSend sends: invoice_id, state, mpesa_reference, account (phone), value (amount), api_ref, etc.
             const invoiceId = payload.invoice_id || payload.checkout_id || payload.id;
             const state = payload.state || payload.status;
-            const mpesaReceipt = payload.mpesa_reference || payload.mpesa_receipt_number || payload.receipt;
+            const mpesaReceipt = payload.mpesa_receipt || payload.mpesa_reference || payload.mpesa_receipt_number || payload.receipt;
             const phone = payload.account || payload.phone;
             const amount = payload.value || payload.amount;
             const apiRef = payload.api_ref || payload.reference;
