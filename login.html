@@ -4,32 +4,275 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login – FineEscorts Kenya</title>
+  <meta name="description" content="Log in to your FineEscorts Kenya account to manage your profile, photos, and subscription.">
   <link rel="icon" type="image/webp" href="/fineescorts-favicon.webp">
   <link rel="stylesheet" href="css/profile.css">
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    body { background: #0d0d0d; font-family: 'Jost', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
-    .login-container { max-width: 400px; margin: 60px auto; padding: 35px; background: #1a1a1a; border-radius: 16px; border: 1px solid #2c2c2c; }
-    .login-container h1 { text-align: center; color: #eaeaea; font-size: 1.8rem; margin-bottom: 8px; }
-    .login-container .subtitle { text-align: center; color: #888; margin-bottom: 25px; font-size: 0.95rem; }
-    .login-container .form-group { margin-bottom: 20px; }
-    .login-container label { display: block; font-weight: 600; margin-bottom: 5px; color: #eaeaea; }
-    .login-container input { width: 100%; padding: 12px; border: 2px solid #2c2c2c; border-radius: 8px; font-size: 16px; background: #0d0d0d; color: #eaeaea; transition: border 0.3s; }
-    .login-container input:focus { border-color: #c7a76c; outline: none; }
-    .login-container .btn-login { width: 100%; padding: 14px; background: #c7a76c; color: #0d0d0d; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
-    .login-container .btn-login:hover { background: #dbb87a; }
-    .login-container .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
-    .error { color: #ff6b6b; background: #2a1a1a; padding: 12px; border-radius: 8px; display: none; margin-bottom: 15px; border-left: 4px solid #ff6b6b; }
-    .login-container .signup-link { text-align: center; margin-top: 20px; color: #888; }
-    .login-container .signup-link a { color: #c7a76c; font-weight: 600; text-decoration: none; }
-    .login-container .signup-link a:hover { text-decoration: underline; }
-    .login-container .forgot-password { text-align: right; margin-top: 5px; }
-    .login-container .forgot-password a { color: #c7a76c; font-size: 0.9rem; text-decoration: none; }
-    .login-container .forgot-password a:hover { text-decoration: underline; }
-    .back-home { text-align: center; margin-top: 15px; }
-    .back-home a { color: #888; text-decoration: none; }
-    .back-home a:hover { color: #c7a76c; }
+    body {
+      background: #0d0d0d;
+      font-family: 'Jost', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+    }
+
+    .login-main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .login-container {
+      max-width: 440px;
+      width: 100%;
+      padding: 40px 32px;
+      background: #1a1a1a;
+      border-radius: 12px;
+      border: 1px solid #2c2c2c;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .login-container h1 {
+      text-align: center;
+      color: #eaeaea;
+      margin: 0 0 6px;
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .login-container .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #eaeaea;
+      font-size: 14px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #2c2c2c;
+      border-radius: 8px;
+      font-size: 16px;
+      background: #0d0d0d;
+      color: #eaeaea;
+      transition: border 0.2s, background 0.2s;
+      box-sizing: border-box;
+      font-family: 'Jost', sans-serif;
+    }
+
+    .form-group input:focus {
+      border-color: #c7a76c;
+      outline: none;
+      background: #141414;
+    }
+
+    .form-group input::placeholder {
+      color: #555;
+    }
+
+    /* ─── Password field with eye toggle ───────────────────────── */
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-wrapper input {
+      padding-right: 46px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      padding: 6px 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .toggle-password:hover {
+      color: #c7a76c;
+      background: rgba(199, 167, 108, 0.08);
+    }
+
+    .toggle-password:focus {
+      outline: none;
+      color: #c7a76c;
+    }
+
+    /* ─── Caps lock warning ─────────────────────────────────────── */
+    .caps-warning {
+      display: none;
+      color: #ff9800;
+      font-size: 13px;
+      margin-top: 6px;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .caps-warning.visible {
+      display: flex;
+    }
+
+    /* ─── Helper row (forgot password + remember me) ───────────── */
+    .helper-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 22px;
+      font-size: 13px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .remember-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #a0a0a0;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .remember-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #c7a76c;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .forgot-link {
+      color: #c7a76c;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .forgot-link:hover {
+      color: #dbb87a;
+      text-decoration: underline;
+    }
+
+    /* ─── Submit button ─────────────────────────────────────────── */
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: #c7a76c;
+      color: #0d0d0d;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      font-family: 'Jost', sans-serif;
+      letter-spacing: 0.3px;
+    }
+
+    .btn-login:hover:not(:disabled) {
+      background: #dbb87a;
+    }
+
+    .btn-login:active:not(:disabled) {
+      transform: scale(0.99);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    /* ─── Error / status message ────────────────────────────────── */
+    .status-message {
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+    }
+
+    .status-message.error {
+      display: block;
+      background: #3a1a1a;
+      color: #ff6b6b;
+      border-left: 4px solid #ff6b6b;
+    }
+
+    .status-message.success {
+      display: block;
+      background: #1a3a2a;
+      color: #4CAF50;
+      border-left: 4px solid #4CAF50;
+    }
+
+    /* ─── Trust note ────────────────────────────────────────────── */
+    .trust-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 18px;
+      color: #666;
+      font-size: 12px;
+    }
+
+    .trust-note i {
+      color: #4CAF50;
+    }
+
+    /* ─── Bottom links ──────────────────────────────────────────── */
+    .bottom-links {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 22px;
+      border-top: 1px solid #2c2c2c;
+      color: #888;
+      font-size: 14px;
+    }
+
+    .bottom-links a {
+      color: #c7a76c;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .bottom-links a:hover {
+      color: #dbb87a;
+      text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 28px 20px;
+      }
+      .login-container h1 {
+        font-size: 22px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -40,40 +283,77 @@
       </a>
       <nav style="display: flex; gap: 15px; align-items: center;">
         <a href="/" style="color: #a0a0a0; text-decoration: none;">Home</a>
-        <a href="signup.html" style="color: #c7a76c; text-decoration: none; font-weight: 600;">Become an Escort</a>
+        <a href="signup.html" style="color: #c7a76c; text-decoration: none; font-weight: 600;">Sign Up</a>
       </nav>
     </div>
   </header>
 
-  <main style="flex: 1;">
+  <main class="login-main">
     <div class="login-container">
-      <h1>🔐 Welcome Back</h1>
-      <p class="subtitle">Login to your FineEscorts account</p>
+      <h1>👤 Welcome Back</h1>
+      <p class="subtitle">Log in to manage your profile and subscription</p>
 
-      <div id="errorMessage" class="error"></div>
+      <div id="statusMessage" class="status-message" role="alert" aria-live="polite"></div>
 
-      <form id="loginForm">
+      <form id="loginForm" onsubmit="return false;">
         <div class="form-group">
           <label for="email">Email Address</label>
-          <input type="email" id="email" required placeholder="your@email.com">
+          <input
+            type="email"
+            id="email"
+            placeholder="you@example.com"
+            autocomplete="email"
+            inputmode="email"
+            autocapitalize="off"
+            spellcheck="false"
+            required>
         </div>
+
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" required placeholder="Enter your password">
+          <div class="password-wrapper">
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              required>
+            <button
+              type="button"
+              class="toggle-password"
+              id="togglePasswordBtn"
+              onclick="togglePassword()"
+              aria-label="Show password"
+              tabindex="0">
+              <i class="fas fa-eye" id="passwordToggleIcon"></i>
+            </button>
+          </div>
+          <div id="capsWarning" class="caps-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Caps Lock is on</span>
+          </div>
         </div>
 
-        <div class="forgot-password">
-          <a href="/reset-password.html">Forgot Password?</a>
+        <div class="helper-row">
+          <label class="remember-label">
+            <input type="checkbox" id="rememberMe">
+            Remember me
+          </label>
+          <a href="forgot-password.html" class="forgot-link">Forgot password?</a>
         </div>
 
-        <button type="submit" class="btn-login" id="loginBtn">Login</button>
+        <button type="submit" id="loginBtn" class="btn-login">
+          <i class="fas fa-sign-in-alt"></i> Log In
+        </button>
+
+        <div class="trust-note">
+          <i class="fas fa-lock"></i>
+          <span>Your password is encrypted and secure</span>
+        </div>
       </form>
 
-      <div class="signup-link">
-        Don't have an account? <a href="signup.html">Sign up here</a>
-      </div>
-      <div class="back-home">
-        <a href="/">← Back to Home</a>
+      <div class="bottom-links">
+        Don't have an account? <a href="signup.html">Sign up</a>
       </div>
     </div>
   </main>
@@ -82,62 +362,167 @@
     <p>&copy; 2026 FineEscorts Kenya. All rights reserved.</p>
   </footer>
 
-  <script>
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const errorDiv = document.getElementById('errorMessage');
-      const loginBtn = document.getElementById('loginBtn');
+<script>
+  // ─── Password visibility toggle ─────────────────────────────────
+  function togglePassword() {
+    var input = document.getElementById('password');
+    var icon  = document.getElementById('passwordToggleIcon');
+    var btn   = document.getElementById('togglePasswordBtn');
 
-      loginBtn.disabled = true;
-      loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
-      errorDiv.style.display = 'none';
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.replace('fa-eye', 'fa-eye-slash');
+      btn.setAttribute('aria-label', 'Hide password');
+    } else {
+      input.type = 'password';
+      icon.classList.replace('fa-eye-slash', 'fa-eye');
+      btn.setAttribute('aria-label', 'Show password');
+    }
 
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
+    // Keep the cursor at the end — feels natural when toggling
+    var pos = input.value.length;
+    input.focus();
+    try { input.setSelectionRange(pos, pos); } catch (e) { /* ignore */ }
+  }
 
-        if (!res.ok) {
-          errorDiv.textContent = data.message || 'Login failed. Please check your credentials.';
-          errorDiv.style.display = 'block';
-          loginBtn.disabled = false;
-          loginBtn.innerHTML = 'Login';
-          return;
-        }
-
-        // ─── Store authentication data ────────────────────────────
-        localStorage.setItem('token', data.token);
-
-        // Store the FULL user object (contains email, role, etc.)
-        localStorage.setItem('user', JSON.stringify(data.user));
-
-        // Optional: keep email and role for backward compatibility
-        localStorage.setItem('userEmail', data.user?.email || email);
-        localStorage.setItem('userRole', data.user?.role || 'escort');
-
-        if (data.subscription?.expired) {
-          alert(data.subscription.message);
-        }
-
-        // ─── Redirect based on role ──────────────────────────────
-        if (data.user?.role === 'admin') {
-          window.location.href = '/admin.html';
-        } else {
-          window.location.href = '/dashboard.html';
-        }
-
-      } catch (err) {
-        errorDiv.textContent = 'An error occurred. Please try again later.';
-        errorDiv.style.display = 'block';
-        loginBtn.disabled = false;
-        loginBtn.innerHTML = 'Login';
-      }
+  // ─── Caps Lock detection ────────────────────────────────────────
+  (function () {
+    var pw = document.getElementById('password');
+    var warn = document.getElementById('capsWarning');
+    function check(e) {
+      var on = e.getModifierState && e.getModifierState('CapsLock');
+      warn.classList.toggle('visible', !!on);
+    }
+    pw.addEventListener('keydown', check);
+    pw.addEventListener('keyup', check);
+    pw.addEventListener('blur', function () {
+      warn.classList.remove('visible');
     });
-  </script>
+  })();
+
+  // ─── Status helper ──────────────────────────────────────────────
+  function showStatus(message, type) {
+    var el = document.getElementById('statusMessage');
+    el.textContent = message;
+    el.className = 'status-message ' + type;
+    el.style.display = 'block';
+  }
+
+  function hideStatus() {
+    var el = document.getElementById('statusMessage');
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+
+  // ─── Prefill remembered email ───────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function () {
+    var remembered = localStorage.getItem('rememberedEmail');
+    var checkbox = document.getElementById('rememberMe');
+    var emailInput = document.getElementById('email');
+
+    if (remembered) {
+      emailInput.value = remembered;
+      checkbox.checked = true;
+      // Focus the password since email is prefilled
+      document.getElementById('password').focus();
+    } else {
+      emailInput.focus();
+    }
+  });
+
+  // ─── Login submit ───────────────────────────────────────────────
+  document.getElementById('loginForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    hideStatus();
+
+    var emailInput = document.getElementById('email');
+    var passwordInput = document.getElementById('password');
+    var btn = document.getElementById('loginBtn');
+
+    var email = emailInput.value.trim();
+    var password = passwordInput.value;
+
+    if (!email) {
+      showStatus('Please enter your email address.', 'error');
+      emailInput.focus();
+      return;
+    }
+
+    // Basic email sanity check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showStatus('Please enter a valid email address.', 'error');
+      emailInput.focus();
+      return;
+    }
+
+    if (!password) {
+      showStatus('Please enter your password.', 'error');
+      passwordInput.focus();
+      return;
+    }
+
+    // ─── Loading state ────────────────────────────────────────────
+    var originalBtn = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+    btn.disabled = true;
+    emailInput.disabled = true;
+    passwordInput.disabled = true;
+
+    try {
+      var response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password })
+      });
+
+      var data = await response.json().catch(function () { return {}; });
+
+      if (!response.ok) {
+        // Map server messages to friendlier copy
+        var msg = data.message || 'Login failed.';
+        if (/invalid credentials/i.test(msg)) {
+          msg = 'Email or password is incorrect. Please try again.';
+        }
+        showStatus(msg, 'error');
+        resetButton();
+        return;
+      }
+
+      // ─── Success ──────────────────────────────────────────────
+      localStorage.setItem('token', data.token);
+      if (data.user && data.user.email) {
+        localStorage.setItem('userEmail', data.user.email);
+      }
+
+      // Handle "Remember me"
+      if (document.getElementById('rememberMe').checked) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+
+      showStatus('Login successful! Redirecting...', 'success');
+
+      setTimeout(function () {
+        window.location.href = 'dashboard.html';
+      }, 600);
+
+    } catch (err) {
+      console.error('Login error:', err);
+      showStatus('Network error. Please check your connection and try again.', 'error');
+      resetButton();
+    }
+
+    function resetButton() {
+      btn.innerHTML = originalBtn;
+      btn.disabled = false;
+      emailInput.disabled = false;
+      passwordInput.disabled = false;
+    }
+  });
+
+  // Expose for inline handlers
+  window.togglePassword = togglePassword;
+</script>
 </body>
 </html>
