@@ -549,7 +549,55 @@ async function updateProfile(slug, updates) {
     }
     return null;
 }
+// ─── Ensure admin user exists on boot ─────────────────────────────
+async function ensureAdminUser() {
+    const email = process.env.ADMIN_EMAIL;
+    const password = process.env.ADMIN_PASSWORD;
 
+    if (!email || !password) {
+        console.log('ℹ️ ADMIN_EMAIL / ADMIN_PASSWORD not set — skipping admin bootstrap');
+        return;
+    }
+
+    const usersCol = getCollection('users');
+    if (!usersCol) {
+        console.log('⚠️ Cannot ensure admin user — users collection unavailable');
+        return;
+    }
+
+    try {
+        const existing = await usersCol.findOne({ email: email.toLowerCase().trim() });
+
+        if (existing) {
+            // Guarantee admin role even if it was changed
+            if (existing.role !== 'admin') {
+                await usersCol.updateOne(
+                    { _id: existing._id },
+                    { $set: { role: 'admin' } }
+                );
+                console.log(`✅ Ensured ${email} has admin role`);
+            } else {
+                console.log(`✅ Admin user verified: ${email}`);
+            }
+            return;
+        }
+
+        // Create the admin user if missing
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await usersCol.insertOne({
+            _id: new ObjectId(),
+            email: email.toLowerCase().trim(),
+            password: hashedPassword,
+            token: generateToken(),
+            role: 'admin',
+            createdAt: new Date().toISOString()
+        });
+        console.log(`✅ Created admin user: ${email}`);
+
+    } catch (err) {
+        console.error('❌ Admin bootstrap failed:', err.message);
+    }
+}
 // ─── Routes ────────────────────────────────────────────────────────
 
 // ─── Auth Routes ──────────────────────────────────────────────────
@@ -1358,15 +1406,34 @@ app.post('/payment-callback', async (req, res) => {
             console.log(`✅ Found profile: ${profile.displayName || profile.name}`);
             
             // ─── Calculate expiry date (1 month from now) ──────────
-            const expiryDate = new Date();
-            expiryDate.setMonth(expiryDate.getMonth() + 1);
+                        // ─── Parse tier and duration from payment name ─────────────────
             
             // ─── Determine subscription tier based on amount ────────
-            let tier = 'premium';
-            const amt = parseFloat(amount);
-            if (amt >= 1000) tier = 'vip';
-            else if (amt >= 500) tier = 'premium';
-            else if (amt >= 200) tier = 'standard';
+           // ─── Parse tier and duration from payment name ─────────────────
+// payment.html sends: "VIP (Daily (24hrs))" / "Standard (Monthly (30 days))"
+const paymentName = String(payload.name || '').toLowerCase();
+
+let tier = 'premium';
+if (paymentName.includes('vip'))            tier = 'vip';
+else if (paymentName.includes('premium'))   tier = 'premium';
+else if (paymentName.includes('standard'))  tier = 'standard';
+
+let duration = 'monthly';
+if (paymentName.includes('daily'))          duration = 'daily';
+else if (paymentName.includes('weekly'))    duration = 'weekly';
+else if (paymentName.includes('monthly'))   duration = 'monthly';
+
+// ─── Compute expiry based on duration ──────────────────────────
+const expiryDate = new Date();
+if (duration === 'daily') {
+    expiryDate.setDate(expiryDate.getDate() + 1);
+} else if (duration === 'weekly') {
+    expiryDate.setDate(expiryDate.getDate() + 7);
+} else {
+    expiryDate.setMonth(expiryDate.getMonth() + 1);
+}
+
+console.log(`📦 Parsed: tier=${tier}, duration=${duration}, expiry=${expiryDate.toISOString()}`);
             
             // ─── Update profile with subscription ────────────────────
             const updates = {
@@ -1374,7 +1441,7 @@ app.post('/payment-callback', async (req, res) => {
                 status: 'approved',
                 approvedAt: new Date().toISOString(),
                 subscriptionTier: tier,
-                subscriptionDuration: 'monthly',
+                subscriptionDuration: duration,            // ← from parsed name
                 subscriptionExpiry: expiryDate.toISOString(),
                 mpesaReceipt: mpesaReceipt || apiRef,
                 lastPaymentDate: new Date().toISOString()
@@ -1883,6 +1950,7 @@ setInterval(checkExpiredSubscriptions, 24 * 60 * 60 * 1000); // 24 hours
 // ─── Start Server ──────────────────────────────────────────────────
 async function startServer() {
     await connectDB();
+    await ensureAdminUser();       // ← add this line
     app.listen(PORT, () => {
         console.log(`🚀 FineEscorts Server running at http://localhost:${PORT}`);
         console.log(`📊 API endpoints at http://localhost:${PORT}/api/`);

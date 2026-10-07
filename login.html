@@ -503,9 +503,15 @@
 
       showStatus('Login successful! Redirecting...', 'success');
 
-      setTimeout(function () {
-        window.location.href = 'dashboard.html';
-      }, 600);
+     if (data.user && data.user.role) {
+  localStorage.setItem('role', data.user.role);
+}
+
+var destination = (data.user && data.user.role === 'admin') ? '/admin.html' : '/dashboard.html';
+
+setTimeout(function () {
+  window.location.href = destination;
+}, 600);
 
     } catch (err) {
       console.error('Login error:', err);
