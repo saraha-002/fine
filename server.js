@@ -1210,7 +1210,7 @@ app.post('/api/pay', async (req, res) => {
             });
         }
 
-        const response = await fetch('https://sarahapay.onrender.com/api/pay', {   // ← FIXED
+        const response = await fetch('https://sarahapay-intasend.onrender.com/api/pay', {  // ← FIXED
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1240,10 +1240,11 @@ app.post('/api/pay', async (req, res) => {
 });
 
 // ─── Transaction Status Proxy ─────────────────────────────────────
+// ─── Transaction Status Proxy ─────────────────────────────────────
 app.get('/api/transaction/:id', async (req, res) => {
     try {
         const transactionId = req.params.id;
-        const response = await fetch(`https://sarahapay.onrender.com/api/transaction/${transactionId}`, {
+        const response = await fetch(`https://sarahapay-intasend.onrender.com/api/transaction/${transactionId}`, {   // ← CHANGE HERE
             headers: {
                 'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4'
             }
