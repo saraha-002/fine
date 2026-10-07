@@ -1210,7 +1210,7 @@ app.post('/api/pay', async (req, res) => {
             });
         }
 
-        const response = await fetch('https://sarahapay.onrender.com/api/pay', {
+        const response = await fetch('https://sarahapay.onrender.com/api/pay', {   // ← FIXED
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1278,9 +1278,15 @@ app.get('/api/test-email', async (req, res) => {
 // ─── Payment Callback from Sarahapay ──────────────────────────────
 // ─── Payment Callback from sarahapay-intasend (IntaSend) ──────────
 app.post('/payment-callback', async (req, res) => {
+    // ─── Verify caller ────────────────────────────────────
+    const incomingSecret = req.headers['x-callback-secret'];
+    if (!process.env.FINEESCORTS_CALLBACK_SECRET
+        || incomingSecret !== process.env.FINEESCORTS_CALLBACK_SECRET) {
+        console.warn('❌ Unauthorized /payment-callback attempt from:', req.ip);
+        return res.sendStatus(401);
+    }
+
     console.log('📥 Received payment callback from sarahapay-intasend:', req.body);
-    
-    // Always respond with 200 to acknowledge receipt
     res.sendStatus(200);
     
     // Process asynchronously (don't block the response)
@@ -1300,8 +1306,13 @@ app.post('/payment-callback', async (req, res) => {
             console.log(`📊 Processing callback: state=${state}, phone=${phone}, amount=${amount}, receipt=${mpesaReceipt}`);
             
             // ─── Check if payment was successful ────────────────────
-            const isSuccess = state === 'COMPLETE' || state === 'completed' || state === 'success' || state === 'SUCCESS';
-            
+            const isSuccess =
+    state === 'COMPLETE' ||
+    state === 'completed' ||
+    state === 'success' ||
+    state === 'SUCCESS' ||
+    state === 'paid' ||
+    state === 'PAID';
             if (!isSuccess) {
                 console.log(`⏭️ Payment not successful (state: ${state}), ignoring.`);
                 return;
@@ -1331,11 +1342,17 @@ app.post('/payment-callback', async (req, res) => {
                 ]
             });
             
-            if (!profile) {
+                       if (!profile) {
                 console.log(`⚠️ No profile found for phone: ${phone}`);
                 return;
             }
-            
+
+            // ─── Idempotency: ignore duplicate callbacks ───────
+            if (mpesaReceipt && profile.mpesaReceipt === mpesaReceipt) {
+                console.log(`⏭️ Duplicate callback for receipt ${mpesaReceipt}, ignoring`);
+                return;
+            }
+
             console.log(`✅ Found profile: ${profile.displayName || profile.name}`);
             
             // ─── Calculate expiry date (1 month from now) ──────────
