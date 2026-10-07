@@ -84,7 +84,7 @@
       <div class="package-grid" id="packageGrid">
         <div class="package-card" data-tier="standard" onclick="selectPackage('standard')">
           <div class="tier-name">Standard</div>
-          <div class="tier-price" id="price-standard">KES 100</div>
+          <div class="tier-price" id="price-standard">KES 49</div>
           <ul class="tier-features">
             <li><i class="fas fa-check"></i> Profile Listing</li>
             <li><i class="fas fa-check"></i> 3 Photos</li>
@@ -96,7 +96,7 @@
         <div class="package-card selected" data-tier="premium" onclick="selectPackage('premium')">
           <div class="popular-badge">⭐ Popular</div>
           <div class="tier-name">Premium</div>
-          <div class="tier-price" id="price-premium">KES 150</div>
+          <div class="tier-price" id="price-premium">KES 99</div>
           <ul class="tier-features">
             <li><i class="fas fa-check"></i> Profile Listing</li>
             <li><i class="fas fa-check"></i> 5 Photos</li>
@@ -108,7 +108,7 @@
         </div>
         <div class="package-card" data-tier="vip" onclick="selectPackage('vip')">
           <div class="tier-name">VIP</div>
-          <div class="tier-price" id="price-vip">KES 200</div>
+          <div class="tier-price" id="price-vip">KES 149</div>
           <ul class="tier-features">
             <li><i class="fas fa-check"></i> Profile Listing</li>
             <li><i class="fas fa-check"></i> 10 Photos</li>
@@ -127,7 +127,7 @@
           <input type="tel" id="phoneNumber" required placeholder="07XX XXX XXX">
           <small>You'll receive a prompt to confirm payment on your phone.</small>
         </div>
-        <button type="button" id="payNowBtn" class="btn-pay"><i class="fas fa-mobile-alt"></i> Pay KES 150 with M-Pesa</button>
+        <button type="button" id="payNowBtn" class="btn-pay"><i class="fas fa-mobile-alt"></i> Pay KES 99 with M-Pesa</button>
       </form>
 
       <div id="paymentStatus" class="payment-status"></div>
@@ -156,26 +156,28 @@
 
     const PRICING = {
         daily:   { standard: 49,  premium: 99,  vip: 149 },
-        weekly:  { standard: 399,  premium: 699,  vip: 999 },
-        monthly: { standard: 1299, premium: 1999, vip:  2999}
+        weekly:  { standard: 399, premium: 699, vip: 999 },
+        monthly: { standard: 1299, premium: 1999, vip: 2999 }
     };
     const TIER_NAMES = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
     const DURATION_NAMES = { daily: 'Daily (24hrs)', weekly: 'Weekly (7 days)', monthly: 'Monthly (30 days)' };
 
     // ─── Polling config ────────────────────────────────────────────
-    // Poll every 2s for up to 90s. The IntaSend callback can take 10–60s
-    // to arrive. We DO NOT declare "failed" on timeout — the callback may
-    // still arrive after. Only Sarahapay's explicit FAILED/CANCELLED does.
+    // Poll every 2s for up to 90s. Trust the backend callback over
+    // Sarahapay's view. Sarahapay marks stale pending txs FAILED after
+    // 30s, so we require TWO sightings + a final profile check before
+    // declaring a failure.
     const POLL_INTERVAL = 2000;
     const MAX_ATTEMPTS  = 45;     // 90 seconds
-    const SLOW_MSG_AFTER = 15000; // show "still waiting" hint after 15s
+    const SLOW_MSG_AFTER = 20000; // show "still waiting" hint after 20s
 
     let selectedDuration = 'daily';
     let selectedTier = 'premium';
-    let currentAmount = 150;
+    let currentAmount = 99;
     let pollingInterval = null;
     let pollingAttempts = 0;
     let waitingTimer = null;
+    let failedSightings = 0;
 
     function getUserEmail() {
         return localStorage.getItem('userEmail') || '';
@@ -312,20 +314,26 @@
 
     // ─── POLLING ───────────────────────────────────────────────────
     // Primary source of truth: the profile has been activated by the
-    // backend /payment-callback. Secondary: Sarahapay's explicit fail state.
+    // backend /payment-callback. Secondary: Sarahapay's explicit fail
+    // state — but only after two consecutive sightings and a final
+    // profile re-check, because Sarahapay auto-flags stale pending
+    // transactions as FAILED at ~30s.
     function startPaymentPolling(transactionId) {
         if (pollingInterval) clearInterval(pollingInterval);
         if (waitingTimer) clearTimeout(waitingTimer);
         pollingAttempts = 0;
+        failedSightings = 0;
+
+        showStatus('📲 Check your phone — enter your M-Pesa PIN to complete payment.', 'info');
 
         waitingTimer = setTimeout(function() {
-            showStatus('⏳ Still waiting for confirmation. If you completed the M-Pesa prompt, please hold on — your profile will activate automatically.', 'info');
+            showStatus('⏳ Still waiting for confirmation. If you haven\'t entered your PIN yet, please do so — your subscription will activate automatically once the payment completes.', 'info');
         }, SLOW_MSG_AFTER);
 
         pollingInterval = setInterval(async function() {
             pollingAttempts++;
 
-            // ─── PRIMARY: has the profile activated? ───────────────
+            // ─── PRIMARY: has the profile been activated by the callback? ─
             var profileResult = await checkProfileActivated();
             if (profileResult.activated) {
                 clearInterval(pollingInterval);
@@ -334,29 +342,52 @@
                 return;
             }
 
-            // ─── SECONDARY: did Sarahapay say it explicitly failed? ─
+            // ─── SECONDARY: Sarahapay's own view of the transaction ───
             var txResult = await checkTransactionStatus(transactionId);
-            if (txResult.status === 'FAILED' ||
-                txResult.status === 'CANCELLED' ||
-                txResult.status === 'REVERSED') {
+
+            if (txResult.status === 'CANCELLED') {
+                // User explicitly cancelled the prompt — safe to say so
                 clearInterval(pollingInterval);
                 clearTimeout(waitingTimer);
-                showStatus('❌ The payment was cancelled or failed. Please try again.', 'error');
-                resetPayButton();
+                showTerminalError(
+                    'You cancelled the M-Pesa prompt.',
+                    'No charge was made. You can try again with the button below.'
+                );
                 return;
             }
 
-            // ─── TIMEOUT: do NOT say "failed". Callback may still come. ─
+            if (txResult.status === 'FAILED' || txResult.status === 'REVERSED') {
+                // Sarahapay may mark a still-in-flight payment as FAILED
+                // after ~30s. Give it one more cycle before we commit.
+                failedSightings++;
+
+                if (txResult.status === 'REVERSED' || failedSightings >= 2) {
+                    // Final profile check — the callback may have landed
+                    // while we were deciding.
+                    var finalCheck = await checkProfileActivated();
+                    if (finalCheck.activated) {
+                        clearInterval(pollingInterval);
+                        clearTimeout(waitingTimer);
+                        handlePaymentSuccess(finalCheck.profile);
+                        return;
+                    }
+                    clearInterval(pollingInterval);
+                    clearTimeout(waitingTimer);
+                    showTerminalError(
+                        'Payment could not be confirmed.',
+                        'If you were charged, please refresh this page in a minute — your subscription will activate automatically. If you weren\'t charged, you can try again below.'
+                    );
+                    return;
+                }
+                // Not confirmed twice yet — keep polling
+                return;
+            }
+
+            // ─── TIMEOUT after 90s ─────────────────────────────────────
             if (pollingAttempts >= MAX_ATTEMPTS) {
                 clearInterval(pollingInterval);
                 clearTimeout(waitingTimer);
-                showStatus('⏳ Payment not confirmed yet. If you completed the M-Pesa prompt, please refresh this page in a minute — your subscription will activate automatically once the confirmation arrives.', 'info');
-                var payBtn = document.getElementById('payNowBtn');
-                if (payBtn) {
-                    payBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh to check status';
-                    payBtn.onclick = function() { window.location.reload(); };
-                    payBtn.disabled = false;
-                }
+                showTimeoutMessage();
             }
         }, POLL_INTERVAL);
     }
@@ -381,7 +412,6 @@
     }
 
     // ─── CHECK SARAHAPAY TRANSACTION STATUS ────────────────────────
-    // Used ONLY to detect explicit FAILED / CANCELLED / REVERSED.
     async function checkTransactionStatus(transactionId) {
         try {
             const res = await fetch(API_BASE + '/api/transaction/' + transactionId);
@@ -409,10 +439,52 @@
             amount: currentAmount
         }));
 
-        // Auto-redirect to dashboard after 3 seconds
         setTimeout(function() {
             window.location.href = '/dashboard.html';
         }, 3000);
+    }
+
+    // ─── TERMINAL ERROR (with clear recovery path) ─────────────────
+    function showTerminalError(headline, hint) {
+        var statusDiv = document.getElementById('paymentStatus');
+        statusDiv.innerHTML =
+            '<div style="font-weight:600; margin-bottom:6px;">' + headline + '</div>' +
+            '<div style="font-weight:400; font-size:14px;">' + hint + '</div>';
+        statusDiv.className = 'payment-status error';
+        statusDiv.style.display = 'block';
+
+        var payBtn = document.getElementById('payNowBtn');
+        if (payBtn) {
+            payBtn.innerHTML = '<i class="fas fa-redo"></i> Try Again';
+            payBtn.disabled = false;
+            payBtn.onclick = function() { window.location.reload(); };
+        }
+    }
+
+    // ─── TIMEOUT MESSAGE (soft, with re-check) ─────────────────────
+    function showTimeoutMessage() {
+        var statusDiv = document.getElementById('paymentStatus');
+        statusDiv.innerHTML =
+            '<div style="font-weight:600; margin-bottom:6px;">⏳ Payment not confirmed yet</div>' +
+            '<div style="font-weight:400; font-size:14px;">If you completed the M-Pesa prompt, your subscription will activate automatically in the next minute. If not, click below to re-check.</div>';
+        statusDiv.className = 'payment-status info';
+        statusDiv.style.display = 'block';
+
+        var payBtn = document.getElementById('payNowBtn');
+        if (payBtn) {
+            payBtn.innerHTML = '<i class="fas fa-sync"></i> Check Status Now';
+            payBtn.disabled = false;
+            payBtn.onclick = async function() {
+                payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+                payBtn.disabled = true;
+                var result = await checkProfileActivated();
+                if (result.activated) {
+                    handlePaymentSuccess(result.profile);
+                } else {
+                    showTimeoutMessage();
+                }
+            };
+        }
     }
 
     // ─── RESET PAY BUTTON ──────────────────────────────────────────
