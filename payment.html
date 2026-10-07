@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/profile.css">
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
- <script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
+  <script src="https://www.google.com/recaptcha/api.js?render=6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5"></script>
   <style>
     body { background: #0d0d0d; font-family: 'Jost', sans-serif; min-height: 100vh; }
     .payment-container { max-width: 600px; margin: 40px auto; padding: 30px; background: #1a1a1a; border-radius: 12px; border: 1px solid #2c2c2c; }
@@ -149,22 +149,26 @@
   </footer>
 
 <script>
-    // API Configuration
+    // ─── API Configuration ─────────────────────────────────────────
     const API_BASE = 'https://fineescorts.co.ke';
     const API_SECRET = '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4';
-    const RECAPTCHA_SITE_KEY = '6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5';;
+    const RECAPTCHA_SITE_KEY = '6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5';
 
     const PRICING = {
-        daily: { standard: 100, premium: 150, vip: 200 },
-        weekly: { standard: 600, premium: 900, vip: 1000 },
+        daily:   { standard: 100,  premium: 150,  vip: 200 },
+        weekly:  { standard: 600,  premium: 900,  vip: 1000 },
         monthly: { standard: 1500, premium: 2500, vip: 4000 }
     };
     const TIER_NAMES = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
     const DURATION_NAMES = { daily: 'Daily (24hrs)', weekly: 'Weekly (7 days)', monthly: 'Monthly (30 days)' };
 
-    function getUserEmail() {
-        return localStorage.getItem('userEmail') || '';
-    }
+    // ─── Polling config ────────────────────────────────────────────
+    // Poll every 2s for up to 90s. The IntaSend callback can take 10–60s
+    // to arrive. We DO NOT declare "failed" on timeout — the callback may
+    // still arrive after. Only Sarahapay's explicit FAILED/CANCELLED does.
+    const POLL_INTERVAL = 2000;
+    const MAX_ATTEMPTS  = 45;     // 90 seconds
+    const SLOW_MSG_AFTER = 15000; // show "still waiting" hint after 15s
 
     let selectedDuration = 'daily';
     let selectedTier = 'premium';
@@ -172,15 +176,17 @@
     let pollingInterval = null;
     let pollingAttempts = 0;
     let waitingTimer = null;
-    const MAX_ATTEMPTS = 20;
-    const POLL_INTERVAL = 1000;
+
+    function getUserEmail() {
+        return localStorage.getItem('userEmail') || '';
+    }
 
     function getParams() {
         var params = new URLSearchParams(window.location.search);
         return {
-            package: params.get('package') || 'premium',
+            package:  params.get('package')  || 'premium',
             duration: params.get('duration') || 'daily',
-            email: params.get('email') || ''
+            email:    params.get('email')    || ''
         };
     }
 
@@ -204,21 +210,24 @@
     function updatePrices() {
         var prices = PRICING[selectedDuration];
         document.getElementById('price-standard').textContent = 'KES ' + prices.standard;
-        document.getElementById('price-premium').textContent = 'KES ' + prices.premium;
-        document.getElementById('price-vip').textContent = 'KES ' + prices.vip;
+        document.getElementById('price-premium').textContent  = 'KES ' + prices.premium;
+        document.getElementById('price-vip').textContent      = 'KES ' + prices.vip;
     }
 
     function updatePayButton() {
         var prices = PRICING[selectedDuration];
         currentAmount = prices[selectedTier];
         var payBtn = document.getElementById('payNowBtn');
-        payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount + ' for ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')';
+        payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount +
+                           ' for ' + TIER_NAMES[selectedTier] +
+                           ' (' + DURATION_NAMES[selectedDuration] + ')';
         payBtn.className = 'btn-pay';
         payBtn.disabled = false;
         payBtn.onclick = initiatePayment;
         document.getElementById('phoneNumber').disabled = false;
     }
 
+    // ─── INITIATE PAYMENT ──────────────────────────────────────────
     async function initiatePayment() {
         var userPhone = document.getElementById('phoneNumber').value.trim();
         if (!userPhone) {
@@ -244,7 +253,7 @@
         payBtn.disabled = true;
         showStatus('Initiating M-Pesa payment...', 'info');
 
-        // ─── Generate reCAPTCHA token ──────────────────────────────────
+        // ─── Generate reCAPTCHA token ──────────────────────────────
         var recaptchaToken = '';
         try {
             if (typeof grecaptcha === 'undefined') {
@@ -263,23 +272,23 @@
             return;
         }
 
-        // ─── Build payload ──────────────────────────────────────────────
+        // ─── Build payload ─────────────────────────────────────────
         var payload = {
-            name: TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')',
-            phone: formattedPhone,
+            name:   TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')',
+            phone:  formattedPhone,
             amount: currentAmount,
-            email: getUserEmail()
+            email:  getUserEmail()
         };
         console.log('📤 Sending payload:', payload);
 
-        // ─── Send payment request ──────────────────────────────────────
+        // ─── Send payment request ──────────────────────────────────
         try {
             var response = await fetch(API_BASE + '/api/pay', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-API-Secret': API_SECRET,
-                    'X-Recaptcha-Token': recaptchaToken  // ✅ Send token in HEADERS
+                    'X-Recaptcha-Token': recaptchaToken
                 },
                 body: JSON.stringify(payload)
             });
@@ -301,81 +310,122 @@
         }
     }
 
+    // ─── POLLING ───────────────────────────────────────────────────
+    // Primary source of truth: the profile has been activated by the
+    // backend /payment-callback. Secondary: Sarahapay's explicit fail state.
     function startPaymentPolling(transactionId) {
         if (pollingInterval) clearInterval(pollingInterval);
         if (waitingTimer) clearTimeout(waitingTimer);
         pollingAttempts = 0;
+
         waitingTimer = setTimeout(function() {
-            showStatus('⏳ Still waiting for payment confirmation. If you cancelled the prompt, please try again.', 'info');
-        }, 10000);
+            showStatus('⏳ Still waiting for confirmation. If you completed the M-Pesa prompt, please hold on — your profile will activate automatically.', 'info');
+        }, SLOW_MSG_AFTER);
 
         pollingInterval = setInterval(async function() {
             pollingAttempts++;
-            var result = await checkPaymentStatus(transactionId);
-           if (result.status === 'SUCCESS' || result.status === 'COMPLETED' || result.status === 'Success') {
-    // ─── Payment successful ──────────────────────────────────
-    showStatus('✅ Payment successful! Activating your profile...', 'info');
-    const token = localStorage.getItem('token');
-    
-    if (token) {
-        // ─── Activate profile ──────────────────────────────────
-        const activationRes = await fetch(`${API_BASE}/api/profiles/me/activate`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ tier: selectedTier, duration: selectedDuration })
-        });
-        const activationData = await activationRes.json();
-        console.log('✅ Activation response:', activationData);
-    }
-    
-    // ─── Show success and redirect ────────────────────────────
-    document.getElementById('paymentForm').style.display = 'none';
-    document.getElementById('successMessage').style.display = 'block';
-    document.getElementById('successText').textContent = 
-        `Your ${TIER_NAMES[selectedTier]} (${DURATION_NAMES[selectedDuration]}) subscription is now active. ✅ Your profile is now visible to clients!`;
-    
-    localStorage.setItem('subscription_package', JSON.stringify({
-        tier: selectedTier,
-        duration: selectedDuration,
-        amount: currentAmount
-    }));
-}
-            if (result.status === 'FAILED' || result.status === 'CANCELLED' || result.status === 'REVERSED' || result.status === 'TIMEOUT') {
+
+            // ─── PRIMARY: has the profile activated? ───────────────
+            var profileResult = await checkProfileActivated();
+            if (profileResult.activated) {
                 clearInterval(pollingInterval);
                 clearTimeout(waitingTimer);
-                showStatus('❌ Payment failed or was cancelled. Please try again.', 'error');
+                handlePaymentSuccess(profileResult.profile);
+                return;
+            }
+
+            // ─── SECONDARY: did Sarahapay say it explicitly failed? ─
+            var txResult = await checkTransactionStatus(transactionId);
+            if (txResult.status === 'FAILED' ||
+                txResult.status === 'CANCELLED' ||
+                txResult.status === 'REVERSED') {
+                clearInterval(pollingInterval);
+                clearTimeout(waitingTimer);
+                showStatus('❌ The payment was cancelled or failed. Please try again.', 'error');
                 resetPayButton();
                 return;
             }
+
+            // ─── TIMEOUT: do NOT say "failed". Callback may still come. ─
             if (pollingAttempts >= MAX_ATTEMPTS) {
                 clearInterval(pollingInterval);
                 clearTimeout(waitingTimer);
-                showStatus('❌ Payment not completed. You did not enter your M-Pesa PIN or cancelled the prompt. Please try again.', 'error');
-                resetPayButton();
+                showStatus('⏳ Payment not confirmed yet. If you completed the M-Pesa prompt, please refresh this page in a minute — your subscription will activate automatically once the confirmation arrives.', 'info');
+                var payBtn = document.getElementById('payNowBtn');
+                if (payBtn) {
+                    payBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh to check status';
+                    payBtn.onclick = function() { window.location.reload(); };
+                    payBtn.disabled = false;
+                }
             }
         }, POLL_INTERVAL);
     }
 
-    async function checkPaymentStatus(transactionId) {
+    // ─── CHECK PROFILE ACTIVATION ──────────────────────────────────
+    // Reads the authoritative state from the server. The backend callback
+    // sets isApproved=true and subscriptionExpiry when a payment succeeds.
+    async function checkProfileActivated() {
+        const token = localStorage.getItem('token');
+        if (!token) return { activated: false };
         try {
-            var response = await fetch(API_BASE + '/api/transaction/' + transactionId);
-            if (!response.ok) return { status: 'PENDING' };
-            var data = await response.json();
-            return { status: data.status, data: data };
+            const res = await fetch(API_BASE + '/api/profiles/me', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!res.ok) return { activated: false };
+            const profile = await res.json();
+            const activated = profile.isApproved === true && !!profile.subscriptionExpiry;
+            return { activated, profile };
         } catch (e) {
-            return { status: 'ERROR' };
+            return { activated: false };
         }
     }
 
-    function resetPayButton() {
-        var payBtn = document.getElementById('payNowBtn');
-        payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount + ' for ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')';
-        payBtn.disabled = false;
+    // ─── CHECK SARAHAPAY TRANSACTION STATUS ────────────────────────
+    // Used ONLY to detect explicit FAILED / CANCELLED / REVERSED.
+    async function checkTransactionStatus(transactionId) {
+        try {
+            const res = await fetch(API_BASE + '/api/transaction/' + transactionId);
+            if (!res.ok) return { status: 'PENDING' };
+            const data = await res.json();
+            return { status: data.status };
+        } catch (e) {
+            return { status: 'PENDING' };
+        }
     }
 
+    // ─── SUCCESS HANDLER ───────────────────────────────────────────
+    // No frontend activation call — the backend callback already did it.
+    function handlePaymentSuccess(profile) {
+        showStatus('✅ Payment successful! Your profile is now live.', 'success');
+        document.getElementById('paymentForm').style.display = 'none';
+        document.getElementById('successMessage').style.display = 'block';
+        document.getElementById('successText').textContent =
+            'Your ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] +
+            ') subscription is now active. ✅ Your profile is visible to clients!';
+
+        localStorage.setItem('subscription_package', JSON.stringify({
+            tier: selectedTier,
+            duration: selectedDuration,
+            amount: currentAmount
+        }));
+
+        // Auto-redirect to dashboard after 3 seconds
+        setTimeout(function() {
+            window.location.href = '/dashboard.html';
+        }, 3000);
+    }
+
+    // ─── RESET PAY BUTTON ──────────────────────────────────────────
+    function resetPayButton() {
+        var payBtn = document.getElementById('payNowBtn');
+        payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount +
+                           ' for ' + TIER_NAMES[selectedTier] +
+                           ' (' + DURATION_NAMES[selectedDuration] + ')';
+        payBtn.disabled = false;
+        payBtn.onclick = initiatePayment;
+    }
+
+    // ─── STATUS HELPER ─────────────────────────────────────────────
     function showStatus(message, type) {
         var statusDiv = document.getElementById('paymentStatus');
         statusDiv.textContent = message;
@@ -383,17 +433,18 @@
         statusDiv.style.display = 'block';
     }
 
+    // ─── INIT ──────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function() {
         var params = getParams();
         if (params.email) localStorage.setItem('userEmail', params.email);
         if (params.duration) selectDuration(params.duration);
-        if (params.package) selectPackage(params.package);
+        if (params.package)  selectPackage(params.package);
         updatePrices();
         updatePayButton();
     });
 
     window.selectDuration = selectDuration;
-    window.selectPackage = selectPackage;
+    window.selectPackage  = selectPackage;
 </script>
 </body>
 </html>
