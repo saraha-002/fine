@@ -1193,7 +1193,7 @@ app.post('/api/pay', async (req, res) => {
     console.log('🚀 PAYMENT ROUTE HIT - VERSION 5.0 (no verification)');
 
     try {
-        const { name, phone, amount, email } = req.body;
+        const { name, phone, amount, email, website } = req.body;
 
         let recaptchaToken = req.headers['x-recaptcha-token'] ||
             req.headers['X-Recaptcha-Token'] ||
@@ -1218,12 +1218,13 @@ app.post('/api/pay', async (req, res) => {
                 'X-Recaptcha-Token': recaptchaToken
             },
             body: JSON.stringify({
-                name: name || 'FineEscorts Payment',
-                phone: phone,
-                amount: Number(amount),
-                email: email || '',
-                recaptchaToken: recaptchaToken
-            })
+    name: name || 'FineEscorts Payment',
+    phone: phone,
+    amount: Number(amount),
+    email: email || '',
+    recaptchaToken: recaptchaToken,
+    website: 'fineescorts'                          // ← THE FIX
+})
         });
 
         const data = await response.json();
