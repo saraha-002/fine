@@ -494,6 +494,11 @@
         localStorage.setItem('userEmail', data.user.email);
       }
 
+      // Store role for admin.html / dashboard.html to read
+      if (data.user && data.user.role) {
+        localStorage.setItem('role', data.user.role);
+      }
+
       // Handle "Remember me"
       if (document.getElementById('rememberMe').checked) {
         localStorage.setItem('rememberedEmail', email);
@@ -503,15 +508,11 @@
 
       showStatus('Login successful! Redirecting...', 'success');
 
-     if (data.user && data.user.role) {
-  localStorage.setItem('role', data.user.role);
-}
-
-var destination = (data.user && data.user.role === 'admin') ? '/admin.html' : '/dashboard.html';
-
-setTimeout(function () {
-  window.location.href = destination;
-}, 600);
+      // ─── Redirect: admins go to admin panel, everyone else to dashboard ───
+      var destination = (data.user && data.user.role === 'admin') ? '/admin.html' : '/dashboard.html';
+      setTimeout(function () {
+        window.location.href = destination;
+      }, 600);
 
     } catch (err) {
       console.error('Login error:', err);
