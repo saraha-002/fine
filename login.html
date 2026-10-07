@@ -490,13 +490,11 @@
 
       // ─── Success ──────────────────────────────────────────────
       localStorage.setItem('token', data.token);
-      if (data.user && data.user.email) {
-        localStorage.setItem('userEmail', data.user.email);
-      }
 
-      // Store role for admin.html / dashboard.html to read
-      if (data.user && data.user.role) {
-        localStorage.setItem('role', data.user.role);
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('userEmail', data.user.email || '');
+        localStorage.setItem('role', data.user.role || 'escort');
       }
 
       // Handle "Remember me"
