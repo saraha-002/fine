@@ -4,7 +4,6 @@
 COMMON FEATURES (Run on ALL pages)
 ================================ */
 
-// ─── Hide Navbar on Scroll Down ──────────────────────────────
 // ─── Hide Navbar on Scroll Down (Bulletproof) ──────────────────
 (function() {
   let lastScroll = 0;
@@ -17,7 +16,6 @@ COMMON FEATURES (Run on ALL pages)
 
   console.log('✅ Scroll-away header initialized (class-based)');
 
-  // Small delay to ensure the header is rendered
   setTimeout(() => {
     header.classList.remove('hidden');
   }, 100);
@@ -26,13 +24,11 @@ COMMON FEATURES (Run on ALL pages)
     const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
 
     if (currentScroll > lastScroll && currentScroll > 60) {
-      // Scrolling DOWN – hide header
       if (!header.classList.contains('hidden')) {
         header.classList.add('hidden');
         console.log('⬆️ Header hidden');
       }
     } else {
-      // Scrolling UP – show header
       if (header.classList.contains('hidden')) {
         header.classList.remove('hidden');
         console.log('⬇️ Header shown');
@@ -104,10 +100,10 @@ async function loadProfiles() {
         renderPagination();
     } catch (err) {
         console.error("Failed to load profiles from API:", err);
-        // ✅ Fallback to static file
         fallbackToStatic();
     }
 }
+
 async function fallbackToStatic() {
     try {
         const res = await fetch("data/profiles.json");
@@ -119,6 +115,33 @@ async function fallbackToStatic() {
     } catch (err) {
         profileGrid.innerHTML = '<div class="error-message">Failed to load profiles. Please refresh the page.</div>';
     }
+}
+
+/* ===============================
+HELPERS
+================================ */
+// Extract a clean list of image URLs from a profile.
+// Prefers `photos` (new profiles), falls back to `images` (older).
+// Filters out null/empty entries so we never try to load an empty src.
+function getImageUrls(profile) {
+    const photos = Array.isArray(profile.photos) ? profile.photos.filter(Boolean) : [];
+    if (photos.length > 0) return photos;
+    const images = Array.isArray(profile.images) ? profile.images.filter(Boolean) : [];
+    return images;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, function(m) {
+        switch (m) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#039;';
+            default: return m;
+        }
+    });
 }
 
 /* ===============================
@@ -137,23 +160,21 @@ function renderProfiles() {
     const card = document.createElement("div");
     card.className = "profile-card";
 
-   // ─── Check photos FIRST (new profiles), THEN images (old profiles) ──
-const profileImage = (profile.photos && profile.photos.length > 0)
-    ? profile.photos[0]
-    : (profile.images && profile.images.length > 0)
-        ? profile.images[0]
-        : "https://via.placeholder.com/400x500?text=No+Image";
+    const imageUrls = getImageUrls(profile);
+    const profileImage = imageUrls[0] || '';
 
     const verifiedBadge = profile.verified
       ? '<div class="verified-badge" title="ID &amp; Photo Verified"><i class="fas fa-check-circle"></i> Verified</div>'
       : '';
 
+    // Note: no inline `background-image` anymore.
+    // The preloader in initLazyImages() sets it after a successful load,
+    // and shows a fallback if the URL fails. This prevents broken cards.
     card.innerHTML = `
-      <div class="card-image" data-images='${JSON.stringify(profile.photos || profile.images || [])}'>
-        <div class="image-layer lazy-image"
+      <div class="card-image" data-images='${JSON.stringify(imageUrls)}'>
+        <div class="image-layer"
              data-src="${profileImage}"
-             style="opacity:1; background-image: url('${profileImage}'); background-size: cover; background-position: center;">
-        </div>
+             style="opacity:1; background-color:#1a1a1a; background-size:cover; background-position:center;"></div>
       </div>
       ${verifiedBadge}
       <div class="card-content">
@@ -173,20 +194,6 @@ const profileImage = (profile.photos && profile.photos.length > 0)
   startRotation();
 }
 
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>"']/g, function(m) {
-        switch (m) {
-            case '&': return '&amp;';
-            case '<': return '&lt;';
-            case '>': return '&gt;';
-            case '"': return '&quot;';
-            case "'": return '&#039;';
-            default: return m;
-        }
-    });
-}
-
 /* ===============================
 POPULATE CITY FILTER (Dynamic)
 ================================ */
@@ -194,15 +201,12 @@ function populateCityFilter(profiles) {
     const cityFilter = document.getElementById('cityFilter');
     if (!cityFilter) return;
 
-    // Get all unique cities from profiles (filter out null/undefined)
     const cities = [...new Set(profiles.map(p => p.city).filter(Boolean))].sort();
 
-    // Preserve the "Select Location" option
     const defaultOption = cityFilter.querySelector('option[value=""]');
     cityFilter.innerHTML = '';
-    cityFilter.appendChild(defaultOption);
+    if (defaultOption) cityFilter.appendChild(defaultOption);
 
-    // Add each city as an option
     cities.forEach(city => {
         const option = document.createElement('option');
         option.value = city;
@@ -212,6 +216,7 @@ function populateCityFilter(profiles) {
 
     console.log(`📍 Loaded ${cities.length} cities into filter`);
 }
+
 /* ===============================
 PAGINATION
 ================================ */
@@ -284,7 +289,7 @@ function filterProfiles() {
 }
 
 /* ===============================
-IMAGE LAYERS
+IMAGE LAYERS (rotation)
 ================================ */
 function setupImageLayers() {
   document.querySelectorAll('.profile-card').forEach(card => {
@@ -295,38 +300,95 @@ function setupImageLayers() {
       const images = JSON.parse(imageContainer.dataset.images || '[]');
       if (images && images.length > 1) {
         images.slice(1).forEach(src => {
+          if (!src) return;
           const layer = document.createElement("div");
-          layer.className = "image-layer lazy-image";
+          layer.className = "image-layer";
           layer.dataset.src = src;
           layer.style.opacity = "0";
+          layer.style.backgroundSize = "cover";
+          layer.style.backgroundPosition = "center";
+          layer.style.backgroundColor = "#1a1a1a";
           imageContainer.appendChild(layer);
         });
       }
-    } catch(e) {}
+    } catch (e) {
+      console.warn('Failed to parse image list for card:', e.message);
+    }
   });
 }
 
 /* ===============================
-LAZY LOAD IMAGES
+LAZY LOAD IMAGES (with preload + fallback)
 ================================ */
+// For each .image-layer with a data-src:
+//  1. Only trigger when scrolled into view (IntersectionObserver)
+//  2. Preload via new Image() with referrerPolicy='no-referrer'
+//     → bypasses hotlink protection on remote image hosts
+//  3. On success, set background-image
+//  4. On error, show 'Image unavailable' placeholder (or hide silently
+//     for non-primary rotation layers so they don't flash during rotation)
 function initLazyImages() {
-  const lazyImages = document.querySelectorAll(".lazy-image");
-  if (!lazyImages.length) return;
+  const layers = document.querySelectorAll('.image-layer[data-src]');
+  if (!layers.length) return;
 
-  const observer = new IntersectionObserver((entries, obs) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        if (el.dataset.src) {
-          el.style.backgroundImage = `url('${el.dataset.src}')`;
-          delete el.dataset.src;
+  const showImageFallback = (el) => {
+    el.style.backgroundImage = 'none';
+    el.style.backgroundColor = '#1a1a1a';
+    el.dataset.failed = 'true';
+
+    const card = el.closest('.profile-card');
+    const isPrimary = card && el === card.querySelector('.image-layer');
+
+    if (isPrimary) {
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+      el.style.justifyContent = 'center';
+      el.style.color = '#555';
+      el.style.fontSize = '12px';
+      el.style.textAlign = 'center';
+      el.textContent = 'Image unavailable';
+    } else {
+      // Rotation layers: just hide, don't show a placeholder
+      el.style.opacity = '0';
+    }
+  };
+
+  const loadLayer = (el) => {
+    const url = el.dataset.src;
+    delete el.dataset.src;
+
+    if (!url) {
+      showImageFallback(el);
+      return;
+    }
+
+    const preloader = new Image();
+    preloader.referrerPolicy = 'no-referrer';
+    preloader.onload = () => {
+      el.style.backgroundImage = `url('${url}')`;
+      el.dataset.loaded = 'true';
+    };
+    preloader.onerror = () => {
+      showImageFallback(el);
+    };
+    preloader.src = url;
+  };
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          loadLayer(entry.target);
+          observer.unobserve(entry.target);
         }
-        obs.unobserve(el);
-      }
-    });
-  }, { rootMargin: "200px" });
+      });
+    }, { rootMargin: '200px' });
 
-  lazyImages.forEach(img => observer.observe(img));
+    layers.forEach(el => observer.observe(el));
+  } else {
+    // Fallback for very old browsers
+    layers.forEach(loadLayer);
+  }
 }
 
 /* ===============================
@@ -340,11 +402,30 @@ function startRotation() {
     const layers = card.querySelectorAll(".image-layer");
     if (layers.length <= 1) return;
 
+    const primary = layers[0];
     let current = 0;
+
     const intervalId = setInterval(() => {
-      layers[current].style.opacity = "0";
-      current = (current + 1) % layers.length;
-      layers[current].style.opacity = "1";
+      // If the primary image failed, stop rotating this card entirely
+      // (keeps the "Image unavailable" placeholder stable)
+      if (primary.dataset.failed === 'true') {
+        clearInterval(intervalId);
+        return;
+      }
+
+      // Skip failed rotation layers — never show them
+      const visibleLayers = Array.from(layers).filter(
+        l => l.dataset.failed !== 'true'
+      );
+      if (visibleLayers.length <= 1) return;
+
+      const curLayer = visibleLayers[current % visibleLayers.length];
+      if (curLayer) curLayer.style.opacity = '0';
+
+      current = (current + 1) % visibleLayers.length;
+
+      const nextLayer = visibleLayers[current];
+      if (nextLayer) nextLayer.style.opacity = '1';
     }, 3000);
 
     rotationIntervals.push(intervalId);
@@ -375,7 +456,7 @@ function resetFilters() {
 ATTACH EVENT LISTENERS
 ================================ */
 document.getElementById('searchInput')?.addEventListener('input', filterProfiles);
-// ─── City filter redirect ──────────────────────────────────────────
+
 document.getElementById('cityFilter')?.addEventListener('change', function() {
     const city = this.value;
     if (city) {
@@ -383,6 +464,7 @@ document.getElementById('cityFilter')?.addEventListener('change', function() {
         window.location.href = `/${slug}-escorts.html`;
     }
 });
+
 document.getElementById('companionFilter')?.addEventListener('change', filterProfiles);
 document.getElementById('serviceFilter')?.addEventListener('change', filterProfiles);
 document.getElementById('resetFiltersBtn')?.addEventListener('click', resetFilters);
