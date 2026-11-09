@@ -990,6 +990,54 @@ app.put('/api/admin/profiles/:slug/approve', authenticate, async (req, res) => {
     res.json({ message: '✅ Profile approved successfully', profile: updated });
 });
 
+// ─── FEATURE A PROFILE (Admin) ─────────────────────────────
+app.put('/api/admin/profiles/:slug/feature', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
+    if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+    }
+    const slug = req.params.slug;
+    const featured = Boolean(req.body.featured);
+
+    const updates = featured
+        ? { featured: true, featuredAt: new Date().toISOString(), buried: false }
+        : { featured: false, featuredAt: null };
+
+    const updated = await updateProfile(slug, updates);
+    if (!updated) {
+        return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    res.json({
+        message: featured ? '⭐ Profile featured' : 'Profile unfeatured',
+        profile: updated
+    });
+});
+
+// ─── BURY A PROFILE (Admin) ────────────────────────────────
+app.put('/api/admin/profiles/:slug/bury', authenticate, async (req, res) => {
+    const user = await findUserById(req.userId);
+    if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+    }
+    const slug = req.params.slug;
+    const buried = Boolean(req.body.buried);
+
+    const updates = buried
+        ? { buried: true, buriedAt: new Date().toISOString(), featured: false }
+        : { buried: false, buriedAt: null };
+
+    const updated = await updateProfile(slug, updates);
+    if (!updated) {
+        return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    res.json({
+        message: buried ? '⬇️ Profile buried' : 'Profile un-buried',
+        profile: updated
+    });
+});
+
 app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
     const user = await findUserById(req.userId);
     if (!user || user.role !== 'admin') {
@@ -1153,10 +1201,36 @@ app.post('/api/admin/send-bulk-email', authenticate, async (req, res) => {
 });
 
 // ─── GET ALL APPROVED PROFILES ────────────────────────────────────
+// ─── GET ALL APPROVED PROFILES (sorted: featured → newest → buried) ───
 app.get('/api/profiles', async (req, res) => {
     try {
         const profiles = await getAllProfiles();
-        const approved = profiles.filter(p => p.isApproved === true);
+        const approved = profiles
+            .filter(p => p.isApproved === true)
+            .sort((a, b) => {
+                // 1. Featured profiles always come first
+                const aFeat = a.featured === true ? 1 : 0;
+                const bFeat = b.featured === true ? 1 : 0;
+                if (aFeat !== bFeat) return bFeat - aFeat;
+
+                // 2. Among featured, most-recently-featured first
+                if (aFeat && bFeat) {
+                    const aF = new Date(a.featuredAt || 0).getTime();
+                    const bF = new Date(b.featuredAt || 0).getTime();
+                    if (aF !== bF) return bF - aF;
+                }
+
+                // 3. Buried profiles always come last
+                const aBuried = a.buried === true ? 1 : 0;
+                const bBuried = b.buried === true ? 1 : 0;
+                if (aBuried !== bBuried) return aBuried - bBuried;
+
+                // 4. Everything else: newest first
+                const aTime = new Date(a.createdAt || 0).getTime();
+                const bTime = new Date(b.createdAt || 0).getTime();
+                return bTime - aTime;
+            });
+
         res.json(approved);
     } catch (error) {
         console.error('Error fetching profiles:', error);

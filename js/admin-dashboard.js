@@ -194,6 +194,8 @@ async function loadProfiles(filter = 'all') {
 }
 
 function applyFilter(profiles, filter) {
+    if (filter === 'featured') return profiles.filter(p => p.featured === true);
+    if (filter === 'buried') return profiles.filter(p => p.buried === true);
     if (filter === 'pending') return profiles.filter(p => !p.isApproved && p.status !== 'rejected');
     if (filter === 'approved') return profiles.filter(p => p.isApproved);
     if (filter === 'rejected') return profiles.filter(p => p.status === 'rejected');
@@ -243,16 +245,33 @@ function renderProfileRow(p) {
     const photo = p.photos?.[0] || p.images?.[0] || '';
     const joinedDate = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : 'N/A';
     const views = p.profileViews || 0;
+    const isFeatured = p.featured === true;
+    const isBuried = p.buried === true;
+
+    // Visual badge next to the name
+    let badge = '';
+    if (isFeatured) {
+        badge = ' <span title="Featured — appears at top of homepage" style="color:#f5c518;">⭐</span>';
+    } else if (isBuried) {
+        badge = ' <span title="Buried — pushed to bottom of homepage" style="color:#ff6b6b;">⬇</span>';
+    }
+
+    // Row tint so featured/buried stand out at a glance
+    const rowStyle = isFeatured
+        ? ' style="background:rgba(245,197,24,0.04);"'
+        : isBuried
+            ? ' style="background:rgba(255,107,107,0.04); opacity:0.75;"'
+            : '';
 
     return `
-        <tr>
+        <tr${rowStyle}>
             <td>
                 <img src="${photo || FALLBACK_IMAGE}" 
                      alt="${escapeHtml(p.displayName || p.name)}" 
-                     style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #2c2c2c;"
+                     style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid ${isFeatured ? '#f5c518' : isBuried ? '#ff6b6b' : '#2c2c2c'};"
                      onerror="this.onerror=null; this.src='${FALLBACK_IMAGE}';">
             </td>
-            <td><strong>${escapeHtml(p.displayName || p.name)}</strong></td>
+            <td><strong>${escapeHtml(p.displayName || p.name)}</strong>${badge}</td>
             <td>${escapeHtml(p.email || 'N/A')}</td>
             <td>${escapeHtml(p.city || p.location || 'N/A')}</td>
             <td><span class="status-badge ${displayStatus}">${statusLabel}</span></td>
@@ -264,6 +283,16 @@ function renderProfileRow(p) {
                     <button class="btn-reject" onclick="rejectProfile('${p.slug}')">Reject</button>
                 ` : ''}
                 ${p.isApproved ? `
+                    <button onclick="toggleFeature('${p.slug}', ${!isFeatured})"
+                            title="${isFeatured ? 'Remove from featured' : 'Feature — pin to top of homepage'}"
+                            style="background:${isFeatured ? '#f5c518' : 'transparent'}; color:${isFeatured ? '#0d0d0d' : '#f5c518'}; border:1px solid #f5c518; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:2px;">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button onclick="toggleBury('${p.slug}', ${!isBuried})"
+                            title="${isBuried ? 'Un-bury — restore to normal' : 'Bury — push to bottom of homepage'}"
+                            style="background:${isBuried ? '#ff6b6b' : 'transparent'}; color:${isBuried ? '#0d0d0d' : '#ff6b6b'}; border:1px solid #ff6b6b; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:2px;">
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
                     <button class="btn-delete" onclick="deleteProfile('${p.slug}')">Delete</button>
                 ` : ''}
                 <button class="btn-edit" onclick="openEditModal('${p.slug}')">Edit</button>
@@ -470,6 +499,61 @@ window.deleteProfile = async function(slug) {
     } catch (error) {
         console.error('Delete error:', error);
         alert('❌ Failed to delete profile');
+    }
+};
+
+// ─── Feature / Bury (admin homepage control) ────────────────────
+window.toggleFeature = async function(slug, featured) {
+    const msg = featured
+        ? 'Feature this profile? It will be pinned to the top of the homepage.'
+        : 'Remove this profile from featured?';
+    if (!confirm(msg)) return;
+
+    try {
+        const res = await apiFetch(`/api/admin/profiles/${slug}/feature`, {
+            method: 'PUT',
+            body: JSON.stringify({ featured })
+        });
+
+        if (!res?.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert('❌ ' + (err.message || 'Failed to update featured status'));
+            return;
+        }
+
+        alert(featured ? '⭐ Profile featured — will appear at top of homepage' : 'Profile unfeatured');
+        loadProfiles(document.getElementById('profileFilter').value);
+        loadDashboard();
+    } catch (error) {
+        console.error('Feature toggle error:', error);
+        alert('❌ Failed to update featured status');
+    }
+};
+
+window.toggleBury = async function(slug, buried) {
+    const msg = buried
+        ? 'Bury this profile? It will be pushed to the bottom of the homepage.'
+        : 'Un-bury this profile? It will return to its normal position.';
+    if (!confirm(msg)) return;
+
+    try {
+        const res = await apiFetch(`/api/admin/profiles/${slug}/bury`, {
+            method: 'PUT',
+            body: JSON.stringify({ buried })
+        });
+
+        if (!res?.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert('❌ ' + (err.message || 'Failed to update buried status'));
+            return;
+        }
+
+        alert(buried ? '⬇️ Profile buried — will appear at bottom of homepage' : 'Profile restored to normal position');
+        loadProfiles(document.getElementById('profileFilter').value);
+        loadDashboard();
+    } catch (error) {
+        console.error('Bury toggle error:', error);
+        alert('❌ Failed to update buried status');
     }
 };
 
@@ -794,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function() {
     switchSection('dashboard');
 });
 
-// ─── Auto-refresh every 60 seconds ──────────────────────────────
+// ─── Auto-refresh every 5 minutes ──────────────────────────────
 setInterval(() => {
     if (currentSection === 'dashboard') loadDashboard();
 }, 300000);
