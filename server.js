@@ -1,45 +1,37 @@
 // ─── Fetch polyfill for older Node versions ──────────────────────
 if (!global.fetch) {
-    const fetch = require('node-fetch');
-    global.fetch = fetch;
+    global.fetch = require('node-fetch');
 }
 
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const fsPromises = fs.promises; // ← Add this line
+const fsPromises = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 
-// ─── Load Environment Variables ──────────────────────────────────
 require('dotenv').config();
-// ─── Email Service ──────────────────────────────────────────────
-const { sendWelcomeEmail, sendApprovalEmail, sendPaymentConfirmation, sendSubscriptionExpiredEmail, sendEmail, sendAdminNewSignupNotification } = require('./utils/emailService');
+
+const {
+    sendWelcomeEmail,
+    sendApprovalEmail,
+    sendPaymentConfirmation,
+    sendSubscriptionExpiredEmail,
+    sendEmail,
+    sendAdminNewSignupNotification
+} = require('./utils/emailService');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
-
-// ─── Middleware ──────────────────────────────────────────────────
-const compression = require('compression');  // ← ADD THIS LINE AT THE TOP
-
-// ─── 👇 ADD RATE LIMITING HERE ──────────────────────────────────────
-const rateLimit = require('express-rate-limit');
-
-// 1. General API limit (100 requests per 15 minutes)
-const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
-    message: { message: 'Too many requests from this IP, please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-// 2. Strict limit for authentication (login, register, forgot password)
+// ─── Rate Limiters ───────────────────────────────────────────────
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     max: 5,
     message: { message: 'Too many login attempts, please try again later.' },
     standardHeaders: true,
@@ -47,186 +39,212 @@ const authLimiter = rateLimit({
     skipSuccessfulRequests: true,
 });
 
-// 3. Strict limit for payment endpoints
 const paymentLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
+    windowMs: 60 * 60 * 1000,
     max: 10,
     message: { message: 'Too many payment attempts, please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
-// 4. Stricter limit for sensitive admin endpoints
-// ─── Admin Limiter ──────────────────────────────────────────────────
 const adminLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 300, // Allow 300 admin requests per 15 minutes (for testing/development)
+    windowMs: 15 * 60 * 1000,
+    max: 300,
     message: { message: 'Too many admin requests, please slow down.' },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
-app.use(compression());
-// ─── Apply rate limiting to all API routes ────────────────────────
-app.use('/api/', generalLimiter);
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { message: 'Too many requests from this IP, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
-// ─── Apply stricter limits to sensitive routes ────────────────────
+// ─── Middleware ──────────────────────────────────────────────────
+app.use(compression());
+
+// Specific limiters first, then general (so specific caps are never masked)
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/reset-password', authLimiter);
 app.use('/api/pay', paymentLimiter);
 app.use('/api/admin/', adminLimiter);
-// ─── 👆 END OF RATE LIMITING ──────────────────────────────────────
+app.use('/api/', generalLimiter);
 
-                     // ← ADD THIS LINE (AFTER BODY-PARSER)
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '1mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));
 
+// ─── Block sensitive server-side files from static serving ──────
+app.use((req, res, next) => {
+    const p = req.path.toLowerCase();
+    if (
+        p === '/server.js' ||
+        p === '/package.json' ||
+        p === '/package-lock.json' ||
+        p === '/.env' ||
+        p.startsWith('/utils/') ||
+        p.startsWith('/node_modules/') ||
+        p.startsWith('/emailTemplates/') ||
+        p.startsWith('/templates/') ||
+        p.startsWith('/data/') ||
+        /^\/[^/]+\.(js|json)$/i.test(p) // root-level JS/JSON (one-off scripts, package files)
+    ) {
+        return res.status(404).send('Not found');
+    }
+    next();
+});
 
-// ─── MongoDB Connection ──────────────────────────────────────────
+// ─── MongoDB Connection ─────────────────────────────────────────
 const MONGO_URL = process.env.MONGO_URL;
 let db = null;
-let client = null;
 
 async function connectDB() {
     try {
         if (!MONGO_URL) {
-            console.error('❌ MONGO_URL environment variable is not set!');
-            console.log('📁 Falling back to file-based storage...');
+            console.error('❌ MONGO_URL not set — falling back to file storage');
             return false;
         }
-        client = new MongoClient(MONGO_URL);
+        const client = new MongoClient(MONGO_URL);
         await client.connect();
         db = client.db('fineescorts');
         console.log('✅ Connected to MongoDB Atlas successfully!');
 
         const collections = await db.listCollections().toArray();
-        const collectionNames = collections.map(c => c.name);
-
-        if (!collectionNames.includes('users')) {
-            await db.createCollection('users');
-            console.log('📁 Created "users" collection');
-        }
-        if (!collectionNames.includes('profiles')) {
-            await db.createCollection('profiles');
-            console.log('📁 Created "profiles" collection');
-        }
-        if (!collectionNames.includes('subscriptions')) {
-            await db.createCollection('subscriptions');
-            console.log('📁 Created "subscriptions" collection');
-        }
-        if (!collectionNames.includes('reviews')) {
-            await db.createCollection('reviews');
-            console.log('📁 Created "reviews" collection');
+        const names = collections.map(c => c.name);
+        for (const name of ['users', 'profiles', 'subscriptions', 'reviews', 'pendingPayments']) {
+            if (!names.includes(name)) {
+                await db.createCollection(name);
+                console.log(`📁 Created "${name}" collection`);
+            }
         }
 
-        // ─── 👇 ADD DATABASE INDEXES HERE ──────────────────────────
         try {
             const profilesCol = db.collection('profiles');
-            
-            // Create indexes for faster queries
             await profilesCol.createIndex({ slug: 1 });
-            console.log('✅ Index created: slug');
-            
             await profilesCol.createIndex({ isApproved: 1 });
-            console.log('✅ Index created: isApproved');
-            
             await profilesCol.createIndex({ city: 1 });
-            console.log('✅ Index created: city');
-            
             await profilesCol.createIndex({ createdAt: -1 });
-            console.log('✅ Index created: createdAt (descending)');
-            
             await profilesCol.createIndex({ userId: 1 });
-            console.log('✅ Index created: userId');
-            
-            // Optional: Compound index for common queries
+            await profilesCol.createIndex({ phone: 1 });
+            await profilesCol.createIndex({ tumaCheckoutId: 1 });
             await profilesCol.createIndex({ isApproved: 1, createdAt: -1 });
-            console.log('✅ Index created: isApproved + createdAt (compound)');
-            
+
+            const pendingCol = db.collection('pendingPayments');
+            await pendingCol.createIndex({ checkoutRequestId: 1 }, { unique: true });
+            await pendingCol.createIndex({ phone: 1 });
+            console.log('✅ Indexes ensured');
         } catch (indexErr) {
-            // Indexes might already exist, which is fine
             console.log('ℹ️ Indexes may already exist:', indexErr.message);
         }
-        // ─── 👆 END OF INDEXES ──────────────────────────────────────
 
         await migrateProfiles();
         return true;
     } catch (err) {
         console.error('❌ MongoDB connection error:', err.message);
-        console.log('📁 Falling back to file-based storage...');
         return false;
     }
 }
 
-// ─── Migration: Seed profiles from profiles.json ──────────────────
 async function migrateProfiles() {
     try {
-        const profilesCollection = db.collection('profiles');
-        const count = await profilesCollection.countDocuments();
+        const profilesCol = db.collection('profiles');
+        const count = await profilesCol.countDocuments();
         if (count === 0) {
-            console.log('📁 Seeding profiles from profiles.json...');
+            console.log('📁 Seeding profiles from data/profiles.json...');
             const jsonPath = path.join(__dirname, 'data', 'profiles.json');
-            if (fs.existsSync(jsonPath)) { // Keep existsSync for checking
-                const profileData = await fsPromises.readFile(jsonPath, 'utf8');
-                const profiles = JSON.parse(profileData);
+            if (fs.existsSync(jsonPath)) {
+                const raw = await fsPromises.readFile(jsonPath, 'utf8');
+                const profiles = JSON.parse(raw);
                 if (profiles.length > 0) {
-                    const result = await profilesCollection.insertMany(profiles);
-                    console.log(`✅ Seeded ${result.insertedCount} profiles from profiles.json`);
+                    const result = await profilesCol.insertMany(profiles);
+                    console.log(`✅ Seeded ${result.insertedCount} profiles`);
                 }
             } else {
-                console.warn('⚠️ profiles.json not found, skipping seed');
+                console.warn('⚠️ data/profiles.json not found, skipping seed');
             }
         } else {
-            console.log(`✅ Already have ${count} profiles in database`);
+            console.log(`✅ ${count} profiles already in database`);
         }
     } catch (err) {
         console.error('⚠️ Migration error:', err.message);
     }
 }
 
-// ─── reCAPTCHA Verification ────────────────────────────────────────
+// ─── Tuma Token Cache (MODULE SCOPE — do not move into a handler) ─
+let tumaTokenCache = { token: null, expiresAt: 0 };
+
+async function getTumaToken() {
+    if (tumaTokenCache.token && Date.now() < tumaTokenCache.expiresAt) {
+        return tumaTokenCache.token;
+    }
+
+    if (!process.env.TUMA_API_URL || !process.env.TUMA_EMAIL || !process.env.TUMA_API_KEY) {
+        throw new Error('Tuma env vars (TUMA_API_URL, TUMA_EMAIL, TUMA_API_KEY) missing');
+    }
+
+    const res = await fetch(`${process.env.TUMA_API_URL}/auth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            email: process.env.TUMA_EMAIL,
+            api_key: process.env.TUMA_API_KEY
+        })
+    });
+
+    const data = await res.json();
+    const token = data?.data?.token || data?.token;
+    if (!res.ok || !data.success || !token) {
+        throw new Error(data.message || `Tuma auth failed (HTTP ${res.status})`);
+    }
+
+    // Tuma JWTs ~24h; refresh at 20h
+    tumaTokenCache = {
+        token,
+        expiresAt: Date.now() + 20 * 60 * 60 * 1000
+    };
+    return token;
+}
+
+// ─── reCAPTCHA Verification ─────────────────────────────────────
 async function verifyRecaptcha(token) {
     if (!token) return false;
+    const secret = process.env.RECAPTCHA_SECRET_KEY;
+    if (!secret) {
+        console.error('❌ RECAPTCHA_SECRET_KEY not set');
+        return false;
+    }
     try {
-        const secret = process.env.RECAPTCHA_SECRET_KEY || '6LcKDGEtAAAAAIcEmbFQqPmxoOLrK51_AdD2dqen';
         const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `secret=${secret}&response=${token}`
+            body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(token)}`
         });
         const data = await response.json();
-        console.log('🔍 reCAPTCHA full response:', JSON.stringify(data, null, 2));
-        if (data.success === true) {
-            console.log('✅ reCAPTCHA verification PASSED');
-        } else {
-            console.log('❌ reCAPTCHA verification FAILED:', data['error-codes'] || 'No error codes');
-        }
+        console.log('🔍 reCAPTCHA:', data.success ? 'PASS' : 'FAIL', data['error-codes'] || '');
         return data.success === true;
-    } catch (error) {
-        console.error('reCAPTCHA error:', error);
+    } catch (err) {
+        console.error('reCAPTCHA error:', err.message);
         return false;
     }
 }
 
-// ─── Database Helpers ─────────────────────────────────────────────
+// ─── DB Helpers ─────────────────────────────────────────────────
 function getCollection(name) {
-    if (db) {
-        return db.collection(name);
-    }
-    return null;
+    return db ? db.collection(name) : null;
 }
 
-// ─── File-Based Fallback ──────────────────────────────────────────
+// ─── File-based Fallback ────────────────────────────────────────
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 function readJSON(file, defaultVal = []) {
     try {
         const filePath = path.join(DATA_DIR, file);
-        if (fs.existsSync(filePath)) {
-            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-        }
+        if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf8'));
         return defaultVal;
     } catch (e) {
         console.warn(`⚠️ Error reading ${file}:`, e.message);
@@ -242,14 +260,20 @@ function writeJSON(file, data) {
     }
 }
 
-// ─── Helper Functions ─────────────────────────────────────────────
+// ─── General Helpers ────────────────────────────────────────────
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
 function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[m]));
 }
 
 function sanitizeName(name) {
@@ -260,12 +284,8 @@ function sanitizeName(name) {
 function formatWhatsAppNumber(phone) {
     if (!phone) return '';
     let cleaned = phone.replace(/\D/g, '');
-    if (cleaned.startsWith('0')) {
-        cleaned = '254' + cleaned.substring(1);
-    }
-    if (!cleaned.startsWith('254')) {
-        cleaned = '254' + cleaned;
-    }
+    if (cleaned.startsWith('0')) cleaned = '254' + cleaned.substring(1);
+    if (!cleaned.startsWith('254')) cleaned = '254' + cleaned;
     return cleaned;
 }
 
@@ -286,7 +306,7 @@ function render(template, context) {
     return result;
 }
 
-// ─── City Landmarks ────────────────────────────────────────────────
+// ─── City Landmarks ─────────────────────────────────────────────
 const cityLandmarksList = {
     "Kitengela": [
         "near Yukos, Milimani, Acacia, and along Namanga Road",
@@ -317,9 +337,8 @@ const cityLandmarksList = {
         "near the junction of Mombasa Road and the Eastern Bypass"
     ]
 };
-const defaultLandmark = "in secure, central locations";
 
-// ─── Service Clusters ──────────────────────────────────────────────
+// ─── Service Clusters ───────────────────────────────────────────
 const serviceClusters = {
     luxury: ["Fine Dining Companion", "Executive Social Events", "Weekend Retreats", "Luxury Travel Companion", "VIP Evenings"],
     relaxed: ["Casual Meetups", "Friendly Company", "Lounge Dates", "Conversation & Coffee", "Private Evenings"],
@@ -330,9 +349,8 @@ const serviceClusters = {
 
 function getServiceCluster(profile) {
     const hash = seededHash(profile.slug || 'default');
-    const clusterNames = Object.keys(serviceClusters);
-    const cluster = clusterNames[hash % clusterNames.length];
-    const services = serviceClusters[cluster];
+    const names = Object.keys(serviceClusters);
+    const services = serviceClusters[names[hash % names.length]];
     const shuffled = [...services];
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = (hash + i) % (i + 1);
@@ -341,13 +359,13 @@ function getServiceCluster(profile) {
     return shuffled.slice(0, 4).map(s => `<span class="service">${escapeHtml(s)}</span>`).join('');
 }
 
-// ─── FAQ Pools ─────────────────────────────────────────────────────
+// ─── FAQ Pools ──────────────────────────────────────────────────
 const faqPools = [
     [
         { q: "Is {{name}} a verified escort in {{city}}?", a: "Yes, {{name}} has completed our identity verification process and is a verified companion in {{city}}." },
         { q: "Where in {{city}} is {{name}} available?", a: "{{name}} is available for incalls in secure, upscale locations within {{city}} and nearby areas. Outcalls to reputable hotels in {{city}} are also welcome." },
         { q: "Does {{name}} offer overnight or travel companionship?", a: "{{name}} offers overnight stays and can accompany you on weekend getaways around {{city}} or Nairobi." },
-        { q: "How do I book {{name}}?", a: "Simply visit {{name}}'s profile, view her contact details, and reach out directly via call or WhatsApp. All profiles are verified and ready to connect." }
+        { q: "How do I book {{name}}?", a: "Visit {{name}}'s profile, view her contact details, and reach out directly via call or WhatsApp. All profiles are verified and ready to connect." }
     ],
     [
         { q: "Is my privacy guaranteed when booking {{name}}?", a: "Absolutely. Discretion is {{name}}'s top priority. All communications are confidential." },
@@ -368,10 +386,10 @@ const faqPools = [
         { q: "How to book a multi-day trip?", a: "Contact {{name}} directly using the WhatsApp or Call buttons on her profile." }
     ]
 ];
+
 function getRandomFaqs(profile, poolCount = 4) {
     const hash = seededHash(profile.slug || 'default');
-    const poolIndex = hash % faqPools.length;
-    const pool = faqPools[poolIndex];
+    const pool = faqPools[hash % faqPools.length];
     const shuffled = [...pool];
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = (hash + i) % (i + 1);
@@ -382,27 +400,25 @@ function getRandomFaqs(profile, poolCount = 4) {
     const landmark1 = landmarks[hash % landmarks.length];
     const landmark2 = landmarks[(hash + 1) % landmarks.length];
     return selected.map(faq => {
-        let question = faq.q
+        const q = faq.q
             .replace(/{{name}}/g, profile.displayName || profile.name)
             .replace(/{{city}}/g, profile.city || profile.location)
-            .replace(/{{languages}}/g, profile.languages || "English, Swahili")
             .replace(/{{landmark1}}/g, landmark1)
             .replace(/{{landmark2}}/g, landmark2);
-        let answer = faq.a
+        const a = faq.a
             .replace(/{{name}}/g, profile.displayName || profile.name)
             .replace(/{{city}}/g, profile.city || profile.location)
-            .replace(/{{languages}}/g, profile.languages || "English, Swahili")
             .replace(/{{landmark1}}/g, landmark1)
             .replace(/{{landmark2}}/g, landmark2);
-        return `<div class="faq-item"><h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p></div>`;
+        return `<div class="faq-item"><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></div>`;
     }).join('');
 }
 
-// ─── Footer Helpers ───────────────────────────────────────────────
+// ─── Footer / Related Helpers ───────────────────────────────────
 async function getAllCities() {
     const profilesCol = getCollection('profiles');
     if (profilesCol) {
-        const profiles = await profilesCol.find({}).toArray();
+        const profiles = await profilesCol.find({}, { projection: { city: 1, location: 1 } }).toArray();
         return [...new Set(profiles.map(p => p.city || p.location).filter(Boolean))].sort();
     }
     return [];
@@ -420,45 +436,38 @@ async function getRelatedProfiles(profile) {
     const profilesCol = getCollection('profiles');
     if (!profilesCol) return '';
     const city = (profile.city || profile.location || '').trim();
-    const slug = profile.slug;
-    // If city is empty, return empty
     if (!city) return '';
 
-    // Case-insensitive matching using regex
     const cityRegex = new RegExp('^' + city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
-
     const sameCity = await profilesCol.find({
         $or: [
             { city: { $regex: cityRegex } },
             { location: { $regex: cityRegex } }
         ],
-        slug: { $ne: slug },
+        slug: { $ne: profile.slug },
         isApproved: true
     }).toArray();
 
-    const hash = seededHash(slug || 'default');
+    const hash = seededHash(profile.slug || 'default');
     const shuffled = [...sameCity];
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = (hash + i) % (i + 1);
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    const selected = shuffled.slice(0, 6);
-    return selected.map(p => `<a href="${p.slug}.html">${escapeHtml(sanitizeName(p.displayName || p.name))}</a>`).join('\n');
+    return shuffled.slice(0, 6)
+        .map(p => `<a href="${p.slug}.html">${escapeHtml(sanitizeName(p.displayName || p.name))}</a>`)
+        .join('\n');
 }
 
-// ─── Auth Middleware ──────────────────────────────────────────────
+// ─── Auth Middleware ────────────────────────────────────────────
 async function authenticate(req, res, next) {
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
-        return res.status(401).json({ message: 'No token provided' });
-    }
+    if (!authHeader) return res.status(401).json({ message: 'No token provided' });
     const token = authHeader.split(' ')[1];
     const usersCol = getCollection('users');
     if (usersCol) {
         const user = await usersCol.findOne({ token });
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid token' });
-        }
+        if (!user) return res.status(401).json({ message: 'Invalid token' });
         req.userId = user._id.toString();
         req.user = user;
         return next();
@@ -474,12 +483,10 @@ async function authenticate(req, res, next) {
     return res.status(401).json({ message: 'Invalid token' });
 }
 
-// ─── Database Query Functions ─────────────────────────────────────
+// ─── DB Query Functions ─────────────────────────────────────────
 async function findUserByEmail(email) {
     const usersCol = getCollection('users');
-    if (usersCol) {
-        return await usersCol.findOne({ email });
-    }
+    if (usersCol) return await usersCol.findOne({ email });
     const users = readJSON('users.json', {});
     for (const [id, user] of Object.entries(users)) {
         if (user.email === email) return { id, ...user };
@@ -490,7 +497,8 @@ async function findUserByEmail(email) {
 async function findUserById(id) {
     const usersCol = getCollection('users');
     if (usersCol) {
-        return await usersCol.findOne({ _id: new ObjectId(id) });
+        try { return await usersCol.findOne({ _id: new ObjectId(id) }); }
+        catch { return null; }
     }
     const users = readJSON('users.json', {});
     return users[id] ? { id, ...users[id] } : null;
@@ -498,27 +506,19 @@ async function findUserById(id) {
 
 async function findProfileByUserId(userId) {
     const profilesCol = getCollection('profiles');
-    if (profilesCol) {
-        return await profilesCol.findOne({ userId });
-    }
-    const profiles = readJSON('profiles.json', []);
-    return profiles.find(p => p.userId === userId);
+    if (profilesCol) return await profilesCol.findOne({ userId });
+    return readJSON('profiles.json', []).find(p => p.userId === userId);
 }
 
 async function findProfileBySlug(slug) {
     const profilesCol = getCollection('profiles');
-    if (profilesCol) {
-        return await profilesCol.findOne({ slug });
-    }
-    const profiles = readJSON('profiles.json', []);
-    return profiles.find(p => p.slug === slug);
+    if (profilesCol) return await profilesCol.findOne({ slug });
+    return readJSON('profiles.json', []).find(p => p.slug === slug);
 }
 
 async function getAllProfiles() {
     const profilesCol = getCollection('profiles');
-    if (profilesCol) {
-        return await profilesCol.find({}).toArray();
-    }
+    if (profilesCol) return await profilesCol.find({}).toArray();
     return readJSON('profiles.json', []);
 }
 
@@ -549,40 +549,29 @@ async function updateProfile(slug, updates) {
     }
     return null;
 }
-// ─── Ensure admin user exists on boot ─────────────────────────────
+
+// ─── Admin Bootstrap ────────────────────────────────────────────
 async function ensureAdminUser() {
     const email = process.env.ADMIN_EMAIL;
     const password = process.env.ADMIN_PASSWORD;
-
     if (!email || !password) {
         console.log('ℹ️ ADMIN_EMAIL / ADMIN_PASSWORD not set — skipping admin bootstrap');
         return;
     }
-
     const usersCol = getCollection('users');
-    if (!usersCol) {
-        console.log('⚠️ Cannot ensure admin user — users collection unavailable');
-        return;
-    }
+    if (!usersCol) return;
 
     try {
         const existing = await usersCol.findOne({ email: email.toLowerCase().trim() });
-
         if (existing) {
-            // Guarantee admin role even if it was changed
             if (existing.role !== 'admin') {
-                await usersCol.updateOne(
-                    { _id: existing._id },
-                    { $set: { role: 'admin' } }
-                );
+                await usersCol.updateOne({ _id: existing._id }, { $set: { role: 'admin' } });
                 console.log(`✅ Ensured ${email} has admin role`);
             } else {
                 console.log(`✅ Admin user verified: ${email}`);
             }
             return;
         }
-
-        // Create the admin user if missing
         const hashedPassword = await bcrypt.hash(password, 10);
         await usersCol.insertOne({
             _id: new ObjectId(),
@@ -593,23 +582,22 @@ async function ensureAdminUser() {
             createdAt: new Date().toISOString()
         });
         console.log(`✅ Created admin user: ${email}`);
-
     } catch (err) {
         console.error('❌ Admin bootstrap failed:', err.message);
     }
 }
-// ─── Routes ────────────────────────────────────────────────────────
 
-// ─── Auth Routes ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// ROUTES
+// ═══════════════════════════════════════════════════════════════
+
+// ─── Auth Routes ────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password required' });
-    }
+    if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
     const existing = await findUserByEmail(email);
-    if (existing) {
-        return res.status(409).json({ message: 'Email already registered' });
-    }
+    if (existing) return res.status(409).json({ message: 'Email already registered' });
+
     const userId = new ObjectId().toString();
     const token = generateToken();
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -630,10 +618,8 @@ app.post('/api/auth/register', async (req, res) => {
         writeJSON('users.json', users);
     }
 
-    // ─── Send welcome email ────────────────────────────────────
     try {
         await sendWelcomeEmail(email, email.split('@')[0]);
-        console.log('✅ Welcome email sent to', email);
     } catch (err) {
         console.error('❌ Welcome email failed:', err.message);
     }
@@ -648,17 +634,14 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password required' });
-    }
+    if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
+
     const user = await findUserByEmail(email);
-    if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-    }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-    }
+    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
+
     const token = generateToken();
     const usersCol = getCollection('users');
     if (usersCol) {
@@ -670,45 +653,35 @@ app.post('/api/auth/login', async (req, res) => {
             writeJSON('users.json', users);
         }
     }
-    const profile = await findProfileByUserId(user._id?.toString() || user.id);
-    const subStatus = profile ? { active: false } : { active: false };
+
     res.json({
         message: 'Login successful',
         token,
         user: { email: user.email, role: user.role || 'escort' },
-        subscription: subStatus
+        subscription: { active: false }
     });
 });
-// ─── Forgot Password ──────────────────────────────────────────────
-// ─── Forgot Password ──────────────────────────────────────────────
+
+// ─── Forgot Password ────────────────────────────────────────────
 app.post('/api/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
-    if (!email) {
-        return res.status(400).json({ message: 'Email is required' });
-    }
+    if (!email) return res.status(400).json({ message: 'Email is required' });
 
     const user = await findUserByEmail(email);
     if (!user) {
         return res.status(200).json({ message: 'If that email is registered, you will receive a reset link.' });
     }
 
-    // ─── 👇 GENERATE AND STORE TOKEN HERE ──────────────────────────
     const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 3600000); // 1 hour
+    const expires = new Date(Date.now() + 3600000);
 
     const usersCol = getCollection('users');
     if (usersCol) {
         await usersCol.updateOne(
             { _id: user._id },
-            {
-                $set: {
-                    resetPasswordToken: token,        // ← NEW FIELD
-                    resetPasswordExpires: expires     // ← NEW FIELD
-                }
-            }
+            { $set: { resetPasswordToken: token, resetPasswordExpires: expires } }
         );
     } else {
-        // File-based fallback
         const users = readJSON('users.json', {});
         if (users[user.id]) {
             users[user.id].resetPasswordToken = token;
@@ -717,16 +690,9 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         }
     }
 
-    // ─── SEND EMAIL ────────────────────────────────────────────────
     const resetLink = `https://fineescorts.co.ke/reset-password.html?token=${token}`;
     try {
-        await sendEmail(
-            email,
-            'Reset Your Password – FineEscorts Kenya',
-            'reset-password',
-            { resetLink }
-        );
-        console.log('✅ Reset email sent to', email);
+        await sendEmail(email, 'Reset Your Password – FineEscorts Kenya', 'reset-password', { resetLink });
     } catch (err) {
         console.error('❌ Reset email failed:', err.message);
     }
@@ -734,51 +700,31 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     res.status(200).json({ message: 'If that email is registered, you will receive a reset link.' });
 });
 
-// ─── Verify Reset Token (optional) ──────────────────────────────
 app.get('/api/auth/reset-password/:token', async (req, res) => {
-    const { token } = req.params;
     const usersCol = getCollection('users');
-    if (!usersCol) {
-        return res.status(500).json({ message: 'Database error' });
-    }
-
+    if (!usersCol) return res.status(500).json({ message: 'Database error' });
     const user = await usersCol.findOne({
-        resetPasswordToken: token,
+        resetPasswordToken: req.params.token,
         resetPasswordExpires: { $gt: new Date() }
     });
-
-    if (!user) {
-        return res.status(400).json({ message: 'Invalid or expired reset token' });
-    }
-
+    if (!user) return res.status(400).json({ message: 'Invalid or expired reset token' });
     res.json({ valid: true, email: user.email });
 });
 
-// ─── Reset Password ──────────────────────────────────────────────
 app.post('/api/auth/reset-password', async (req, res) => {
     const { token, newPassword } = req.body;
-    if (!token || !newPassword) {
-        return res.status(400).json({ message: 'Token and new password are required' });
-    }
+    if (!token || !newPassword) return res.status(400).json({ message: 'Token and new password required' });
 
     const usersCol = getCollection('users');
-    if (!usersCol) {
-        return res.status(500).json({ message: 'Database error' });
-    }
+    if (!usersCol) return res.status(500).json({ message: 'Database error' });
 
     const user = await usersCol.findOne({
         resetPasswordToken: token,
         resetPasswordExpires: { $gt: new Date() }
     });
+    if (!user) return res.status(400).json({ message: 'Invalid or expired reset token' });
 
-    if (!user) {
-        return res.status(400).json({ message: 'Invalid or expired reset token' });
-    }
-
-    // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update user's password and remove reset fields
     await usersCol.updateOne(
         { _id: user._id },
         {
@@ -786,38 +732,25 @@ app.post('/api/auth/reset-password', async (req, res) => {
             $unset: { resetPasswordToken: '', resetPasswordExpires: '' }
         }
     );
-
-    // Optionally send confirmation email
-    // await sendEmail(user.email, 'Password Reset Successful', 'password-reset-confirm', { name: user.email });
-
-    res.json({ message: 'Password reset successfully. You can now log in with your new password.' });
+    res.json({ message: 'Password reset successfully.' });
 });
-// ─── Profile Routes ──────────────────────────────────────────────
+
+// ─── Profile Routes ─────────────────────────────────────────────
 app.get('/api/profiles/me', authenticate, async (req, res) => {
     const profile = await findProfileByUserId(req.userId);
-    if (!profile) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
     res.json(profile);
 });
 
-// ─── Also add this import at the top of server.js (if not already):
-// const { sendWelcomeEmail, sendApprovalEmail, sendPaymentConfirmation, sendSubscriptionExpiredEmail, sendEmail, sendAdminNewSignupNotification } = require('./utils/emailService');
-
-// ─── Then the route:
 app.post('/api/profiles', authenticate, async (req, res) => {
     const { displayName, age, location, ethnicity, description, services, phone } = req.body;
     if (!displayName || !age || !location || !description || !phone) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
     const existing = await findProfileByUserId(req.userId);
-    if (existing) {
-        return res.status(409).json({ message: 'You already have a profile' });
-    }
+    if (existing) return res.status(409).json({ message: 'You already have a profile' });
 
-    // ─── Trim location ──────────────────────────────────────────
-    const trimmedLocation = location ? location.trim() : '';
-
+    const trimmedLocation = location.trim();
     const slug = displayName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
     const newProfile = {
         slug,
@@ -825,8 +758,8 @@ app.post('/api/profiles', authenticate, async (req, res) => {
         name: displayName,
         displayName,
         age: parseInt(age),
-        city: trimmedLocation,    // ← Changed
-        location: trimmedLocation, // ← Changed
+        city: trimmedLocation,
+        location: trimmedLocation,
         ethnicity: ethnicity || '',
         description,
         services: services || [],
@@ -842,15 +775,11 @@ app.post('/api/profiles', authenticate, async (req, res) => {
     };
     const saved = await saveProfile(newProfile);
 
-    // ─── Send admin notification ──────────────────────────────────
     try {
         const user = await findUserById(req.userId);
         if (user && user.email) {
             saved.email = user.email;
             await sendAdminNewSignupNotification(saved);
-            console.log('✅ Admin notification sent for new signup:', user.email);
-        } else {
-            console.log('⚠️ User email not found for admin notification');
         }
     } catch (err) {
         console.error('❌ Admin notification failed:', err.message);
@@ -866,13 +795,12 @@ app.put('/api/profiles/me', authenticate, async (req, res) => {
     try {
         const { displayName, age, location, ethnicity, description, services, phone, photos } = req.body;
         const profile = await findProfileByUserId(req.userId);
-        if (!profile) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
+        if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
         const updates = {};
         if (displayName !== undefined) updates.displayName = displayName;
         if (age !== undefined) updates.age = parseInt(age);
-        if (location !== undefined) updates.location = location.trim(); // ✅ ADD .trim()
+        if (location !== undefined) updates.location = location.trim();
         if (ethnicity !== undefined) updates.ethnicity = ethnicity;
         if (description !== undefined) updates.description = description;
         if (services !== undefined) updates.services = services;
@@ -881,67 +809,55 @@ app.put('/api/profiles/me', authenticate, async (req, res) => {
             updates.fullNumber = phone;
         }
         if (photos !== undefined) updates.photos = photos;
+
         const updated = await updateProfile(profile.slug, updates);
-        res.json({
-            message: '✅ Profile updated successfully',
-            profile: updated
-        });
+        res.json({ message: '✅ Profile updated successfully', profile: updated });
     } catch (error) {
         console.error('Update profile error:', error);
-        res.status(500).json({
-            message: 'Failed to update profile',
-            error: error.message
-        });
+        res.status(500).json({ message: 'Failed to update profile', error: error.message });
     }
 });
 
-// ─── DELETE PROFILE (Escort) ──────────────────────────────────────
 app.delete('/api/profiles/me', authenticate, async (req, res) => {
     const profile = await findProfileByUserId(req.userId);
-    if (!profile) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
-    // ─── Hard delete the profile ──────────────────────────────────
     const profilesCol = getCollection('profiles');
     if (profilesCol) {
         const result = await profilesCol.deleteOne({ userId: req.userId });
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
+        if (result.deletedCount === 0) return res.status(404).json({ message: 'Profile not found' });
     } else {
-        // File-based fallback
         const profiles = readJSON('profiles.json', []);
         const index = profiles.findIndex(p => p.userId === req.userId);
-        if (index === -1) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
+        if (index === -1) return res.status(404).json({ message: 'Profile not found' });
         profiles.splice(index, 1);
         writeJSON('profiles.json', profiles);
     }
 
-    // ─── Optionally send confirmation email ──────────────────────
     try {
-        await sendEmail(
-            req.user.email,
-            'Profile Deleted – FineEscorts Kenya',
-            'profile-deleted',
-            { name: profile.displayName }
-        );
-        console.log('✅ Profile deletion confirmation sent to', req.user.email);
+        if (req.user?.email) {
+            await sendEmail(req.user.email, 'Profile Deleted – FineEscorts Kenya', 'profile-deleted', { name: profile.displayName });
+        }
     } catch (err) {
-        console.error('❌ Deletion confirmation email failed:', err.message);
+        console.error('❌ Deletion email failed:', err.message);
     }
 
     res.json({ message: 'Profile deleted successfully.' });
 });
 
-// ─── Admin Routes ──────────────────────────────────────────────────
-app.get('/api/admin/stats', authenticate, async (req, res) => {
+// ─── Admin Routes ───────────────────────────────────────────────
+async function requireAdmin(req, res) {
     const user = await findUserById(req.userId);
     if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
+        res.status(403).json({ message: 'Admin access required' });
+        return null;
     }
+    return user;
+}
+
+app.get('/api/admin/stats', authenticate, async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
     const profiles = await getAllProfiles();
     const pending = profiles.filter(p => p.status === 'pending' || !p.isApproved).length;
     const approved = profiles.filter(p => p.status === 'approved' || p.isApproved).length;
@@ -950,235 +866,160 @@ app.get('/api/admin/stats', authenticate, async (req, res) => {
 });
 
 app.get('/api/admin/profiles', authenticate, async (req, res) => {
-    const user = await findUserById(req.userId);
-    if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-    }
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
     const { status } = req.query;
     let profiles = await getAllProfiles();
-    if (status === 'pending') {
-        profiles = profiles.filter(p => p.status === 'pending' || !p.isApproved);
-    } else if (status === 'approved') {
-        profiles = profiles.filter(p => p.status === 'approved' || p.isApproved);
-    } else if (status === 'rejected') {
-        profiles = profiles.filter(p => p.status === 'rejected');
-    }
+    if (status === 'pending') profiles = profiles.filter(p => p.status === 'pending' || !p.isApproved);
+    else if (status === 'approved') profiles = profiles.filter(p => p.status === 'approved' || p.isApproved);
+    else if (status === 'rejected') profiles = profiles.filter(p => p.status === 'rejected');
     res.json(profiles);
 });
 
 app.put('/api/admin/profiles/:slug/approve', authenticate, async (req, res) => {
-    const user = await findUserById(req.userId);
-    if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-    }
-    const slug = req.params.slug;
-    const updated = await updateProfile(slug, { isApproved: true, status: 'approved', approvedAt: new Date().toISOString() });
-    if (!updated) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const updated = await updateProfile(req.params.slug, {
+        isApproved: true, status: 'approved', approvedAt: new Date().toISOString()
+    });
+    if (!updated) return res.status(404).json({ message: 'Profile not found' });
 
-    // ─── Send approval email ────────────────────────────────────
     try {
         const user = await findUserById(updated.userId);
-        const email = user ? user.email : 'escort@example.com';
-        await sendApprovalEmail(email, updated.displayName || updated.name, 'approved', updated.slug);
-        console.log('✅ Approval email sent to', email);
+        if (user?.email) {
+            await sendApprovalEmail(user.email, updated.displayName || updated.name, 'approved', updated.slug);
+        }
     } catch (err) {
         console.error('❌ Approval email failed:', err.message);
     }
-
-    res.json({ message: '✅ Profile approved successfully', profile: updated });
+    res.json({ message: '✅ Profile approved', profile: updated });
 });
 
-// ─── FEATURE A PROFILE (Admin) ─────────────────────────────
 app.put('/api/admin/profiles/:slug/feature', authenticate, async (req, res) => {
-    const user = await findUserById(req.userId);
-    if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-    }
-    const slug = req.params.slug;
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
     const featured = Boolean(req.body.featured);
-
     const updates = featured
-        ? { featured: true, featuredAt: new Date().toISOString(), buried: false }
+        ? { featured: true, featuredAt: new Date().toISOString(), buried: false, buriedAt: null }
         : { featured: false, featuredAt: null };
-
-    const updated = await updateProfile(slug, updates);
-    if (!updated) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
-
-    res.json({
-        message: featured ? '⭐ Profile featured' : 'Profile unfeatured',
-        profile: updated
-    });
+    const updated = await updateProfile(req.params.slug, updates);
+    if (!updated) return res.status(404).json({ message: 'Profile not found' });
+    res.json({ message: featured ? '⭐ Featured' : 'Unfeatured', profile: updated });
 });
 
-// ─── BURY A PROFILE (Admin) ────────────────────────────────
 app.put('/api/admin/profiles/:slug/bury', authenticate, async (req, res) => {
-    const user = await findUserById(req.userId);
-    if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-    }
-    const slug = req.params.slug;
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
     const buried = Boolean(req.body.buried);
-
     const updates = buried
-        ? { buried: true, buriedAt: new Date().toISOString(), featured: false }
+        ? { buried: true, buriedAt: new Date().toISOString(), featured: false, featuredAt: null }
         : { buried: false, buriedAt: null };
-
-    const updated = await updateProfile(slug, updates);
-    if (!updated) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
-
-    res.json({
-        message: buried ? '⬇️ Profile buried' : 'Profile un-buried',
-        profile: updated
-    });
+    const updated = await updateProfile(req.params.slug, updates);
+    if (!updated) return res.status(404).json({ message: 'Profile not found' });
+    res.json({ message: buried ? '⬇️ Buried' : 'Un-buried', profile: updated });
 });
 
 app.delete('/api/admin/profiles/:slug', authenticate, async (req, res) => {
-    const user = await findUserById(req.userId);
-    if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-    }
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
     const slug = req.params.slug;
-
-    // ─── Fetch profile before deletion ────────────────────────────
     const profile = await findProfileBySlug(slug);
-    if (!profile) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
-    // ─── Send rejection email ──────────────────────────────────────
     try {
         const user = await findUserById(profile.userId);
-        const email = user ? user.email : 'escort@example.com';
-        await sendApprovalEmail(email, profile.displayName || profile.name, 'rejected', profile.slug, 'Content did not meet our quality standards.');
-        console.log('✅ Rejection email sent to', email);
+        if (user?.email) {
+            await sendApprovalEmail(user.email, profile.displayName || profile.name, 'rejected', profile.slug, 'Content did not meet our quality standards.');
+        }
     } catch (err) {
         console.error('❌ Rejection email failed:', err.message);
     }
 
-    // ─── Now delete the profile ────────────────────────────────────
     const profilesCol = getCollection('profiles');
     if (profilesCol) {
         const result = await profilesCol.deleteOne({ slug });
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
+        if (result.deletedCount === 0) return res.status(404).json({ message: 'Profile not found' });
     } else {
         const profiles = readJSON('profiles.json', []);
         const index = profiles.findIndex(p => p.slug === slug);
-        if (index === -1) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
+        if (index === -1) return res.status(404).json({ message: 'Profile not found' });
         profiles.splice(index, 1);
         writeJSON('profiles.json', profiles);
     }
-    res.json({ message: '❌ Profile rejected and deleted successfully' });
+    res.json({ message: '❌ Profile rejected and deleted' });
 });
 
-// ─── UPDATE PROFILE (Admin) ──────────────────────────────────────
 app.put('/api/admin/profiles/:slug', authenticate, async (req, res) => {
-    const user = await findUserById(req.userId);
-    if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-    }
-    const slug = req.params.slug;
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
     const updates = req.body;
-
-    // Remove fields that shouldn't be updated via admin edit
     delete updates._id;
     delete updates.userId;
     delete updates.slug;
     delete updates.createdAt;
-    delete updates.profileViews; // Don't allow manual view count editing
+    delete updates.profileViews;
 
-    // Validate some fields if needed
     if (updates.age !== undefined && (isNaN(updates.age) || updates.age < 18)) {
-        return res.status(400).json({ message: 'Age must be a number >= 18' });
+        return res.status(400).json({ message: 'Age must be >= 18' });
     }
-
-    const updated = await updateProfile(slug, updates);
-    if (!updated) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
-
-    // Optionally send email notification about profile update? Not needed for now.
-    res.json({ message: '✅ Profile updated successfully', profile: updated });
+    const updated = await updateProfile(req.params.slug, updates);
+    if (!updated) return res.status(404).json({ message: 'Profile not found' });
+    res.json({ message: '✅ Profile updated', profile: updated });
 });
 
-// ─── GET ALL USERS (Admin Only) ──────────────────────────────────
+// GET ALL USERS — password + token stripped
 app.get('/api/admin/users', authenticate, async (req, res) => {
-    const user = await findUserById(req.userId);
-    if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-    }
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
     const usersCol = getCollection('users');
+    let users;
     if (usersCol) {
-        const users = await usersCol.find({}).toArray();
-        return res.json(users);
+        users = await usersCol.find({}).toArray();
+    } else {
+        users = Object.values(readJSON('users.json', {}));
     }
-    // Fallback to file-based storage
-    const users = readJSON('users.json', {});
-    res.json(Object.values(users));
+    const safe = users.map(u => {
+        const { password, token, resetPasswordToken, resetPasswordExpires, ...rest } = u;
+        return rest;
+    });
+    res.json(safe);
 });
 
-// ─── GET EXPIRED PROFILES (Admin) ──────────────────────────────
 app.get('/api/admin/expired', authenticate, async (req, res) => {
-    const user = await findUserById(req.userId);
-    if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-    }
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
     const profilesCol = getCollection('profiles');
     if (!profilesCol) return res.json([]);
-    const now = new Date();
     const expired = await profilesCol.find({
         isApproved: true,
-        subscriptionExpiry: { $lt: now }
+        subscriptionExpiry: { $lt: new Date() }
     }).toArray();
     res.json(expired);
 });
 
-// ─── RENEW SUBSCRIPTION (Admin) ──────────────────────────────────
 app.post('/api/admin/profiles/:slug/renew', authenticate, async (req, res) => {
-    const user = await findUserById(req.userId);
-    if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-    }
-    const slug = req.params.slug;
-    const profile = await findProfileBySlug(slug);
-    if (!profile) {
-        return res.status(404).json({ message: 'Profile not found' });
-    }
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const profile = await findProfileBySlug(req.params.slug);
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
     const expiryDate = new Date();
     expiryDate.setMonth(expiryDate.getMonth() + 1);
-    const updated = await updateProfile(slug, {
-        isApproved: true,
-        status: 'approved',
-        subscriptionExpiry: expiryDate.toISOString()
+    const updated = await updateProfile(req.params.slug, {
+        isApproved: true, status: 'approved', subscriptionExpiry: expiryDate.toISOString()
     });
     res.json({ message: '✅ Subscription renewed', profile: updated });
 });
 
-// ─── SEND BULK EMAIL (Admin) ─────────────────────────────────────
 app.post('/api/admin/send-bulk-email', authenticate, async (req, res) => {
-    const user = await findUserById(req.userId);
-    if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin access required' });
-    }
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
     const { subject, message, filter } = req.body;
-    if (!subject || !message) {
-        return res.status(400).json({ message: 'Subject and message required' });
-    }
-    const profilesCol = getCollection('profiles');
-    if (!profilesCol) {
-        return res.status(500).json({ message: 'Database error' });
-    }
+    if (!subject || !message) return res.status(400).json({ message: 'Subject and message required' });
 
-    let query = {};
+    const profilesCol = getCollection('profiles');
+    if (!profilesCol) return res.status(500).json({ message: 'Database error' });
+
+    const query = {};
     if (filter === 'approved') query.isApproved = true;
     else if (filter === 'pending') query.isApproved = false;
     else if (filter === 'expired') {
@@ -1195,42 +1036,33 @@ app.post('/api/admin/send-bulk-email', authenticate, async (req, res) => {
                 await sendEmail(user.email, subject, 'admin-bulk', { name: profile.displayName || profile.name, message });
                 sent++;
             }
-        } catch (err) { console.error('Bulk email failed:', err.message); }
+        } catch (err) {
+            console.error('Bulk email failed:', err.message);
+        }
     }
     res.json({ message: `✅ Emails sent to ${sent} escorts`, sent, total: profiles.length });
 });
 
-// ─── GET ALL APPROVED PROFILES ────────────────────────────────────
-// ─── GET ALL APPROVED PROFILES (sorted: featured → newest → buried) ───
+// ─── Public Profiles ────────────────────────────────────────────
 app.get('/api/profiles', async (req, res) => {
     try {
         const profiles = await getAllProfiles();
         const approved = profiles
             .filter(p => p.isApproved === true)
             .sort((a, b) => {
-                // 1. Featured profiles always come first
                 const aFeat = a.featured === true ? 1 : 0;
                 const bFeat = b.featured === true ? 1 : 0;
                 if (aFeat !== bFeat) return bFeat - aFeat;
-
-                // 2. Among featured, most-recently-featured first
                 if (aFeat && bFeat) {
                     const aF = new Date(a.featuredAt || 0).getTime();
                     const bF = new Date(b.featuredAt || 0).getTime();
                     if (aF !== bF) return bF - aF;
                 }
-
-                // 3. Buried profiles always come last
                 const aBuried = a.buried === true ? 1 : 0;
                 const bBuried = b.buried === true ? 1 : 0;
                 if (aBuried !== bBuried) return aBuried - bBuried;
-
-                // 4. Everything else: newest first
-                const aTime = new Date(a.createdAt || 0).getTime();
-                const bTime = new Date(b.createdAt || 0).getTime();
-                return bTime - aTime;
+                return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
             });
-
         res.json(approved);
     } catch (error) {
         console.error('Error fetching profiles:', error);
@@ -1238,71 +1070,20 @@ app.get('/api/profiles', async (req, res) => {
     }
 });
 
-// ─── ACTIVATE PROFILE AFTER PAYMENT ──────────────────────────────
-// ─── ACTIVATE PROFILE AFTER PAYMENT ──────────────────────────────
+// ─── Activate Endpoint — DISABLED (activation now only via webhook) ─
 app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
-    try {
-        const { tier, duration, amount, transactionId } = req.body;
-        const profile = await findProfileByUserId(req.userId);
-        if (!profile) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
-
-        // ─── Calculate expiry date ──────────────────────────────────
-        const expiryDate = new Date();
-        const durationMonths = duration === 'yearly' ? 12 : 1;
-        expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
-
-        const updated = await updateProfile(profile.slug, {
-            isApproved: true,
-            status: 'approved',
-            approvedAt: new Date().toISOString(),
-            subscriptionTier: tier || 'premium',
-            subscriptionDuration: duration || 'monthly',
-            subscriptionExpiry: expiryDate.toISOString() // ✅ New field
-        });
-
-        // ─── Send payment confirmation email ──────────────────────
-        try {
-            const userEmail = await findUserById(profile.userId);
-            const email = userEmail ? userEmail.email : 'escort@example.com';
-            await sendPaymentConfirmation(
-                email,
-                updated.displayName || updated.name,
-                amount || 500,
-                tier || 'Premium',
-                transactionId || 'N/A'
-            );
-            console.log('✅ Payment confirmation email sent to', email);
-        } catch (err) {
-            console.error('❌ Payment email failed:', err.message);
-        }
-
-        res.json({
-            success: true,
-            message: '✅ Profile activated and live!',
-            profile: updated
-        });
-    } catch (error) {
-        console.error('Activation error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to activate profile',
-            error: error.message
-        });
-    }
+    return res.status(403).json({
+        message: 'Activation is handled by the payment gateway. Complete payment via /api/pay.'
+    });
 });
 
-// ─── INCREMENT PROFILE VIEWS ──────────────────────────────────────
+// ─── Increment Views ────────────────────────────────────────────
 app.post('/api/profiles/:slug/view', async (req, res) => {
     try {
-        const slug = req.params.slug;
-        const profile = await findProfileBySlug(slug);
-        if (!profile) {
-            return res.status(404).json({ error: 'Profile not found' });
-        }
+        const profile = await findProfileBySlug(req.params.slug);
+        if (!profile) return res.status(404).json({ error: 'Profile not found' });
         const views = (profile.profileViews || 0) + 1;
-        await updateProfile(slug, { profileViews: views });
+        await updateProfile(req.params.slug, { profileViews: views });
         res.json({ views });
     } catch (error) {
         console.error('View increment error:', error);
@@ -1310,316 +1091,318 @@ app.post('/api/profiles/:slug/view', async (req, res) => {
     }
 });
 
-// ─── Payment Proxy ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// TUMA PAYMENT — INITIATION
+// ═══════════════════════════════════════════════════════════════
 app.post('/api/pay', async (req, res) => {
-    console.log('🚀 PAYMENT ROUTE HIT - VERSION 5.0 (no verification)');
-
     try {
-        const { name, phone, amount, email, website } = req.body;
+        const { phone, tier, duration, amount, name, email } = req.body;
 
-        let recaptchaToken = req.headers['x-recaptcha-token'] ||
-            req.headers['X-Recaptcha-Token'] ||
-            req.body.recaptchaToken;
-
-        if (!recaptchaToken) {
-            console.log('❌ No reCAPTCHA token found');
-            return res.status(400).json({ error: 'Missing reCAPTCHA token' });
+        if (!phone) {
+            return res.status(400).json({ error: 'Phone number is required' });
         }
 
-        if (!phone || !amount) {
-            return res.status(400).json({
-                error: 'Phone number and amount are required'
+        // Optional reCAPTCHA (required if RECAPTCHA_SECRET_KEY is set)
+        const recaptchaToken =
+            req.headers['x-recaptcha-token'] || req.body.recaptchaToken;
+        if (process.env.RECAPTCHA_SECRET_KEY) {
+            if (!recaptchaToken) {
+                return res.status(400).json({ error: 'Missing reCAPTCHA token' });
+            }
+            const ok = await verifyRecaptcha(recaptchaToken);
+            if (!ok) return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+        }
+
+        // Resolve amount / tier / duration
+        const tierAmounts = {
+            standard: { monthly: 500,  yearly: 5000  },
+            premium:  { monthly: 1000, yearly: 10000 },
+            vip:      { monthly: 2000, yearly: 20000 }
+        };
+
+        let resolvedTier = tier;
+        let resolvedDuration = duration;
+        let resolvedAmount = Number(amount);
+
+        if (resolvedTier && resolvedDuration) {
+            resolvedAmount = tierAmounts[resolvedTier]?.[resolvedDuration];
+            if (!resolvedAmount) {
+                return res.status(400).json({ error: 'Invalid tier/duration combination' });
+            }
+        } else if (!resolvedAmount) {
+            return res.status(400).json({ error: 'Provide either (tier + duration) or amount' });
+        }
+
+        // Infer tier/duration from amount if not supplied
+        if (!resolvedTier || !resolvedDuration) {
+            const match = Object.entries(tierAmounts).find(([_, durations]) =>
+                Object.values(durations).includes(resolvedAmount)
+            );
+            if (match) {
+                const [t, durations] = match;
+                resolvedTier = resolvedTier || t;
+                resolvedDuration = resolvedDuration || Object.keys(durations).find(k => durations[k] === resolvedAmount);
+            } else {
+                resolvedTier = resolvedTier || 'custom';
+                resolvedDuration = resolvedDuration || 'monthly';
+            }
+        }
+
+        // Initiate Tuma STK push
+        const token = await getTumaToken();
+        const response = await fetch(`${process.env.TUMA_API_URL}/payment/stk-push`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                amount: resolvedAmount,
+                phone,
+                description: `FineEscorts ${resolvedTier} - ${resolvedDuration}`,
+                callback_url: `https://fineescorts.co.ke/payment-callback?k=${process.env.TUMA_WEBHOOK_SECRET}`
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            console.error('❌ Tuma STK push failed:', data);
+            return res.status(response.status || 502).json({
+                error: data.message || 'STK push failed'
             });
         }
 
-        const response = await fetch('https://sarahapay-intasend.onrender.com/api/pay', {  // ← FIXED
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4',
-                'X-Recaptcha-Token': recaptchaToken
-            },
-            body: JSON.stringify({
-    name: name || 'FineEscorts Payment',
-    phone: phone,
-    amount: Number(amount),
-    email: email || '',
-    recaptchaToken: recaptchaToken,
-    website: 'fineescorts'                          // ← THE FIX
-})
+        const checkoutRequestId = data?.data?.checkout_request_id;
+        if (!checkoutRequestId) {
+            return res.status(502).json({ error: 'Tuma returned no checkout_request_id' });
+        }
+
+        // Record pending payment (source of truth for callback reconciliation)
+        const pendingCol = getCollection('pendingPayments');
+        if (pendingCol) {
+            await pendingCol.insertOne({
+                checkoutRequestId,
+                phone,
+                tier: resolvedTier,
+                duration: resolvedDuration,
+                amount: resolvedAmount,
+                name: name || null,
+                email: email || null,
+                createdAt: new Date().toISOString(),
+                status: 'pending'
+            });
+        }
+
+        // If profile exists for this phone, attach pending metadata
+        const profilesCol = getCollection('profiles');
+        if (profilesCol) {
+            await profilesCol.updateOne(
+                { phone },
+                {
+                    $set: {
+                        tumaCheckoutId: checkoutRequestId,
+                        pendingTier: resolvedTier,
+                        pendingDuration: resolvedDuration,
+                        pendingAmount: resolvedAmount,
+                        paymentInitiatedAt: new Date().toISOString()
+                    }
+                }
+            );
+        }
+
+        console.log(`📤 STK push sent → ${checkoutRequestId} (${resolvedTier}/${resolvedDuration} @ KES ${resolvedAmount})`);
+
+        res.status(201).json({
+            message: 'STK Push Sent. Complete payment on your phone.',
+            transactionId: checkoutRequestId
         });
-
-        const data = await response.json();
-        console.log('📥 Sarahapay response:', data);
-
-        res.status(response.status).json(data);
     } catch (error) {
-        console.error('❌ Payment proxy error:', error);
-        res.status(500).json({
-            error: 'Payment service unavailable',
-            details: error.message
-        });
+        console.error('❌ /api/pay error:', error.message);
+        res.status(500).json({ error: error.message || 'Payment initiation failed' });
     }
 });
 
-// ─── Transaction Status Proxy ─────────────────────────────────────
-// ─── Transaction Status Proxy ─────────────────────────────────────
-app.get('/api/transaction/:id', async (req, res) => {
-    try {
-        const transactionId = req.params.id;
-        const response = await fetch(`https://sarahapay-intasend.onrender.com/api/transaction/${transactionId}`, {   // ← CHANGE HERE
-            headers: {
-                'X-API-Secret': process.env.API_SECRET || '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4'
+// ═══════════════════════════════════════════════════════════════
+// TUMA PAYMENT — CALLBACK
+// ═══════════════════════════════════════════════════════════════
+app.post('/payment-callback', async (req, res) => {
+    const incomingSecret = req.query.k;
+    if (!process.env.TUMA_WEBHOOK_SECRET || incomingSecret !== process.env.TUMA_WEBHOOK_SECRET) {
+        console.warn('❌ Unauthorized /payment-callback from:', req.ip);
+        return res.sendStatus(401);
+    }
+
+    console.log('📥 Tuma callback:', req.body);
+    res.sendStatus(200); // acknowledge fast; Tuma retries on non-200
+
+    (async () => {
+        try {
+            const payload = req.body;
+            const status = payload.status;
+            const resultCode = payload.result_code;
+            const mpesaReceipt = payload.mpesa_receipt_number;
+            const amount = payload.amount;
+            const checkoutRequestId = payload.checkout_request_id;
+
+            console.log(`📊 status=${status}, result_code=${resultCode}, receipt=${mpesaReceipt}, checkout=${checkoutRequestId}`);
+
+            if (status !== 'completed' || resultCode !== 0) {
+                console.log('⏭️ Payment not successful, ignoring');
+                return;
             }
-        });
-        const data = await response.json();
-        res.status(response.status).json(data);
-    } catch (error) {
-        console.error('Transaction status error:', error);
-        res.status(500).json({
-            error: 'Transaction status unavailable',
-            details: error.message
-        });
-    }
+
+            // Find pending record
+            const pendingCol = getCollection('pendingPayments');
+            let pending = null;
+            if (pendingCol) pending = await pendingCol.findOne({ checkoutRequestId });
+
+            // Find profile to activate
+            const profilesCol = getCollection('profiles');
+            if (!profilesCol) return;
+
+            let profile = await profilesCol.findOne({ tumaCheckoutId: checkoutRequestId });
+            if (!profile && pending?.phone) {
+                profile = await profilesCol.findOne({ phone: pending.phone });
+            }
+
+            if (!profile) {
+                console.log(`⚠️ No profile for checkout_request_id: ${checkoutRequestId}`);
+                if (pendingCol) {
+                    await pendingCol.updateOne(
+                        { checkoutRequestId },
+                        { $set: { status: 'paid_no_profile', mpesaReceipt, paidAt: new Date().toISOString() } }
+                    );
+                }
+                return;
+            }
+
+            // Idempotency
+            if (mpesaReceipt && profile.mpesaReceipt === mpesaReceipt) {
+                console.log(`⏭️ Duplicate callback for receipt ${mpesaReceipt}`);
+                return;
+            }
+
+            const tier = pending?.tier || profile.pendingTier || 'premium';
+            const duration = pending?.duration || profile.pendingDuration || 'monthly';
+
+            const expiryDate = new Date();
+            if (duration === 'yearly') expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+            else if (duration === 'weekly') expiryDate.setDate(expiryDate.getDate() + 7);
+            else if (duration === 'daily') expiryDate.setDate(expiryDate.getDate() + 1);
+            else expiryDate.setMonth(expiryDate.getMonth() + 1);
+
+            await profilesCol.updateOne(
+                { _id: profile._id },
+                {
+                    $set: {
+                        isApproved: true,
+                        status: 'approved',
+                        approvedAt: new Date().toISOString(),
+                        subscriptionTier: tier,
+                        subscriptionDuration: duration,
+                        subscriptionExpiry: expiryDate.toISOString(),
+                        mpesaReceipt: mpesaReceipt || null,
+                        lastPaymentDate: new Date().toISOString()
+                    },
+                    $unset: {
+                        tumaCheckoutId: '',
+                        pendingTier: '',
+                        pendingDuration: '',
+                        pendingAmount: ''
+                    }
+                }
+            );
+
+            if (pendingCol) {
+                await pendingCol.updateOne(
+                    { checkoutRequestId },
+                    { $set: { status: 'completed', mpesaReceipt, paidAt: new Date().toISOString() } }
+                );
+            }
+
+            console.log(`✅ Profile ${profile.slug} activated until ${expiryDate.toISOString()}`);
+
+            try {
+                const user = await findUserById(profile.userId);
+                if (user?.email) {
+                    await sendPaymentConfirmation(
+                        user.email,
+                        profile.displayName || profile.name,
+                        amount || pending?.amount || profile.pendingAmount || 500,
+                        tier,
+                        mpesaReceipt || 'N/A'
+                    );
+                    console.log(`✅ Confirmation email sent to ${user.email}`);
+                }
+            } catch (emailErr) {
+                console.error('❌ Email failed:', emailErr.message);
+            }
+        } catch (error) {
+            console.error('❌ Callback processing error:', error);
+        }
+    })();
 });
 
-// ─── Test Email Route ──────────────────────────────────────────────
-app.get('/api/test-email', async (req, res) => {
+// ─── Transaction Stub (frontend polls; rely on /api/profiles/me) ─
+app.get('/api/transaction/:id', (req, res) => {
+    res.json({
+        status: 'PENDING',
+        transactionId: req.params.id,
+        note: 'Tuma does not expose transaction polling; rely on profile status.'
+    });
+});
+
+// ─── Test Email (admin only) ────────────────────────────────────
+app.get('/api/test-email', authenticate, async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
     try {
-        const { sendEmail } = require('./utils/emailService');
-       const result = await sendEmail(
-    'johnrwandanembassy@gmail.com',          // ← your inbox
-    'Test Email',
-    'admin-bulk',
-    { name: 'Test User', message: 'This is a test email.' }
-);
+        const to = req.query.to || admin.email;
+        const result = await sendEmail(to, 'Test Email', 'admin-bulk', {
+            name: 'Test User',
+            message: 'This is a test email.'
+        });
         res.json(result);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// ─── Payment Callback from Sarahapay ──────────────────────────────
-// ─── Payment Callback from sarahapay-intasend (IntaSend) ──────────
-app.post('/payment-callback', async (req, res) => {
-    // ─── Verify caller ────────────────────────────────────
-    const incomingSecret = req.headers['x-callback-secret'];
-    if (!process.env.FINEESCORTS_CALLBACK_SECRET
-        || incomingSecret !== process.env.FINEESCORTS_CALLBACK_SECRET) {
-        console.warn('❌ Unauthorized /payment-callback attempt from:', req.ip);
-        return res.sendStatus(401);
-    }
-
-    console.log('📥 Received payment callback from sarahapay-intasend:', req.body);
-    res.sendStatus(200);
-    
-    // Process asynchronously (don't block the response)
-    (async () => {
-        try {
-            const payload = req.body;
-            
-            // ─── Extract fields from IntaSend payload ──────────────
-            // IntaSend sends: invoice_id, state, mpesa_reference, account (phone), value (amount), api_ref, etc.
-            const invoiceId = payload.invoice_id || payload.checkout_id || payload.id;
-            const state = payload.state || payload.status;
-            const mpesaReceipt = payload.mpesa_receipt || payload.mpesa_reference || payload.mpesa_receipt_number || payload.receipt;
-            const phone = payload.account || payload.phone;
-            const amount = payload.value || payload.amount;
-            const apiRef = payload.api_ref || payload.reference;
-            
-            console.log(`📊 Processing callback: state=${state}, phone=${phone}, amount=${amount}, receipt=${mpesaReceipt}`);
-            
-            // ─── Check if payment was successful ────────────────────
-            const isSuccess =
-    state === 'COMPLETE' ||
-    state === 'completed' ||
-    state === 'success' ||
-    state === 'SUCCESS' ||
-    state === 'paid' ||
-    state === 'PAID';
-            if (!isSuccess) {
-                console.log(`⏭️ Payment not successful (state: ${state}), ignoring.`);
-                return;
-            }
-            
-            if (!phone) {
-                console.warn('❌ No phone number in callback payload');
-                return;
-            }
-            
-            // ─── Find profile by phone number ──────────────────────
-            const profilesCol = getCollection('profiles');
-            if (!profilesCol) {
-                console.error('❌ Profiles collection not available');
-                return;
-            }
-            
-            // Try multiple phone formats
-            let profile = await profilesCol.findOne({ 
-                $or: [
-                    { phone: phone },
-                    { fullNumber: phone },
-                    { phone: phone.replace(/^254/, '0') },
-                    { fullNumber: phone.replace(/^254/, '0') },
-                    { phone: '254' + phone.replace(/^0/, '') },
-                    { fullNumber: '254' + phone.replace(/^0/, '') }
-                ]
-            });
-            
-                       if (!profile) {
-                console.log(`⚠️ No profile found for phone: ${phone}`);
-                return;
-            }
-
-            // ─── Idempotency: ignore duplicate callbacks ───────
-            if (mpesaReceipt && profile.mpesaReceipt === mpesaReceipt) {
-                console.log(`⏭️ Duplicate callback for receipt ${mpesaReceipt}, ignoring`);
-                return;
-            }
-
-            console.log(`✅ Found profile: ${profile.displayName || profile.name}`);
-            
-            // ─── Calculate expiry date (1 month from now) ──────────
-                        // ─── Parse tier and duration from payment name ─────────────────
-            
-            // ─── Determine subscription tier based on amount ────────
-           // ─── Parse tier and duration from payment name ─────────────────
-// payment.html sends: "VIP (Daily (24hrs))" / "Standard (Monthly (30 days))"
-const paymentName = String(payload.name || '').toLowerCase();
-
-let tier = 'premium';
-if (paymentName.includes('vip'))            tier = 'vip';
-else if (paymentName.includes('premium'))   tier = 'premium';
-else if (paymentName.includes('standard'))  tier = 'standard';
-
-let duration = 'monthly';
-if (paymentName.includes('daily'))          duration = 'daily';
-else if (paymentName.includes('weekly'))    duration = 'weekly';
-else if (paymentName.includes('monthly'))   duration = 'monthly';
-
-// ─── Compute expiry based on duration ──────────────────────────
-const expiryDate = new Date();
-if (duration === 'daily') {
-    expiryDate.setDate(expiryDate.getDate() + 1);
-} else if (duration === 'weekly') {
-    expiryDate.setDate(expiryDate.getDate() + 7);
-} else {
-    expiryDate.setMonth(expiryDate.getMonth() + 1);
-}
-
-console.log(`📦 Parsed: tier=${tier}, duration=${duration}, expiry=${expiryDate.toISOString()}`);
-            
-            // ─── Update profile with subscription ────────────────────
-            const updates = {
-                isApproved: true,
-                status: 'approved',
-                approvedAt: new Date().toISOString(),
-                subscriptionTier: tier,
-                subscriptionDuration: duration,            // ← from parsed name
-                subscriptionExpiry: expiryDate.toISOString(),
-                mpesaReceipt: mpesaReceipt || apiRef,
-                lastPaymentDate: new Date().toISOString()
-            };
-            
-            const updated = await updateProfile(profile.slug, updates);
-            console.log(`✅ Profile ${profile.slug} activated until ${expiryDate.toISOString()}`);
-            
-            // ─── Send payment confirmation email ────────────────────
-            try {
-                const user = await findUserById(profile.userId);
-                if (user && user.email) {
-                    await sendPaymentConfirmation(
-                        user.email,
-                        profile.displayName || profile.name,
-                        amount || 500,
-                        tier,
-                        mpesaReceipt || apiRef || 'N/A'
-                    );
-                    console.log(`✅ Payment confirmation email sent to ${user.email}`);
-                } else {
-                    console.log(`⚠️ No user found for profile ${profile.slug}`);
-                }
-            } catch (emailErr) {
-                console.error('❌ Email sending failed:', emailErr.message);
-            }
-            
-        } catch (error) {
-            console.error('❌ Payment callback processing error:', error);
-        }
-    })();
-});
-
-// ─── Serve Static Files ──────────────────────────────────────────
-// ─── Serve Static Files with Caching ─────────────────────────────
+// ─── Static Files ───────────────────────────────────────────────
 app.use(express.static('.', {
-    maxAge: '1d', // Cache most assets for 1 day (86400 seconds)
+    maxAge: '1d',
+    dotfiles: 'ignore',
     setHeaders: (res, filePath) => {
-        // For HTML files, don't cache them (so users always get fresh content)
         if (filePath.endsWith('.html')) {
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
             res.setHeader('Pragma', 'no-cache');
             res.setHeader('Expires', '0');
-        }
-        // For images and fonts, cache longer (1 year)
-        if (filePath.match(/\.(png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot)$/i)) {
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
-        }
-        // For CSS and JS, cache moderately (1 day)
-        if (filePath.match(/\.(css|js)$/i)) {
-            res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day
+        } else if (filePath.match(/\.(png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot)$/i)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else if (filePath.match(/\.(css|js)$/i)) {
+            res.setHeader('Cache-Control', 'public, max-age=86400');
         }
     }
 }));
-// ─── Serve Pages ──────────────────────────────────────────────────
 
-// ─── Serve Pages ──────────────────────────────────────────────────
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// ─── Explicit Page Routes ───────────────────────────────────────
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
+app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/reset-password.html', (req, res) => res.sendFile(path.join(__dirname, 'reset-password.html')));
+app.get('/dashboard.html', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/payment.html', (req, res) => res.sendFile(path.join(__dirname, 'payment.html')));
 
-app.get('/signup.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'signup.html'));
-});
-
-app.get('/login.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-app.get('/reset-password.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'reset-password.html'));
-});
-
-app.get('/dashboard.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
-
-app.get('/admin.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
-
-app.get('/payment.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'payment.html'));
-});
-
-// ─── DYNAMIC PROFILE PAGE ──────────────────────────────────────────
-// ─── DYNAMIC PROFILE PAGE ──────────────────────────────────────────
+// ─── Dynamic Profile Page ───────────────────────────────────────
 app.get('/profiles/:slug.html', async (req, res) => {
     try {
         const slug = req.params.slug;
-        console.log(`🔍 Looking for profile: ${slug}`);
-
         const profile = await findProfileBySlug(slug);
-
-        if (!profile) {
-            console.log(`❌ Profile not found: ${slug}`);
-            return res.status(404).send('Profile not found');
-        }
-
-        console.log(`✅ Found profile: ${profile.displayName}`);
+        if (!profile) return res.status(404).send('Profile not found');
 
         const templatePath = path.join(__dirname, 'templates', 'profile-template.html');
-
-        // ─── ASYNC FILE READ (NON-BLOCKING) ─────────────────────────
         let template;
         try {
             template = await fsPromises.readFile(templatePath, 'utf8');
@@ -1628,19 +1411,17 @@ app.get('/profiles/:slug.html', async (req, res) => {
             return res.status(500).send('Template not found');
         }
 
-        // ─── Build full context ──────────────────────────────────────
         const fullNumber = profile.fullNumber || profile.phone || '';
         const displayName = profile.displayName || profile.name || 'Unknown';
         const city = profile.city || profile.location || 'Unknown';
 
-        // ─── Gallery with thumbnails ─────────────────────────────────
         const images = profile.photos || profile.images || [];
         let galleryHtml = '<div class="gallery">No images</div>';
         if (images.length > 0) {
             galleryHtml = `
                 <div class="thumbs">
                     ${images.map((img, idx) => `
-                        <img src="${img}" class="thumb ${idx === 0 ? 'active' : ''}" alt="${escapeHtml(displayName)} - ${escapeHtml(city)} escort photo ${idx+1}" width="80" height="80" loading="lazy">
+                        <img src="${img}" class="thumb ${idx === 0 ? 'active' : ''}" alt="${escapeHtml(displayName)} - ${escapeHtml(city)} escort photo ${idx + 1}" width="80" height="80" loading="lazy">
                     `).join('\n')}
                 </div>
                 <div class="main-image">
@@ -1651,7 +1432,6 @@ app.get('/profiles/:slug.html', async (req, res) => {
             `;
         }
 
-        // ─── Reviews ──────────────────────────────────────────────────
         let reviewsHtml = '<p>No reviews yet. Be the first to review!</p>';
         if (profile.reviews && profile.reviews.length > 0) {
             reviewsHtml = profile.reviews.slice(0, 3).map(r => {
@@ -1666,7 +1446,6 @@ app.get('/profiles/:slug.html', async (req, res) => {
             }).join('');
         }
 
-        // ─── Top Reviews (preview) ──────────────────────────────────
         let topReviewsHtml = '';
         if (profile.reviews && profile.reviews.length > 0) {
             topReviewsHtml = profile.reviews.slice(0, 2).map(r => `
@@ -1679,161 +1458,95 @@ app.get('/profiles/:slug.html', async (req, res) => {
         }
 
         const context = {
-            // Basic profile info
             name: displayName,
-            displayName: displayName,
-            city: city,
+            displayName,
+            city,
             location: city,
             age: profile.age || 'N/A',
-            fullNumber: fullNumber,
+            fullNumber,
             maskedNumber: profile.maskedNumber || '07XX XXX XXX',
             slug: profile.slug || slug,
-
-            // Trust signals
-            lastUpdated: Math.floor(Math.random() * 7) + 1,
+            lastUpdated: profile.updatedAt
+                ? Math.max(1, Math.floor((Date.now() - new Date(profile.updatedAt).getTime()) / 86400000))
+                : Math.floor(Math.random() * 7) + 1,
             profileViews: profile.profileViews || 0,
-            memberSince: profile.createdAt ? new Date(profile.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' }) : 'Recently',
-
-            // Gallery
+            memberSince: profile.createdAt
+                ? new Date(profile.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' })
+                : 'Recently',
             gallery: galleryHtml,
-
-            // Bio
-            bioHtml: profile.description ?
-                `<p>${escapeHtml(profile.description)}</p>` :
-                '<p>No description available.</p>',
-
-            // Services
-            services: profile.services && profile.services.length > 0 ?
-                profile.services.map(s => `<span class="service">${escapeHtml(s)}</span>`).join('') :
-                getServiceCluster(profile),
-
-            // Reviews
+            bioHtml: profile.description ? `<p>${escapeHtml(profile.description)}</p>` : '<p>No description available.</p>',
+            services: (profile.services && profile.services.length > 0)
+                ? profile.services.map(s => `<span class="service">${escapeHtml(s)}</span>`).join('')
+                : getServiceCluster(profile),
             reviews: reviewsHtml,
-            topReviewsHtml: topReviewsHtml,
-
-            // FAQ
+            topReviewsHtml,
             faqHtml: getRandomFaqs(profile, 4),
-
-            // City links (async)
             topCityLinks: await getTopCityLinks(),
-
-            // Related profiles (async)
             relatedProfiles: await getRelatedProfiles(profile),
-
-            // Escort ID for JavaScript
             escortId: profile.slug ? profile.slug.replace(/-/g, '_').toUpperCase() : 'UNKNOWN',
-
-            // Badges
-            verifiedBadge: profile.verified ?
-                '<span class="verified-badge" title="ID &amp; Photo Verified"><i class="fas fa-check-circle"></i> Verified</span>' :
-                '',
+            verifiedBadge: profile.verified
+                ? '<span class="verified-badge" title="ID &amp; Photo Verified"><i class="fas fa-check-circle"></i> Verified</span>'
+                : '',
             vipBadge: '',
             ethnicityPart: profile.ethnicity ? ` · ${profile.ethnicity}` : '',
-
-            // WhatsApp number
             waNumber: formatWhatsAppNumber(fullNumber),
-
-            // Trust badges
             trustBadgesHtml: '',
             localTipHtml: '',
-
-            // Meta data
             title: `${displayName} – Verified Escort in ${city}`,
             metaDescription: profile.description ? profile.description.substring(0, 160) : 'Verified escort profile.',
-
-            // URLs
             heroImage: images.length > 0 ? images[0] : '',
             ogImage: images.length > 0 ? images[0] : '',
             baseUrl: 'https://fineescorts.co.ke',
             citySlug: city.toLowerCase().replace(/ /g, '-'),
-
-            // JSON-LD
             jsonLd: '{}',
-
-            // Today's date
             today: new Date().toISOString().split('T')[0],
-
-            // Published date
             publishedDate: profile.createdAt || new Date().toISOString(),
-
-            // Social media (empty)
             socialMedia: [],
-
-            // First/last name
             firstName: displayName.split(' ')[0] || displayName,
             lastName: displayName.split(' ').slice(1).join(' ') || '',
-
-            // View counter script
-          viewCounterScript: `<script>
-    (async function() {
-        try {
-            const slug = window.location.pathname.split('/').pop().replace('.html', '');
-            await fetch('/api/profiles/' + slug + '/view', { method: 'POST' });
-        } catch (e) {
-            // Silently fail
-        }
-    })();
-</script>`,
+            viewCounterScript: `<script>
+                (async function() {
+                    try {
+                        const slug = window.location.pathname.split('/').pop().replace('.html', '');
+                        await fetch('/api/profiles/' + slug + '/view', { method: 'POST' });
+                    } catch (e) {}
+                })();
+            </script>`
         };
 
-        const html = render(template, context);
-        res.send(html);
-
+        res.send(render(template, context));
     } catch (error) {
         console.error('❌ Error serving profile:', error);
         res.status(500).send('Internal Server Error');
     }
 });
 
-// ─── DYNAMIC CITY PAGE ──────────────────────────────────────────────
-
-
-// ─── DYNAMIC CITY PAGE ──────────────────────────────────────────────
+// ─── Dynamic City Page ──────────────────────────────────────────
 app.get('/:citySlug-escorts.html', async (req, res) => {
     try {
         const citySlug = req.params.citySlug;
-        console.log(`🔍 Looking for city page: ${citySlug}`);
-
-        // Get all approved profiles
         const allProfiles = await getAllProfiles();
         const approved = allProfiles.filter(p => p.isApproved === true);
+        const cityName = citySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-        // Find the city name from the slug
-        const cityName = citySlug
-            .split('-')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-
-        // Filter profiles by city (check both city and location fields)
         const cityProfiles = approved.filter(p =>
             (p.city && p.city.toLowerCase() === cityName.toLowerCase()) ||
             (p.location && p.location.toLowerCase() === cityName.toLowerCase())
         );
 
-        if (cityProfiles.length === 0) {
-            console.log(`❌ No profiles found for city: ${cityName}`);
-        }
-
-        // ─── Load the city template ──────────────────────────────────
         const templatePath = path.join(__dirname, 'templates', 'city-template.html');
         let template;
-try {
-    template = await fsPromises.readFile(templatePath, 'utf8');
-} catch (err) {
-    console.error('❌ Failed to read city template:', err.message);
-    return res.status(500).send('City template not found');
-}
+        try {
+            template = await fsPromises.readFile(templatePath, 'utf8');
+        } catch (err) {
+            console.error('❌ Failed to read city template:', err.message);
+            return res.status(500).send('City template not found');
+        }
 
-        // ─── Build city page context ────────────────────────────────
         const profilesHtml = cityProfiles.map(p => {
-            const image = (p.photos && p.photos.length > 0)
-                ? p.photos[0]
-                : (p.images && p.images.length > 0)
-                    ? p.images[0]
-                    : '';
-
+            const image = (p.photos && p.photos.length > 0) ? p.photos[0]
+                : (p.images && p.images.length > 0) ? p.images[0] : '';
             const displayName = p.displayName || p.name || 'Unknown';
-
             return `
                 <div class="escort-card">
                     <img class="escort-card-image" src="${image}" alt="${escapeHtml(displayName)} verified escort in ${escapeHtml(cityName)}" loading="lazy">
@@ -1846,46 +1559,44 @@ try {
             `;
         }).join('');
 
-        // ─── Get all cities for the footer ──────────────────────────
         const allCities = [...new Set(approved.map(p => p.city || p.location).filter(Boolean))];
-        const cityLinks = allCities.map(city => {
-            const slug = city.toLowerCase().replace(/ /g, '-');
-            return `<a href="${slug}-escorts.html">${escapeHtml(city)} Escorts</a>`;
+        const cityLinks = allCities.map(c => {
+            const s = c.toLowerCase().replace(/ /g, '-');
+            return `<a href="${s}-escorts.html">${escapeHtml(c)} Escorts</a>`;
         }).join('\n');
 
-      const context = {
-    baseUrl: 'https://fineescorts.co.ke',
-    city: cityName,
-    citySlug: citySlug,
-    profileCount: cityProfiles.length,
-    profiles: profilesHtml,
-    topCityLinks: cityLinks,
-    relatedProfiles: '',
-    jsonld: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        "name": `${cityName} Escorts`,
-        "description": `List of premium escort companions available in ${cityName}, Kenya.`,
-        "url": `https://fineescorts.co.ke/${citySlug}-escorts.html`,
-        "numberOfItems": cityProfiles.length,
-        "itemListElement": cityProfiles.map((p, idx) => ({
-            "@type": "ListItem",
-            "position": idx + 1,
-            "url": `https://fineescorts.co.ke/profiles/${p.slug}.html`,
-            "name": p.displayName || p.name
-        }))
-    }, null, 2)
-};
-        const html = render(template, context);
-        res.send(html);
+        const context = {
+            baseUrl: 'https://fineescorts.co.ke',
+            city: cityName,
+            citySlug,
+            profileCount: cityProfiles.length,
+            profiles: profilesHtml,
+            topCityLinks: cityLinks,
+            relatedProfiles: '',
+            jsonld: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "ItemList",
+                "name": `${cityName} Escorts`,
+                "description": `List of premium escort companions available in ${cityName}, Kenya.`,
+                "url": `https://fineescorts.co.ke/${citySlug}-escorts.html`,
+                "numberOfItems": cityProfiles.length,
+                "itemListElement": cityProfiles.map((p, idx) => ({
+                    "@type": "ListItem",
+                    "position": idx + 1,
+                    "url": `https://fineescorts.co.ke/profiles/${p.slug}.html`,
+                    "name": p.displayName || p.name
+                }))
+            }, null, 2)
+        };
 
+        res.send(render(template, context));
     } catch (error) {
         console.error('❌ Error serving city page:', error);
         res.status(500).send('Internal Server Error');
     }
 });
 
-// ─── Cloudinary Configuration ─────────────────────────────────────
+// ─── Cloudinary + Photo Upload ──────────────────────────────────
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
@@ -1897,140 +1608,106 @@ cloudinary.config({
 });
 
 const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
+    cloudinary,
     params: {
         folder: 'fineescorts-profiles',
         allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
-        transformation: [
-            { width: 800, height: 1000, crop: 'limit', quality: 'auto' }
-        ]
+        transformation: [{ width: 800, height: 1000, crop: 'limit', quality: 'auto' }]
     }
 });
 
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }
-});
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
-// ─── PHOTO UPLOAD ENDPOINT ────────────────────────────────────────
 app.post('/api/profiles/me/photos', authenticate, upload.array('photos', 10), async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ message: 'No photos uploaded' });
         }
-
         const profile = await findProfileByUserId(req.userId);
-        if (!profile) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
+        if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
         const tier = profile.subscriptionTier || 'free';
         const maxPhotos = { free: 3, standard: 3, premium: 5, vip: 10 }[tier] || 5;
-        const existingPhotos = profile.photos || [];
+        const existing = profile.photos || [];
 
-        if (existingPhotos.length + req.files.length > maxPhotos) {
+        if (existing.length + req.files.length > maxPhotos) {
             return res.status(400).json({
-                message: `Maximum ${maxPhotos} photos allowed. You already have ${existingPhotos.length}.`
+                message: `Maximum ${maxPhotos} photos allowed. You already have ${existing.length}.`
             });
         }
 
-        const photoUrls = req.files.map(file => file.path);
-        const allPhotos = [...existingPhotos, ...photoUrls];
-        const updated = await updateProfile(profile.slug, { photos: allPhotos });
-
-        res.json({
-            message: '✅ Photos uploaded successfully',
-            photos: updated.photos
-        });
+        const photoUrls = req.files.map(f => f.path);
+        const updated = await updateProfile(profile.slug, { photos: [...existing, ...photoUrls] });
+        res.json({ message: '✅ Photos uploaded successfully', photos: updated.photos });
     } catch (error) {
         console.error('Photo upload error:', error);
-        res.status(500).json({
-            message: 'Failed to upload photos',
-            error: error.message
-        });
+        res.status(500).json({ message: 'Failed to upload photos', error: error.message });
     }
 });
 
-// ─── DELETE PHOTO ENDPOINT ────────────────────────────────────────
 app.delete('/api/profiles/me/photos', authenticate, async (req, res) => {
     try {
         const { photoUrl } = req.body;
-        if (!photoUrl) {
-            return res.status(400).json({ message: 'Photo URL required' });
-        }
+        if (!photoUrl) return res.status(400).json({ message: 'Photo URL required' });
 
         const profile = await findProfileByUserId(req.userId);
-        if (!profile) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
+        if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
         const updatedPhotos = (profile.photos || []).filter(p => p !== photoUrl);
         const updated = await updateProfile(profile.slug, { photos: updatedPhotos });
-
-        res.json({
-            message: '✅ Photo deleted successfully',
-            photos: updated.photos
-        });
+        res.json({ message: '✅ Photo deleted successfully', photos: updated.photos });
     } catch (error) {
         console.error('Delete photo error:', error);
-        res.status(500).json({
-            message: 'Failed to delete photo',
-            error: error.message
-        });
+        res.status(500).json({ message: 'Failed to delete photo', error: error.message });
     }
 });
 
-// ─── Check expired subscriptions daily ────────────────────────────
-const checkExpiredSubscriptions = async () => {
-  try {
-    const profilesCol = getCollection('profiles');
-    if (!profilesCol) return;
+// ─── Expiry Job ─────────────────────────────────────────────────
+async function checkExpiredSubscriptions() {
+    try {
+        const profilesCol = getCollection('profiles');
+        if (!profilesCol) return;
 
-    const now = new Date();
-    const expired = await profilesCol.find({
-      isApproved: true,
-      subscriptionExpiry: { $lt: now }
-    }).toArray();
+        const expired = await profilesCol.find({
+            isApproved: true,
+            subscriptionExpiry: { $lt: new Date() }
+        }).toArray();
 
-    for (const profile of expired) {
-      // Fetch user email
-      const user = await findUserById(profile.userId);
-      if (!user) continue;
-
-      // Send expiry email
-      await sendSubscriptionExpiredEmail(
-        user.email,
-        profile.displayName || profile.name,
-        profile.subscriptionTier || 'Premium',
-        profile.subscriptionExpiry,
-        'https://fineescorts.co.ke/payment.html'
-      );
-
-      // Optionally auto-hide profile
-      await updateProfile(profile.slug, {
-        isApproved: false,
-        status: 'expired'
-      });
+        for (const profile of expired) {
+            const user = await findUserById(profile.userId);
+            if (!user) continue;
+            try {
+                await sendSubscriptionExpiredEmail(
+                    user.email,
+                    profile.displayName || profile.name,
+                    profile.subscriptionTier || 'Premium',
+                    profile.subscriptionExpiry,
+                    'https://fineescorts.co.ke/payment.html'
+                );
+            } catch (err) {
+                console.error('Expiry email failed:', err.message);
+            }
+            await updateProfile(profile.slug, { isApproved: false, status: 'expired' });
+        }
+        if (expired.length > 0) {
+            console.log(`✅ Processed ${expired.length} expired subscriptions`);
+        }
+    } catch (error) {
+        console.error('❌ Subscription expiry check failed:', error);
     }
-    console.log(`✅ Processed ${expired.length} expired subscriptions`);
-  } catch (error) {
-    console.error('❌ Subscription expiry check failed:', error);
-  }
-};
+}
+setInterval(checkExpiredSubscriptions, 24 * 60 * 60 * 1000);
 
-// ─── Run the check once daily ──────────────────────────────────────
-setInterval(checkExpiredSubscriptions, 24 * 60 * 60 * 1000); // 24 hours
-
-// ─── Start Server ──────────────────────────────────────────────────
+// ─── Start ──────────────────────────────────────────────────────
 async function startServer() {
     await connectDB();
-    await ensureAdminUser();       // ← add this line
+    await ensureAdminUser();
     app.listen(PORT, () => {
         console.log(`🚀 FineEscorts Server running at http://localhost:${PORT}`);
         console.log(`📊 API endpoints at http://localhost:${PORT}/api/`);
         console.log(`📁 Database: ${db ? 'MongoDB Atlas ✅' : 'File-based storage ⚠️'}`);
+        console.log(`💳 Gateway: Tuma (${process.env.TUMA_API_URL || '⚠️ TUMA_API_URL missing'})`);
     });
 }
 
 startServer();
-
