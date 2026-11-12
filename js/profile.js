@@ -6,7 +6,7 @@
 const API_SECRET = "103e07b75c0b3d874cd4376dd0e095729f66d4f26803361aa087df169acc4ac4";
 
 // ---------- reCAPTCHA site key (from Google) ----------
-const RECAPTCHA_SITE_KEY = "6LcKDGEtAAAAAJKAWjXB7j5bSIPvzz94wBWapTD5";
+const RECAPTCHA_SITE_KEY = "6LdN6BIuAAAAAIRBFMjpOFsUZ5R-htQKFoGsAtb5";
 
 // ---------- Sarahapay API ----------
 const SARAHAPAY_API = ''; // Use relative path to your server
