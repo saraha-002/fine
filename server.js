@@ -13,6 +13,7 @@ const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit'); // ← CHANGED: required by v8 for IPv6-safe keyGenerator
 
 require('dotenv').config();
 
@@ -32,7 +33,7 @@ app.set('trust proxy', 1);
 // ─── Rate Limiters ───────────────────────────────────────────────
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 10,
     message: { message: 'Too many login attempts, please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -41,10 +42,11 @@ const authLimiter = rateLimit({
 
 const paymentLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 10,
-    message: { message: 'Too many payment attempts, please try again later.' },
+    max: 10,                     // ← CHANGED: 10/hour per user (not 30)
+    message: { message: 'Too many payment attempts. Please wait an hour and try again.' },
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => req.userId || ipKeyGenerator(req.ip), // ← CHANGED: ipKeyGenerator for IPv6
 });
 
 const adminLimiter = rateLimit({
@@ -55,25 +57,15 @@ const adminLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: { message: 'Too many requests from this IP, please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
 // ─── Middleware ──────────────────────────────────────────────────
 app.use(compression());
 
-// Specific limiters first, then general (so specific caps are never masked)
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
-app.use('/api/pay', paymentLimiter);
+// ← CHANGED: removed `app.use('/api/pay', paymentLimiter);` — paymentLimiter now mounted inline on the route
 app.use('/api/admin/', adminLimiter);
-app.use('/api/', generalLimiter);
 
 app.use(bodyParser.json({ limit: '1mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));
@@ -91,7 +83,7 @@ app.use((req, res, next) => {
         p.startsWith('/emailTemplates/') ||
         p.startsWith('/templates/') ||
         p.startsWith('/data/') ||
-        /^\/[^/]+\.(js|json)$/i.test(p) // root-level JS/JSON (one-off scripts, package files)
+        /^\/[^/]+\.(js|json)$/i.test(p)
     ) {
         return res.status(404).send('Not found');
     }
@@ -136,6 +128,7 @@ async function connectDB() {
             const pendingCol = db.collection('pendingPayments');
             await pendingCol.createIndex({ checkoutRequestId: 1 }, { unique: true });
             await pendingCol.createIndex({ phone: 1 });
+            await pendingCol.createIndex({ phone: 1, status: 1, createdAt: -1 }); // ← CHANGED: supports cooldown query
             console.log('✅ Indexes ensured');
         } catch (indexErr) {
             console.log('ℹ️ Indexes may already exist:', indexErr.message);
@@ -174,7 +167,7 @@ async function migrateProfiles() {
     }
 }
 
-// ─── Tuma Token Cache (MODULE SCOPE — do not move into a handler) ─
+// ─── Tuma Token Cache (MODULE SCOPE) ─────────────────────────────
 let tumaTokenCache = { token: null, expiresAt: 0 };
 
 async function getTumaToken() {
@@ -201,7 +194,6 @@ async function getTumaToken() {
         throw new Error(data.message || `Tuma auth failed (HTTP ${res.status})`);
     }
 
-    // Tuma JWTs ~24h; refresh at 20h
     tumaTokenCache = {
         token,
         expiresAt: Date.now() + 20 * 60 * 60 * 1000
@@ -967,7 +959,6 @@ app.put('/api/admin/profiles/:slug', authenticate, async (req, res) => {
     res.json({ message: '✅ Profile updated', profile: updated });
 });
 
-// GET ALL USERS — password + token stripped
 app.get('/api/admin/users', authenticate, async (req, res) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
@@ -1070,14 +1061,12 @@ app.get('/api/profiles', async (req, res) => {
     }
 });
 
-// ─── Activate Endpoint — DISABLED (activation now only via webhook) ─
 app.post('/api/profiles/me/activate', authenticate, async (req, res) => {
     return res.status(403).json({
         message: 'Activation is handled by the payment gateway. Complete payment via /api/pay.'
     });
 });
 
-// ─── Increment Views ────────────────────────────────────────────
 app.post('/api/profiles/:slug/view', async (req, res) => {
     try {
         const profile = await findProfileBySlug(req.params.slug);
@@ -1094,61 +1083,74 @@ app.post('/api/profiles/:slug/view', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // TUMA PAYMENT — INITIATION
 // ═══════════════════════════════════════════════════════════════
-app.post('/api/pay', async (req, res) => {
+app.post('/api/pay', authenticate, paymentLimiter, async (req, res) => {
     try {
-        const { phone, tier, duration, amount, name, email } = req.body;
+        const { phone, tier, duration, amount } = req.body;
+        const userId = req.userId;
 
-        if (!phone) {
-            return res.status(400).json({ error: 'Phone number is required' });
-        }
+        if (!phone) return res.status(400).json({ error: 'Phone number is required' });
 
-        // Optional reCAPTCHA (required if RECAPTCHA_SECRET_KEY is set)
-        const recaptchaToken =
-            req.headers['x-recaptcha-token'] || req.body.recaptchaToken;
+        // reCAPTCHA
+        const recaptchaToken = req.headers['x-recaptcha-token'] || req.body.recaptchaToken;
         if (process.env.RECAPTCHA_SECRET_KEY) {
-            if (!recaptchaToken) {
-                return res.status(400).json({ error: 'Missing reCAPTCHA token' });
-            }
+            if (!recaptchaToken) return res.status(400).json({ error: 'Missing reCAPTCHA token' });
             const ok = await verifyRecaptcha(recaptchaToken);
             if (!ok) return res.status(400).json({ error: 'reCAPTCHA verification failed' });
         }
 
-        // Resolve amount / tier / duration
+        // Tier/amount resolution
         const tierAmounts = {
             standard: { monthly: 500,  yearly: 5000  },
             premium:  { monthly: 1000, yearly: 10000 },
             vip:      { monthly: 2000, yearly: 20000 }
         };
-
-        let resolvedTier = tier;
-        let resolvedDuration = duration;
-        let resolvedAmount = Number(amount);
-
+        let resolvedTier = tier, resolvedDuration = duration, resolvedAmount = Number(amount);
         if (resolvedTier && resolvedDuration) {
             resolvedAmount = tierAmounts[resolvedTier]?.[resolvedDuration];
-            if (!resolvedAmount) {
-                return res.status(400).json({ error: 'Invalid tier/duration combination' });
-            }
+            if (!resolvedAmount) return res.status(400).json({ error: 'Invalid tier/duration' });
         } else if (!resolvedAmount) {
-            return res.status(400).json({ error: 'Provide either (tier + duration) or amount' });
+            return res.status(400).json({ error: 'Provide (tier + duration) or amount' });
         }
-
-        // Infer tier/duration from amount if not supplied
         if (!resolvedTier || !resolvedDuration) {
-            const match = Object.entries(tierAmounts).find(([_, durations]) =>
-                Object.values(durations).includes(resolvedAmount)
-            );
+            const match = Object.entries(tierAmounts).find(([_, d]) =>
+                Object.values(d).includes(resolvedAmount));
             if (match) {
-                const [t, durations] = match;
+                const [t, d] = match;
                 resolvedTier = resolvedTier || t;
-                resolvedDuration = resolvedDuration || Object.keys(durations).find(k => durations[k] === resolvedAmount);
+                resolvedDuration = resolvedDuration || Object.keys(d).find(k => d[k] === resolvedAmount);
             } else {
                 resolvedTier = resolvedTier || 'custom';
                 resolvedDuration = resolvedDuration || 'monthly';
             }
         }
 
-        // Initiate Tuma STK push
+        // Verify the logged-in user has a profile
+        const profilesCol = getCollection('profiles');
+        if (!profilesCol) return res.status(500).json({ error: 'Database unavailable' });
+
+        const profile = await profilesCol.findOne({ userId });
+        if (!profile) {
+            return res.status(404).json({
+                error: 'No profile found for this account. Create a profile before subscribing.'
+            });
+        }
+
+        // ← CHANGED: phone cooldown — 10 min, but only block if previous attempt wasn't completed
+        const pendingCol = getCollection('pendingPayments');
+        if (pendingCol) {
+            const recentAttempt = await pendingCol.findOne({
+                phone,
+                status: { $ne: 'completed' },
+                createdAt: { $gt: new Date(Date.now() - 10 * 60 * 1000).toISOString() }
+            });
+            if (recentAttempt) {
+                return res.status(429).json({
+                    error: 'An M-Pesa prompt was recently sent to this number. Please wait 10 minutes before retrying.'
+                });
+            }
+        }
+
+        // Tuma STK push
         const token = await getTumaToken();
         const response = await fetch(`${process.env.TUMA_API_URL}/payment/stk-push`, {
             method: 'POST',
@@ -1163,55 +1165,44 @@ app.post('/api/pay', async (req, res) => {
                 callback_url: `https://fineescorts.co.ke/payment-callback?k=${process.env.TUMA_WEBHOOK_SECRET}`
             })
         });
-
         const data = await response.json();
-
         if (!response.ok || !data.success) {
-            console.error('❌ Tuma STK push failed:', data);
-            return res.status(response.status || 502).json({
-                error: data.message || 'STK push failed'
-            });
+            return res.status(response.status || 502).json({ error: data.message || 'STK push failed' });
         }
-
         const checkoutRequestId = data?.data?.checkout_request_id;
         if (!checkoutRequestId) {
             return res.status(502).json({ error: 'Tuma returned no checkout_request_id' });
         }
 
-        // Record pending payment (source of truth for callback reconciliation)
-        const pendingCol = getCollection('pendingPayments');
+        // Record pending payment WITH userId (identity anchor)
         if (pendingCol) {
             await pendingCol.insertOne({
                 checkoutRequestId,
+                userId,
                 phone,
                 tier: resolvedTier,
                 duration: resolvedDuration,
                 amount: resolvedAmount,
-                name: name || null,
-                email: email || null,
                 createdAt: new Date().toISOString(),
                 status: 'pending'
             });
         }
 
-        // If profile exists for this phone, attach pending metadata
-        const profilesCol = getCollection('profiles');
-        if (profilesCol) {
-            await profilesCol.updateOne(
-                { phone },
-                {
-                    $set: {
-                        tumaCheckoutId: checkoutRequestId,
-                        pendingTier: resolvedTier,
-                        pendingDuration: resolvedDuration,
-                        pendingAmount: resolvedAmount,
-                        paymentInitiatedAt: new Date().toISOString()
-                    }
+        // Attach to profile by userId (cannot fail)
+        await profilesCol.updateOne(
+            { userId },
+            {
+                $set: {
+                    tumaCheckoutId: checkoutRequestId,
+                    pendingTier: resolvedTier,
+                    pendingDuration: resolvedDuration,
+                    pendingAmount: resolvedAmount,
+                    paymentInitiatedAt: new Date().toISOString()
                 }
-            );
-        }
+            }
+        );
 
-        console.log(`📤 STK push sent → ${checkoutRequestId} (${resolvedTier}/${resolvedDuration} @ KES ${resolvedAmount})`);
+        console.log(`📤 STK push → ${checkoutRequestId} (user ${userId}, phone ${phone}, ${resolvedTier}/${resolvedDuration} @ KES ${resolvedAmount})`);
 
         res.status(201).json({
             message: 'STK Push Sent. Complete payment on your phone.',
@@ -1234,7 +1225,7 @@ app.post('/payment-callback', async (req, res) => {
     }
 
     console.log('📥 Tuma callback:', req.body);
-    res.sendStatus(200); // acknowledge fast; Tuma retries on non-200
+    res.sendStatus(200);
 
     (async () => {
         try {
@@ -1247,23 +1238,36 @@ app.post('/payment-callback', async (req, res) => {
 
             console.log(`📊 status=${status}, result_code=${resultCode}, receipt=${mpesaReceipt}, checkout=${checkoutRequestId}`);
 
-            if (status !== 'completed' || resultCode !== 0) {
-                console.log('⏭️ Payment not successful, ignoring');
-                return;
-            }
-
-            // Find pending record
+            // ← CHANGED: fetch pending record BEFORE failure check, so we can mark failed payments
             const pendingCol = getCollection('pendingPayments');
             let pending = null;
             if (pendingCol) pending = await pendingCol.findOne({ checkoutRequestId });
 
-            // Find profile to activate
+            if (status !== 'completed' || resultCode !== 0) {
+                console.log(`⏭️ Payment not successful (${status}, code ${resultCode}), recording failure`);
+                // ← CHANGED: record failed/cancelled/timeout so cooldown logic works correctly
+                if (pendingCol) {
+                    await pendingCol.updateOne(
+                        { checkoutRequestId },
+                        {
+                            $set: {
+                                status: 'failed',
+                                resultDesc: payload.result_desc || payload.failure_reason || null,
+                                failedAt: new Date().toISOString()
+                            }
+                        }
+                    );
+                }
+                return;
+            }
+
             const profilesCol = getCollection('profiles');
             if (!profilesCol) return;
 
+            // ← CHANGED: use userId fallback instead of phone
             let profile = await profilesCol.findOne({ tumaCheckoutId: checkoutRequestId });
-            if (!profile && pending?.phone) {
-                profile = await profilesCol.findOne({ phone: pending.phone });
+            if (!profile && pending?.userId) {
+                profile = await profilesCol.findOne({ userId: pending.userId });
             }
 
             if (!profile) {
@@ -1344,7 +1348,7 @@ app.post('/payment-callback', async (req, res) => {
     })();
 });
 
-// ─── Transaction Stub (frontend polls; rely on /api/profiles/me) ─
+// ─── Transaction Stub ───────────────────────────────────────────
 app.get('/api/transaction/:id', (req, res) => {
     res.json({
         status: 'PENDING',

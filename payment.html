@@ -151,7 +151,7 @@
 <script>
     // ─── API Configuration ─────────────────────────────────────────
     const API_BASE = 'https://fineescorts.co.ke';
-    const API_SECRET = '103e07b75c0b3d874cd4376dd0e095729f66d4f268033061aa087df169acc4ac4';
+    
     const RECAPTCHA_SITE_KEY = '6LdN6BIuAAAAAIRBFMjpOFsUZ5R-htQKFoGsAtb5';
 
     const PRICING = {
@@ -285,11 +285,11 @@
 
         // ─── Send payment request ──────────────────────────────────
         try {
-            var response = await fetch(API_BASE + '/api/pay', {
+                                var response = await fetch(API_BASE + '/api/pay', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-API-Secret': API_SECRET,
+                    'Authorization': 'Bearer ' + (localStorage.getItem('token') || ''),
                     'X-Recaptcha-Token': recaptchaToken
                 },
                 body: JSON.stringify(payload)
