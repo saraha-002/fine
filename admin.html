@@ -238,93 +238,136 @@
             </section>
         </main>
     </div>
-<!-- Edit Profile Modal -->
-<div id="editProfileModal" class="modal-overlay" style="display:none;">
-    <div class="modal">
-        <h2><i class="fas fa-user-edit"></i> Edit Profile</h2>
-        <form id="editProfileForm">
-            <input type="hidden" id="editProfileSlug" />
 
-            <div class="form-group">
-                <label>Display Name</label>
-                <input type="text" id="editDisplayName" required />
-            </div>
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal-overlay" style="display:none;">
+        <div class="modal">
+            <h2><i class="fas fa-user-edit"></i> Edit Profile</h2>
+            <form id="editProfileForm">
+                <input type="hidden" id="editProfileSlug" />
 
-            <div class="form-group">
-                <label>Age</label>
-                <input type="number" id="editAge" min="18" max="99" required />
-            </div>
+                <div class="form-group">
+                    <label>Display Name</label>
+                    <input type="text" id="editDisplayName" required />
+                </div>
 
-            <div class="form-group">
-                <label>Location</label>
-                <select id="editLocation">
-                    <option value="Kitengela">Kitengela</option>
-                    <option value="Syokimau">Syokimau</option>
-                    <option value="Mlolongo">Mlolongo</option>
-                    <option value="Athiriver">Athiriver</option>
-                    <option value="Imara Daima">Imara Daima</option>
-                </select>
-            </div>
+                <div class="form-group">
+                    <label>Age</label>
+                    <input type="number" id="editAge" min="18" max="99" required />
+                </div>
 
-            <div class="form-group">
-                <label>Ethnicity</label>
-                <input type="text" id="editEthnicity" />
-            </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <select id="editLocation">
+                        <option value="Kitengela">Kitengela</option>
+                        <option value="Syokimau">Syokimau</option>
+                        <option value="Mlolongo">Mlolongo</option>
+                        <option value="Athiriver">Athiriver</option>
+                        <option value="Imara Daima">Imara Daima</option>
+                    </select>
+                </div>
 
-            <div class="form-group">
-                <label>Description</label>
-                <textarea id="editDescription" rows="4"></textarea>
-            </div>
+                <div class="form-group">
+                    <label>Ethnicity</label>
+                    <input type="text" id="editEthnicity" />
+                </div>
 
-            <div class="form-group">
-                <label>Phone</label>
-                <input type="tel" id="editPhone" required />
-            </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editDescription" rows="4"></textarea>
+                </div>
 
-            <div class="form-group">
-                <label>Services Offered</label>
-                <select id="editServices" multiple style="height:120px;">
-                    <option value="Escorts">Escorts</option>
-                    <option value="Affairs">Affairs</option>
-                    <option value="Intimate Companionship">Intimate Companionship</option>
-                    <option value="Luxury Erotic Massage">Luxury Erotic Massage</option>
-                    <option value="Sensual Bodywork">Sensual Bodywork</option>
-                    <option value="Private Sessions">Private Sessions</option>
-                </select>
-                <small>Hold Ctrl/Cmd to select multiple</small>
-            </div>
+                <!-- Profile Images (admin add/remove) -->
+                <div class="form-group">
+                    <label>Profile Images (<span id="editPhotoCount">0</span>)</label>
 
-            <div class="form-group">
-                <label>Subscription Tier</label>
-                <select id="editSubscriptionTier">
-                    <option value="free">Free</option>
-                    <option value="standard">Standard</option>
-                    <option value="premium">Premium</option>
-                    <option value="vip">VIP</option>
-                </select>
-            </div>
+                    <!-- Thumbnail grid -->
+                    <div id="editPhotoGrid"
+                         style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; min-height:24px;
+                                padding:10px; background:#0d0d0d; border:1px solid #2c2c2c; border-radius:8px;">
+                        <!-- thumbnails injected by JS -->
+                    </div>
 
-            <div class="form-group">
-                <label>Subscription Expiry</label>
-                <input type="date" id="editSubscriptionExpiry" />
-            </div>
+                    <!-- Add by URL -->
+                    <div style="display:flex; gap:8px; margin-bottom:8px;">
+                        <input type="text" id="newPhotoUrl"
+                               placeholder="Paste image URL (https://...)"
+                               style="flex:1; padding:10px; background:#0d0d0d; color:#eaeaea;
+                                      border:2px solid #2c2c2c; border-radius:8px; font-size:14px;" />
+                        <button type="button" onclick="adminAddPhotoUrl()"
+                                class="btn-primary" style="padding:10px 16px; white-space:nowrap;">
+                            <i class="fas fa-link"></i> Add URL
+                        </button>
+                    </div>
 
-            <div class="form-group">
-                <label>Approved Status</label>
-                <select id="editIsApproved">
-                    <option value="true">Approved</option>
-                    <option value="false">Pending / Not Approved</option>
-                </select>
-            </div>
+                    <!-- Upload files -->
+                    <div style="display:flex; gap:8px;">
+                        <input type="file" id="newPhotoFile" accept="image/*" multiple
+                               style="flex:1; padding:8px; background:#0d0d0d; color:#a0a0a0;
+                                      border:2px dashed #2c2c2c; border-radius:8px; font-size:13px;" />
+                        <button type="button" onclick="adminUploadPhotos(event)"
+                                class="btn-primary" style="padding:10px 16px; white-space:nowrap;">
+                            <i class="fas fa-cloud-upload-alt"></i> Upload
+                        </button>
+                    </div>
 
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Update Profile</button>
-                <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
-            </div>
-        </form>
-        <div id="editProfileResult"></div>
+                    <small style="display:block; margin-top:6px; color:#888; font-size:12px; line-height:1.5;">
+                        First image becomes the homepage card thumbnail (gold <strong style="color:#c7a76c;">CARD</strong> badge).
+                        Click <strong style="color:#ff6b6b;">×</strong> on any thumbnail to remove it.
+                        Changes save when you click <em>Update Profile</em>.
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="editPhone" required />
+                </div>
+
+                <div class="form-group">
+                    <label>Services Offered</label>
+                    <select id="editServices" multiple style="height:120px;">
+                        <option value="Escorts">Escorts</option>
+                        <option value="Affairs">Affairs</option>
+                        <option value="Intimate Companionship">Intimate Companionship</option>
+                        <option value="Luxury Erotic Massage">Luxury Erotic Massage</option>
+                        <option value="Sensual Bodywork">Sensual Bodywork</option>
+                        <option value="Private Sessions">Private Sessions</option>
+                    </select>
+                    <small>Hold Ctrl/Cmd to select multiple</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Subscription Tier</label>
+                    <select id="editSubscriptionTier">
+                        <option value="free">Free</option>
+                        <option value="standard">Standard</option>
+                        <option value="premium">Premium</option>
+                        <option value="vip">VIP</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Subscription Expiry</label>
+                    <input type="date" id="editSubscriptionExpiry" />
+                </div>
+
+                <div class="form-group">
+                    <label>Approved Status</label>
+                    <select id="editIsApproved">
+                        <option value="true">Approved</option>
+                        <option value="false">Pending / Not Approved</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Update Profile</button>
+                    <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+                </div>
+            </form>
+            <div id="editProfileResult"></div>
+        </div>
     </div>
-</div>
+
     <script src="js/admin-dashboard.js"></script>
 </body>
 </html>

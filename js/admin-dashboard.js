@@ -11,6 +11,7 @@ let currentPage = 1;
 let itemsPerPage = 20;
 let filteredProfiles = [];
 let currentFilter = 'all';
+let editingPhotos = [];   // working copy while edit modal is open
 
 // ─── Debounce Helper ──────────────────────────────────────────────
 function debounce(func, wait) {
@@ -557,6 +558,97 @@ window.toggleBury = async function(slug, buried) {
     }
 };
 
+// ─── Admin Photo Management ─────────────────────────────────────
+function renderEditPhotoGrid() {
+    const grid = document.getElementById('editPhotoGrid');
+    const countEl = document.getElementById('editPhotoCount');
+    if (!grid) return;
+
+    if (countEl) countEl.textContent = editingPhotos.length;
+
+    if (editingPhotos.length === 0) {
+        grid.innerHTML = '<span style="color:#666; font-size:13px;">No images yet. Add a URL or upload files below.</span>';
+        return;
+    }
+
+    grid.innerHTML = editingPhotos.map((url, i) => `
+        <div style="position:relative;">
+            <img src="${escapeHtml(url)}" alt="Photo ${i + 1}"
+                 style="width:80px;height:100px;object-fit:cover;border-radius:6px;border:2px solid ${i === 0 ? '#c7a76c' : '#2c2c2c'};"
+                 onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}';this.style.opacity='0.5';" />
+            ${i === 0 ? '<span style="position:absolute;bottom:2px;left:2px;background:#c7a76c;color:#0d0d0d;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;">CARD</span>' : ''}
+            <button type="button" onclick="adminRemovePhoto(${i})" title="Remove this photo"
+                    style="position:absolute;top:-6px;right:-6px;background:#ff6b6b;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;">×</button>
+        </div>
+    `).join('');
+}
+
+window.adminRemovePhoto = function(index) {
+    if (!confirm('Remove this photo? The change is applied when you click "Update Profile".')) return;
+    editingPhotos.splice(index, 1);
+    renderEditPhotoGrid();
+};
+
+window.adminAddPhotoUrl = function() {
+    const input = document.getElementById('newPhotoUrl');
+    const url = input.value.trim();
+    if (!url) return;
+
+    if (!/^https?:\/\//i.test(url)) {
+        alert('URL must start with http:// or https://');
+        return;
+    }
+    if (editingPhotos.includes(url)) {
+        alert('That URL is already in the list.');
+        return;
+    }
+
+    editingPhotos.push(url);
+    input.value = '';
+    renderEditPhotoGrid();
+};
+
+window.adminUploadPhotos = async function(evt) {
+    const btn = evt.target;
+    const fileInput = document.getElementById('newPhotoFile');
+    const files = fileInput.files;
+    if (!files || files.length === 0) { alert('Choose file(s) first.'); return; }
+
+    const slug = document.getElementById('editProfileSlug').value;
+    if (!slug) { alert('No profile loaded.'); return; }
+
+    const formData = new FormData();
+    for (const file of files) formData.append('photos', file);
+
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+    try {
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/api/admin/profiles/${slug}/photos`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Upload failed');
+
+        // Merge server-confirmed photos into the working copy
+        const serverPhotos = data.photos || [];
+        serverPhotos.forEach(u => { if (!editingPhotos.includes(u)) editingPhotos.push(u); });
+
+        fileInput.value = '';
+        renderEditPhotoGrid();
+    } catch (err) {
+        console.error('Admin photo upload error:', err);
+        alert('❌ Upload failed: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+};
+
 // ─── Edit Profile Modal ──────────────────────────────────────────
 function openEditModal(slug) {
     const profile = allProfiles.find(p => p.slug === slug);
@@ -590,6 +682,10 @@ function openEditModal(slug) {
     }
     document.getElementById('editIsApproved').value = profile.isApproved ? 'true' : 'false';
 
+    // Load existing photos into the working copy                    // ← NEW
+    editingPhotos = [...(profile.photos || profile.images || [])];   // ← NEW
+    renderEditPhotoGrid();                                          // ← NEW
+
     document.getElementById('editProfileResult').textContent = '';
     document.getElementById('editProfileModal').style.display = 'flex';
 }
@@ -611,6 +707,8 @@ document.getElementById('editProfileForm').addEventListener('submit', async func
         services: Array.from(document.getElementById('editServices').selectedOptions).map(opt => opt.value),
         subscriptionTier: document.getElementById('editSubscriptionTier').value,
         isApproved: document.getElementById('editIsApproved').value === 'true',
+        photos: editingPhotos,      // ← NEW — admin photo array
+        images: editingPhotos       // ← NEW — keep both fields in sync
     };
 
     // Add expiry if provided

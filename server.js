@@ -1620,6 +1620,7 @@ const storage = new CloudinaryStorage({
     }
 });
 
+
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 app.post('/api/profiles/me/photos', authenticate, upload.array('photos', 10), async (req, res) => {
@@ -1663,6 +1664,54 @@ app.delete('/api/profiles/me/photos', authenticate, async (req, res) => {
     } catch (error) {
         console.error('Delete photo error:', error);
         res.status(500).json({ message: 'Failed to delete photo', error: error.message });
+    }
+});
+
+// ─── ADMIN PHOTO UPLOAD (upload to any profile) ────────────────
+app.post('/api/admin/profiles/:slug/photos', authenticate, upload.array('photos', 10), async (req, res) => {
+    try {
+        const user = await findUserById(req.userId);
+        if (!user || user.role !== 'admin') {
+            return res.status(403).json({ message: 'Admin access required' });
+        }
+
+        const slug = req.params.slug;
+        const profile = await findProfileBySlug(slug);
+        if (!profile) {
+            return res.status(404).json({ message: 'Profile not found' });
+        }
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No photos uploaded' });
+        }
+
+        const existing = profile.photos || profile.images || [];
+        const newUrls = req.files.map(f => f.path);
+
+        // Soft guard: max 20 photos per profile (admin override of tier limits)
+        if (existing.length + newUrls.length > 20) {
+            return res.status(400).json({
+                message: `Maximum 20 photos per profile. This profile has ${existing.length}, you tried to add ${newUrls.length}.`
+            });
+        }
+
+        const allPhotos = [...existing, ...newUrls];
+
+        const updated = await updateProfile(slug, {
+            photos: allPhotos,
+            images: allPhotos   // keep both in sync
+        });
+
+        console.log(`📸 Admin uploaded ${newUrls.length} photo(s) to ${slug}`);
+
+        res.json({
+            message: '✅ Photos uploaded',
+            photos: updated.photos,
+            images: updated.images
+        });
+    } catch (error) {
+        console.error('Admin photo upload error:', error);
+        res.status(500).json({ message: 'Failed to upload photos', error: error.message });
     }
 });
 
