@@ -1374,7 +1374,13 @@ app.get('/api/test-email', authenticate, async (req, res) => {
 });
 
 // ─── Static Files ───────────────────────────────────────────────
-app.use(express.static('.', {
+// ─── Static Files ───────────────────────────────────────────────
+// Build the static handler once, but only invoke it for paths that
+// should be served as literal files. Profile and city pages are
+// rendered dynamically from MongoDB further down this file, so we
+// skip static for those paths even when a pre-generated file
+// exists on disk. That way admin edits are reflected immediately.
+const staticHandler = express.static('.', {
     maxAge: '1d',
     dotfiles: 'ignore',
     setHeaders: (res, filePath) => {
@@ -1388,7 +1394,17 @@ app.use(express.static('.', {
             res.setHeader('Cache-Control', 'public, max-age=86400');
         }
     }
-}));
+});
+
+app.use((req, res, next) => {
+    const p = req.path;
+    // Skip static for profile pages and city pages — let the dynamic
+    // routes serve fresh MongoDB data instead of stale disk files.
+    if (/^\/profiles\/[^/]+\.html$/i.test(p) || /^\/[^/]+-escorts\.html$/i.test(p)) {
+        return next();
+    }
+    return staticHandler(req, res, next);
+});
 
 // ─── Explicit Page Routes ───────────────────────────────────────
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
