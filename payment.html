@@ -42,7 +42,7 @@
     .btn-pay:hover { background: #128C7E; }
     .btn-pay i { margin-right: 10px; }
     .btn-pay:disabled { opacity: 0.7; cursor: not-allowed; }
-    .payment-status { padding: 12px; border-radius: 8px; margin: 15px 0; display: none; font-weight: 500; }
+    .payment-status { padding: 12px; border-radius: 8px; margin: 15px 0; display: none; font-weight: 500; line-height: 1.5; }
     .payment-status.success { display: block; background: #1a3a2a; color: #4CAF50; border-left: 4px solid #4CAF50; }
     .payment-status.error { display: block; background: #3a1a1a; color: #ff6b6b; border-left: 4px solid #ff6b6b; }
     .payment-status.info { display: block; background: #1a2a3a; color: #4a9aff; border-left: 4px solid #4a9aff; }
@@ -134,8 +134,8 @@
 
       <div id="successMessage">
         <div class="success-icon"><i class="fas fa-check-circle"></i></div>
-        <h2>✅ Subscription Active!</h2>
-        <p id="successText">Your Premium (Daily) subscription is now active.</p>
+        <h2>✅ Payment Confirmed — Subscription Active!</h2>
+        <p id="successText">Your subscription is now active.</p>
         <a href="/dashboard.html" style="display: inline-block; margin-top: 15px; padding: 12px 30px; background: #c7a76c; color: #0d0d0d; border-radius: 8px; text-decoration: none; font-weight: 600;">Go to Dashboard</a>
         <a href="/" style="display: inline-block; margin-top: 15px; margin-left: 10px; padding: 12px 30px; border: 2px solid #c7a76c; border-radius: 8px; color: #c7a76c; text-decoration: none; font-weight: 600;">View Homepage</a>
       </div>
@@ -151,7 +151,6 @@
 <script>
     // ─── API Configuration ─────────────────────────────────────────
     const API_BASE = 'https://fineescorts.co.ke';
-    
     const RECAPTCHA_SITE_KEY = '6LdN6BIuAAAAAIRBFMjpOFsUZ5R-htQKFoGsAtb5';
 
     const PRICING = {
@@ -163,26 +162,26 @@
     const DURATION_NAMES = { daily: 'Daily (24hrs)', weekly: 'Weekly (7 days)', monthly: 'Monthly (30 days)' };
 
     // ─── Polling config ────────────────────────────────────────────
-    // Poll every 2s for up to 90s. Trust the backend callback over
-    // Sarahapay's view. Sarahapay marks stale pending txs FAILED after
-    // 30s, so we require TWO sightings + a final profile check before
-    // declaring a failure.
-    const POLL_INTERVAL = 2000;
-    const MAX_ATTEMPTS  = 45;     // 90 seconds
-    const SLOW_MSG_AFTER = 20000; // show "still waiting" hint after 20s
+    // Poll the backend's authoritative record of THIS specific
+    // checkout_request_id. Success fires ONLY when the Tuma callback
+    // has marked that record `completed`. No false positives.
+    const POLL_INTERVAL   = 3000;    // every 3 seconds
+    const POLL_TIMEOUT_MS = 180000;  // give up after 3 minutes
 
     let selectedDuration = 'daily';
     let selectedTier = 'premium';
     let currentAmount = 99;
     let pollingInterval = null;
-    let pollingAttempts = 0;
-    let waitingTimer = null;
-    let failedSightings = 0;
+    let pollingStartedAt = 0;
+    let slowReminderFired = false;
 
+    // ─── Session helpers ──────────────────────────────────────────
     function getUserEmail() {
         return localStorage.getItem('userEmail') || '';
     }
-
+    function getToken() {
+        return localStorage.getItem('token') || '';
+    }
     function getParams() {
         var params = new URLSearchParams(window.location.search);
         return {
@@ -192,6 +191,7 @@
         };
     }
 
+    // ─── UI handlers ──────────────────────────────────────────────
     function selectDuration(duration) {
         selectedDuration = duration;
         document.querySelectorAll('.duration-btn').forEach(function(btn) {
@@ -229,7 +229,7 @@
         document.getElementById('phoneNumber').disabled = false;
     }
 
-    // ─── INITIATE PAYMENT ──────────────────────────────────────────
+    // ─── INITIATE PAYMENT ─────────────────────────────────────────
     async function initiatePayment() {
         var userPhone = document.getElementById('phoneNumber').value.trim();
         if (!userPhone) {
@@ -253,19 +253,16 @@
         var originalText = payBtn.innerHTML;
         payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending prompt...';
         payBtn.disabled = true;
-        showStatus('Initiating M-Pesa payment...', 'info');
+        showStatus('Initiating M-Pesa payment…', 'info');
 
-        // ─── Generate reCAPTCHA token ──────────────────────────────
+        // ─── Generate reCAPTCHA token ─────────────────────────────
         var recaptchaToken = '';
         try {
             if (typeof grecaptcha === 'undefined') {
                 throw new Error('reCAPTCHA not loaded');
             }
             recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'payment' });
-            console.log('✅ reCAPTCHA token generated');
-            if (!recaptchaToken || recaptchaToken.length === 0) {
-                throw new Error('Token is empty');
-            }
+            if (!recaptchaToken) throw new Error('Token is empty');
         } catch (err) {
             console.error('reCAPTCHA error:', err);
             showStatus('Security verification failed. Please refresh and try again.', 'error');
@@ -274,32 +271,29 @@
             return;
         }
 
-        // ─── Build payload ─────────────────────────────────────────
+        // ─── Build payload ────────────────────────────────────────
+        // Server resolves tier+duration to canonical amount.
         var payload = {
-            name:   TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] + ')',
             phone:  formattedPhone,
-            amount: currentAmount,
-            email:  getUserEmail()
+            tier:   selectedTier,
+            duration: selectedDuration,
+            amount: currentAmount
         };
-        console.log('📤 Sending payload:', payload);
 
-        // ─── Send payment request ──────────────────────────────────
+        // ─── Send payment request ─────────────────────────────────
         try {
-                                var response = await fetch(API_BASE + '/api/pay', {
+            var response = await fetch(API_BASE + '/api/pay', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + (localStorage.getItem('token') || ''),
+                    'Authorization': 'Bearer ' + getToken(),
                     'X-Recaptcha-Token': recaptchaToken
                 },
                 body: JSON.stringify(payload)
             });
             var data = await response.json();
-            console.log('📥 Response:', data);
 
             if (response.ok && data.transactionId) {
-                showStatus('✅ M-Pesa prompt sent! Check your phone and enter PIN.', 'success');
-                payBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Waiting for PIN...';
                 startPaymentPolling(data.transactionId);
             } else {
                 throw new Error(data.error || data.details || data.message || 'Payment initiation failed');
@@ -312,143 +306,122 @@
         }
     }
 
-    // ─── POLLING ───────────────────────────────────────────────────
-    // Primary source of truth: the profile has been activated by the
-    // backend /payment-callback. Secondary: Sarahapay's explicit fail
-    // state — but only after two consecutive sightings and a final
-    // profile re-check, because Sarahapay auto-flags stale pending
-    // transactions as FAILED at ~30s.
-    function startPaymentPolling(transactionId) {
+    // ─── POLL THE SPECIFIC PAYMENT ────────────────────────────────
+    // The ONLY source of truth. Fires success only when the server's
+    // /payment-callback has flipped THIS checkout_request_id to
+    // `completed`. Requires the client to enter their PIN — no path
+    // short-circuits to "approved" before that.
+    function startPaymentPolling(checkoutRequestId) {
         if (pollingInterval) clearInterval(pollingInterval);
-        if (waitingTimer) clearTimeout(waitingTimer);
-        pollingAttempts = 0;
-        failedSightings = 0;
+        pollingStartedAt = Date.now();
+        slowReminderFired = false;
 
-        showStatus('📲 Check your phone — enter your M-Pesa PIN to complete payment.', 'info');
+        // Green would signal "done." Use the amber `waiting` class
+        // to make it unmistakable that the client still has an action.
+        showStatus(
+            '📲 <strong>M-Pesa prompt sent to your phone.</strong><br>' +
+            'Open the M-Pesa menu on your phone and <strong>enter your PIN</strong> to confirm the payment.<br>' +
+            '<em>Your subscription activates automatically once payment is confirmed.</em>',
+            'waiting'
+        );
 
-        waitingTimer = setTimeout(function() {
-            showStatus('⏳ Still waiting for confirmation. If you haven\'t entered your PIN yet, please do so — your subscription will activate automatically once the payment completes.', 'info');
-        }, SLOW_MSG_AFTER);
+        var payBtn = document.getElementById('payNowBtn');
+        payBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Waiting for your PIN…';
+        payBtn.disabled = true;
+        document.getElementById('phoneNumber').disabled = true;
 
-        pollingInterval = setInterval(async function() {
-            pollingAttempts++;
-
-            // ─── PRIMARY: has the profile been activated by the callback? ─
-            var profileResult = await checkProfileActivated();
-            if (profileResult.activated) {
+        pollingInterval = setInterval(async function () {
+            // Hard timeout
+            if (Date.now() - pollingStartedAt > POLL_TIMEOUT_MS) {
                 clearInterval(pollingInterval);
-                clearTimeout(waitingTimer);
-                handlePaymentSuccess(profileResult.profile);
+                showTimeoutMessage(checkoutRequestId);
                 return;
             }
 
-            // ─── SECONDARY: Sarahapay's own view of the transaction ───
-            var txResult = await checkTransactionStatus(transactionId);
+            try {
+                var res = await fetch(API_BASE + '/api/payment-status/' + encodeURIComponent(checkoutRequestId), {
+                    headers: { 'Authorization': 'Bearer ' + getToken() }
+                });
+                if (!res.ok) return; // transient — keep polling
+                var s = await res.json();
 
-            if (txResult.status === 'CANCELLED') {
-                // User explicitly cancelled the prompt — safe to say so
-                clearInterval(pollingInterval);
-                clearTimeout(waitingTimer);
-                showTerminalError(
-                    'You cancelled the M-Pesa prompt.',
-                    'No charge was made. You can try again with the button below.'
-                );
-                return;
-            }
-
-            if (txResult.status === 'FAILED' || txResult.status === 'REVERSED') {
-                // Sarahapay may mark a still-in-flight payment as FAILED
-                // after ~30s. Give it one more cycle before we commit.
-                failedSightings++;
-
-                if (txResult.status === 'REVERSED' || failedSightings >= 2) {
-                    // Final profile check — the callback may have landed
-                    // while we were deciding.
-                    var finalCheck = await checkProfileActivated();
-                    if (finalCheck.activated) {
-                        clearInterval(pollingInterval);
-                        clearTimeout(waitingTimer);
-                        handlePaymentSuccess(finalCheck.profile);
-                        return;
-                    }
+                if (s.status === 'completed') {
                     clearInterval(pollingInterval);
-                    clearTimeout(waitingTimer);
+                    handlePaymentSuccess(s);
+                    return;
+                }
+
+                if (s.status === 'failed') {
+                    clearInterval(pollingInterval);
+                    var reason = s.resultDesc ? ' Reason: <em>' + s.resultDesc + '</em>.' : '';
                     showTerminalError(
-                        'Payment could not be confirmed.',
-                        'If you were charged, please refresh this page in a minute — your subscription will activate automatically. If you weren\'t charged, you can try again below.'
+                        'Payment was not completed.',
+                        'No charge was made.' + reason + ' You can try again below.'
                     );
                     return;
                 }
-                // Not confirmed twice yet — keep polling
-                return;
-            }
 
-            // ─── TIMEOUT after 90s ─────────────────────────────────────
-            if (pollingAttempts >= MAX_ATTEMPTS) {
-                clearInterval(pollingInterval);
-                clearTimeout(waitingTimer);
-                showTimeoutMessage();
+                // `pending`, `unknown`, `paid_no_profile` — keep waiting.
+                // Show progressive gentle reminders so the user knows
+                // the page is alive and what's expected of them.
+                var elapsed = Date.now() - pollingStartedAt;
+                if (elapsed > 30000 && !slowReminderFired) {
+                    slowReminderFired = true;
+                    showStatus(
+                        '⏳ <strong>Still waiting for your PIN confirmation.</strong><br>' +
+                        'Please check your phone — the M-Pesa prompt will stay open for about 60 seconds. ' +
+                        'Enter your PIN before it expires.',
+                        'info'
+                    );
+                } else if (elapsed > 90000) {
+                    showStatus(
+                        '⏳ <strong>Still waiting for M-Pesa to confirm.</strong><br>' +
+                        'If you entered your PIN, confirmation can take up to 2 minutes. ' +
+                        'Please keep this page open.',
+                        'info'
+                    );
+                }
+            } catch (e) {
+                // Network blip — do NOT declare failure, just try again next tick
+                console.error('Poll error (will retry):', e);
             }
         }, POLL_INTERVAL);
     }
 
-    // ─── CHECK PROFILE ACTIVATION ──────────────────────────────────
-    // Reads the authoritative state from the server. The backend callback
-    // sets isApproved=true and subscriptionExpiry when a payment succeeds.
-    async function checkProfileActivated() {
-        const token = localStorage.getItem('token');
-        if (!token) return { activated: false };
-        try {
-            const res = await fetch(API_BASE + '/api/profiles/me', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
-            if (!res.ok) return { activated: false };
-            const profile = await res.json();
-            const activated = profile.isApproved === true && !!profile.subscriptionExpiry;
-            return { activated, profile };
-        } catch (e) {
-            return { activated: false };
-        }
-    }
-
-    // ─── CHECK SARAHAPAY TRANSACTION STATUS ────────────────────────
-    async function checkTransactionStatus(transactionId) {
-        try {
-            const res = await fetch(API_BASE + '/api/transaction/' + transactionId);
-            if (!res.ok) return { status: 'PENDING' };
-            const data = await res.json();
-            return { status: data.status };
-        } catch (e) {
-            return { status: 'PENDING' };
-        }
-    }
-
-    // ─── SUCCESS HANDLER ───────────────────────────────────────────
-    // No frontend activation call — the backend callback already did it.
-    function handlePaymentSuccess(profile) {
-        showStatus('✅ Payment successful! Your profile is now live.', 'success');
+    // ─── SUCCESS (only after backend confirms THIS payment) ───────
+    function handlePaymentSuccess(statusData) {
+        showStatus('✅ Payment confirmed! Your profile is now live.', 'success');
         document.getElementById('paymentForm').style.display = 'none';
+
+        var receipt = statusData && statusData.mpesaReceipt ? statusData.mpesaReceipt : 'N/A';
+        var tier     = (statusData && statusData.tier)     || selectedTier;
+        var duration = (statusData && statusData.duration) || selectedDuration;
+
+        document.getElementById('successText').innerHTML =
+            'Your <strong>' + (TIER_NAMES[tier] || tier) +
+            '</strong> (' + (DURATION_NAMES[duration] || duration) +
+            ') subscription is now active.<br>' +
+            'M-Pesa receipt: <code>' + receipt + '</code><br>' +
+            '<span style="color:#4CAF50;">✅ Your profile is now visible to clients!</span>';
+
         document.getElementById('successMessage').style.display = 'block';
-        document.getElementById('successText').textContent =
-            'Your ' + TIER_NAMES[selectedTier] + ' (' + DURATION_NAMES[selectedDuration] +
-            ') subscription is now active. ✅ Your profile is visible to clients!';
 
         localStorage.setItem('subscription_package', JSON.stringify({
-            tier: selectedTier,
-            duration: selectedDuration,
-            amount: currentAmount
+            tier: tier,
+            duration: duration,
+            receipt: receipt
         }));
 
-        setTimeout(function() {
+        setTimeout(function () {
             window.location.href = '/dashboard.html';
-        }, 3000);
+        }, 3500);
     }
 
-    // ─── TERMINAL ERROR (with clear recovery path) ─────────────────
+    // ─── TERMINAL ERROR (payment will not succeed) ────────────────
     function showTerminalError(headline, hint) {
         var statusDiv = document.getElementById('paymentStatus');
         statusDiv.innerHTML =
-            '<div style="font-weight:600; margin-bottom:6px;">' + headline + '</div>' +
+            '<div style="font-weight:600; margin-bottom:6px;">❌ ' + headline + '</div>' +
             '<div style="font-weight:400; font-size:14px;">' + hint + '</div>';
         statusDiv.className = 'payment-status error';
         statusDiv.style.display = 'block';
@@ -457,16 +430,20 @@
         if (payBtn) {
             payBtn.innerHTML = '<i class="fas fa-redo"></i> Try Again';
             payBtn.disabled = false;
-            payBtn.onclick = function() { window.location.reload(); };
+            payBtn.onclick = function () { window.location.reload(); };
         }
+        document.getElementById('phoneNumber').disabled = false;
     }
 
-    // ─── TIMEOUT MESSAGE (soft, with re-check) ─────────────────────
-    function showTimeoutMessage() {
+    // ─── TIMEOUT (soft — user can re-check) ───────────────────────
+    function showTimeoutMessage(checkoutRequestId) {
         var statusDiv = document.getElementById('paymentStatus');
         statusDiv.innerHTML =
-            '<div style="font-weight:600; margin-bottom:6px;">⏳ Payment not confirmed yet</div>' +
-            '<div style="font-weight:400; font-size:14px;">If you completed the M-Pesa prompt, your subscription will activate automatically in the next minute. If not, click below to re-check.</div>';
+            '<div style="font-weight:600; margin-bottom:6px;">⏳ No confirmation received yet</div>' +
+            '<div style="font-weight:400; font-size:14px;">' +
+            'If you entered your PIN, the payment may still be processing — click <strong>Check Status</strong> below in a moment. ' +
+            'If you did not enter your PIN, click <strong>Try Again</strong> to send a new prompt.' +
+            '</div>';
         statusDiv.className = 'payment-status info';
         statusDiv.style.display = 'block';
 
@@ -474,43 +451,47 @@
         if (payBtn) {
             payBtn.innerHTML = '<i class="fas fa-sync"></i> Check Status Now';
             payBtn.disabled = false;
-            payBtn.onclick = async function() {
-                payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            payBtn.onclick = async function () {
+                payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking…';
                 payBtn.disabled = true;
-                var result = await checkProfileActivated();
-                if (result.activated) {
-                    handlePaymentSuccess(result.profile);
-                } else {
-                    showTimeoutMessage();
-                }
+                try {
+                    var res = await fetch(API_BASE + '/api/payment-status/' + encodeURIComponent(checkoutRequestId), {
+                        headers: { 'Authorization': 'Bearer ' + getToken() }
+                    });
+                    var s = await res.json();
+                    if (s.status === 'completed') {
+                        handlePaymentSuccess(s);
+                        return;
+                    }
+                    if (s.status === 'failed') {
+                        showTerminalError(
+                            'Payment was not completed.',
+                            (s.resultDesc ? 'Reason: <em>' + s.resultDesc + '</em>. ' : '') +
+                            'No charge was made. Please try again below.'
+                        );
+                        return;
+                    }
+                } catch (e) { /* fall through to timeout message */ }
+                showTimeoutMessage(checkoutRequestId);
             };
         }
+        document.getElementById('phoneNumber').disabled = false;
     }
 
-    // ─── RESET PAY BUTTON ──────────────────────────────────────────
-    function resetPayButton() {
-        var payBtn = document.getElementById('payNowBtn');
-        payBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Pay KES ' + currentAmount +
-                           ' for ' + TIER_NAMES[selectedTier] +
-                           ' (' + DURATION_NAMES[selectedDuration] + ')';
-        payBtn.disabled = false;
-        payBtn.onclick = initiatePayment;
-    }
-
-    // ─── STATUS HELPER ─────────────────────────────────────────────
+    // ─── Status box helper ────────────────────────────────────────
     function showStatus(message, type) {
         var statusDiv = document.getElementById('paymentStatus');
-        statusDiv.textContent = message;
+        statusDiv.innerHTML = message;
         statusDiv.className = 'payment-status ' + type;
         statusDiv.style.display = 'block';
     }
 
-    // ─── INIT ──────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function() {
+    // ─── Init ─────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
         var params = getParams();
         if (params.email) localStorage.setItem('userEmail', params.email);
-        if (params.duration) selectDuration(params.duration);
-        if (params.package)  selectPackage(params.package);
+        if (params.duration && PRICING[params.duration]) selectDuration(params.duration);
+        if (params.package  && TIER_NAMES[params.package]) selectPackage(params.package);
         updatePrices();
         updatePayButton();
     });
