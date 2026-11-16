@@ -1357,6 +1357,42 @@ app.get('/api/transaction/:id', (req, res) => {
     });
 });
 
+// ─── Real payment status (drives frontend polling) ─────────────
+app.get('/api/payment-status/:checkoutRequestId', authenticate, async (req, res) => {
+    try {
+        const { checkoutRequestId } = req.params;
+
+        const pendingCol = getCollection('pendingPayments');
+        if (!pendingCol) return res.status(500).json({ error: 'Database unavailable' });
+
+        const pending = await pendingCol.findOne({ checkoutRequestId });
+        if (!pending) {
+            return res.json({ status: 'unknown', message: 'No payment record for this ID' });
+        }
+
+        // Ownership check — the requester must be the payer
+        if (pending.userId !== req.userId) {
+            return res.status(403).json({ error: 'Not your payment' });
+        }
+
+        // 'pending'   → STK sent, waiting for PIN
+        // 'failed'    → M-Pesa declined/timeout/cancelled
+        // 'completed' → success, callback fired
+        // 'paid_no_profile' → callback fired but no matching profile (edge case)
+        res.json({
+            status: pending.status,                    // pending | failed | completed | paid_no_profile
+            resultDesc: pending.resultDesc || null,    // e.g. "Request cancelled by user"
+            mpesaReceipt: pending.mpesaReceipt || null,
+            tier: pending.tier,
+            duration: pending.duration,
+            amount: pending.amount
+        });
+    } catch (err) {
+        console.error('payment-status error:', err);
+        res.status(500).json({ error: 'Failed to check status' });
+    }
+});
+
 // ─── Test Email (admin only) ────────────────────────────────────
 app.get('/api/test-email', authenticate, async (req, res) => {
     const admin = await requireAdmin(req, res);
