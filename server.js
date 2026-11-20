@@ -82,7 +82,7 @@ app.use((req, res, next) => {
         p.startsWith('/node_modules/') ||
         p.startsWith('/emailTemplates/') ||
         p.startsWith('/templates/') ||
-        p.startsWith('/data/') ||
+        (p.startsWith('/data/') && !p.startsWith('/data/blog-')) ||
         /^\/[^/]+\.(js|json)$/i.test(p)
     ) {
         return res.status(404).send('Not found');
