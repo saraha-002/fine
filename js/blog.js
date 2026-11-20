@@ -111,7 +111,7 @@
     const loadingSpinner = document.getElementById('loadingSpinner');
     const blogGrid = document.getElementById('blogGrid');
     try {
-      const res = await fetch('/data/posts.json');
+      const res = await fetch('/data/blog-posts.json');
       if (!res.ok) throw new Error('Failed to load posts');
       allPosts = await res.json();
       console.log(`✅ Loaded ${allPosts.length} blog posts`);

@@ -78,14 +78,14 @@
 
   // ---------- Load posts.json and profiles.json ----------
   Promise.all([
-    fetch('/data/posts.json').then(res => {
+    fetch('/data/blog-posts.json').then(res => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     }).catch(err => {
       console.error('❌ Failed to load posts.json:', err);
       return [];
     }),
-    fetch('/data/profiles.json').then(res => {
+    fetch('/api/profiles').then(res => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     }).catch(err => {
