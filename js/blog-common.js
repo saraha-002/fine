@@ -97,9 +97,10 @@
     
     // ----- Filter posts by city (category field in posts.json) -----
     console.log(`📚 Total posts loaded: ${allPosts.length}`);
-    const sameCityPosts = allPosts.filter(post => {
-      const postCity = post.category ? post.category.toLowerCase().trim() : '';
-      return postCity === cityLower;
+       const sameCityPosts = allPosts.filter(post => {
+      // Blog JSON uses `city`; older version used `category` — support both
+      const raw = post.city || post.category || '';
+      return raw.toLowerCase().trim() === cityLower;
     });
     console.log(`📊 Found ${sameCityPosts.length} blog posts for "${currentCity}"`);
     
@@ -157,9 +158,9 @@
       } else {
         escortsContainer.innerHTML = selectedEscorts.map(escort => `
           <div class="escort-card-small">
-            <img src="${escort.images?.[0] || ''}" alt="${escapeHtml(escort.name)}" loading="lazy">
-            <h4>${escapeHtml(escort.name)}</h4>
-            <p>${escapeHtml(escort.city)}</p>
+            <img src="${escort.photos?.[0] || escort.images?.[0] || ''}" alt="${escapeHtml(escort.displayName || escort.name)}" loading="lazy">
+<h4>${escapeHtml(escort.displayName || escort.name)}</h4>
+<p>${escapeHtml(escort.city || escort.location)}</p>
             <a href="../profiles/${encodeURIComponent(escort.slug)}.html">View Profile</a>
           </div>
         `).join('');
