@@ -1512,6 +1512,28 @@ app.get('/profiles/:slug.html', async (req, res) => {
                 </div>
             `).join('');
         }
+                // ─── Build bio with "Read More" toggle for long descriptions ───
+        let bioHtml = '<p>No description available.</p>';
+        if (profile.description) {
+            const bioText = String(profile.description).trim();
+            const PREVIEW_LENGTH = 280;
+            if (bioText.length > PREVIEW_LENGTH) {
+                let previewText = bioText.slice(0, PREVIEW_LENGTH).trim();
+                // cut at last space so we don't split a word
+                const lastSpace = previewText.lastIndexOf(' ');
+                if (lastSpace > PREVIEW_LENGTH - 40) previewText = previewText.slice(0, lastSpace);
+                previewText = previewText.replace(/[.,;:!?]$/, '') + '…';
+
+                const safeId = (profile.slug || slug).replace(/[^a-zA-Z0-9-]/g, '');
+                bioHtml = `
+                    <div class="bio-preview" id="preview-${safeId}">${escapeHtml(previewText)}</div>
+                    <div class="bio-full" id="full-${safeId}" style="display:none;">${escapeHtml(bioText)}</div>
+                    <button type="button" class="toggle-bio-btn" data-slug="${safeId}">▾ Read More</button>
+                `;
+            } else {
+                bioHtml = `<p>${escapeHtml(bioText)}</p>`;
+            }
+        }
 
         const context = {
             name: displayName,
@@ -1530,7 +1552,7 @@ app.get('/profiles/:slug.html', async (req, res) => {
                 ? new Date(profile.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' })
                 : 'Recently',
             gallery: galleryHtml,
-            bioHtml: profile.description ? `<p>${escapeHtml(profile.description)}</p>` : '<p>No description available.</p>',
+            bioHtml: bioHtml,
             services: (profile.services && profile.services.length > 0)
                 ? profile.services.map(s => `<span class="service">${escapeHtml(s)}</span>`).join('')
                 : getServiceCluster(profile),
@@ -1560,13 +1582,27 @@ app.get('/profiles/:slug.html', async (req, res) => {
             socialMedia: [],
             firstName: displayName.split(' ')[0] || displayName,
             lastName: displayName.split(' ').slice(1).join(' ') || '',
-            viewCounterScript: `<script>
+                       viewCounterScript: `<script>
                 (async function() {
                     try {
                         const slug = window.location.pathname.split('/').pop().replace('.html', '');
                         await fetch('/api/profiles/' + slug + '/view', { method: 'POST' });
                     } catch (e) {}
                 })();
+
+                // Bio "Read More" toggle
+                document.addEventListener('click', function (e) {
+                    const btn = e.target.closest('.toggle-bio-btn');
+                    if (!btn) return;
+                    const slug = btn.dataset.slug;
+                    const preview = document.getElementById('preview-' + slug);
+                    const full = document.getElementById('full-' + slug);
+                    if (!preview || !full) return;
+                    const isOpen = full.style.display !== 'none';
+                    preview.style.display = isOpen ? '' : 'none';
+                    full.style.display   = isOpen ? 'none' : '';
+                    btn.textContent = isOpen ? '▾ Read More' : '▴ Read Less';
+                });
             </script>`
         };
 
